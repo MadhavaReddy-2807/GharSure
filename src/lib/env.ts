@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const envSchema = z.object({
+  DATABASE_URL: z.string().optional(),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url().default("https://demo-gharsure-project.supabase.co"),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).default("demo-anon-key"),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).default("demo-service-role-key"),

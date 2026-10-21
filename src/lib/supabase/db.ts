@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { getSupabaseServerClient } from "./server";
+import { isDirectDatabaseConfigured, getDirectSql } from "./direct-db";
 import { getEnv } from "../env";
 import { verifyOtpHash } from "../otp";
 
@@ -186,7 +187,57 @@ export async function createOtpChallenge({
   const env = getEnv();
   const now = new Date();
 
-  // 1. Check rate limits & resend cooldown
+  // 1. Direct PostgreSQL connection via connection string
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const latest = await sql<OtpChallengeRecord[]>`
+        SELECT * FROM otp_challenges
+        WHERE phone_e164 = ${phoneE164}
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      if (latest.length > 0) {
+        const createdAt = new Date(latest[0].created_at).getTime();
+        const elapsedSeconds = Math.floor((now.getTime() - createdAt) / 1000);
+
+        if (elapsedSeconds < env.OTP_RESEND_COOLDOWN_SECONDS) {
+          const waitTime = env.OTP_RESEND_COOLDOWN_SECONDS - elapsedSeconds;
+          return {
+            success: false,
+            error: `Please wait ${waitTime}s before requesting another OTP.`,
+            retryAfterSeconds: waitTime,
+          };
+        }
+      }
+
+      const oneHourAgo = new Date(now.getTime() - 3600 * 1000).toISOString();
+      const countRes = await sql<{ count: string }[]>`
+        SELECT COUNT(*)::text as count FROM otp_challenges
+        WHERE phone_e164 = ${phoneE164} AND created_at >= ${oneHourAgo}
+      `;
+      const count = parseInt(countRes[0]?.count || "0", 10);
+      if (count >= env.OTP_MAX_SENDS_PER_WINDOW) {
+        return {
+          success: false,
+          error: "Too many OTP requests for this number. Please try again in an hour.",
+        };
+      }
+
+      const expiresAt = new Date(now.getTime() + env.OTP_EXPIRY_SECONDS * 1000).toISOString();
+      await sql`
+        INSERT INTO otp_challenges (phone_e164, otp_hash, attempts, max_attempts, expires_at, ip_address)
+        VALUES (${phoneE164}, ${otpHash}, 0, ${env.OTP_MAX_ATTEMPTS}, ${expiresAt}, ${ipAddress || null})
+      `;
+
+      return { success: true };
+    } catch (err) {
+      console.warn("[Direct DB] Failed or unreachable, falling back:", (err as Error).message);
+    }
+  }
+
+  // 2. Check rate limits & resend cooldown via Supabase REST API
   if (isLiveSupabaseAvailable()) {
     try {
       const supabase = getSupabaseServerClient();
@@ -307,6 +358,77 @@ export async function verifyOtpChallenge({
 }> {
   const now = new Date();
 
+  // 1. Direct PostgreSQL connection via connection string
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const challenges = await sql<OtpChallengeRecord[]>`
+        SELECT * FROM otp_challenges
+        WHERE phone_e164 = ${phoneE164} AND verified_at IS NULL
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      if (challenges.length === 0) {
+        return {
+          success: false,
+          error: "No active verification challenge found. Please request a new OTP.",
+          errorCode: "NOT_FOUND",
+        };
+      }
+
+      const challenge = challenges[0];
+
+      // Check expiration
+      if (new Date(challenge.expires_at) < now) {
+        return {
+          success: false,
+          error: "OTP has expired. Please request a new code.",
+          errorCode: "EXPIRED",
+        };
+      }
+
+      // Check max attempts
+      if (challenge.attempts >= challenge.max_attempts) {
+        return {
+          success: false,
+          error: "Maximum verification attempts exceeded. Please request a new OTP.",
+          errorCode: "MAX_ATTEMPTS_EXCEEDED",
+        };
+      }
+
+      // Increment attempt counter
+      await sql`
+        UPDATE otp_challenges
+        SET attempts = ${challenge.attempts + 1}
+        WHERE id = ${challenge.id}
+      `;
+
+      const isValid = verifyOtpHash(candidateOtp, challenge.otp_hash, phoneE164);
+
+      if (!isValid) {
+        const remaining = challenge.max_attempts - (challenge.attempts + 1);
+        return {
+          success: false,
+          error: remaining > 0 ? `Incorrect OTP. ${remaining} attempt(s) remaining.` : "Incorrect OTP. Maximum attempts exceeded.",
+          errorCode: "INVALID_CODE",
+        };
+      }
+
+      // Mark challenge as verified
+      await sql`
+        UPDATE otp_challenges
+        SET verified_at = ${now.toISOString()}
+        WHERE id = ${challenge.id}
+      `;
+
+      return { success: true };
+    } catch (err) {
+      console.warn("[Direct DB] Fallback to in-memory store during verify:", (err as Error).message);
+    }
+  }
+
+  // 2. Supabase REST API check
   if (isLiveSupabaseAvailable()) {
     try {
       const supabase = getSupabaseServerClient();
@@ -431,6 +553,26 @@ export async function verifyOtpChallenge({
 export async function getOrCreateCustomer(phoneE164: string): Promise<CustomerRecord> {
   const now = new Date().toISOString();
 
+  // 1. Direct PostgreSQL connection via connection string
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const rows = await sql<CustomerRecord[]>`
+        INSERT INTO customers (phone_e164, phone_verified_at)
+        VALUES (${phoneE164}, NOW())
+        ON CONFLICT (phone_e164)
+        DO UPDATE SET phone_verified_at = NOW(), updated_at = NOW()
+        RETURNING *
+      `;
+      if (rows && rows.length > 0) {
+        return rows[0];
+      }
+    } catch (err) {
+      console.warn("[Direct DB] Fallback during getOrCreateCustomer:", (err as Error).message);
+    }
+  }
+
+  // 2. Supabase REST API
   if (isLiveSupabaseAvailable()) {
     try {
       const supabase = getSupabaseServerClient();
@@ -466,6 +608,23 @@ export async function getOrCreateCustomer(phoneE164: string): Promise<CustomerRe
 }
 
 export async function getCustomerById(id: string): Promise<CustomerRecord | null> {
+  // 1. Direct PostgreSQL connection via connection string
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const rows = await sql<CustomerRecord[]>`
+        SELECT * FROM customers WHERE id = ${id}
+      `;
+      if (rows && rows.length > 0) {
+        return rows[0];
+      }
+      return null;
+    } catch (err) {
+      console.warn("[Direct DB] Fallback during getCustomerById:", (err as Error).message);
+    }
+  }
+
+  // 2. Supabase REST API
   if (isLiveSupabaseAvailable()) {
     try {
       const supabase = getSupabaseServerClient();
@@ -496,6 +655,29 @@ export async function updateCustomerProfile(
 ): Promise<CustomerRecord> {
   const now = new Date().toISOString();
 
+  // 1. Direct PostgreSQL connection via connection string
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const rows = await sql<CustomerRecord[]>`
+        UPDATE customers
+        SET full_name = ${profile.fullName.trim()},
+            city = ${profile.city.trim()},
+            display_name = ${profile.displayName?.trim() || null},
+            onboarding_completed = true,
+            updated_at = NOW()
+        WHERE id = ${id}
+        RETURNING *
+      `;
+      if (rows && rows.length > 0) {
+        return rows[0];
+      }
+    } catch (err) {
+      console.warn("[Direct DB] Fallback during updateCustomerProfile:", (err as Error).message);
+    }
+  }
+
+  // 2. Supabase REST API
   if (isLiveSupabaseAvailable()) {
     try {
       const supabase = getSupabaseServerClient();
@@ -541,6 +723,27 @@ export async function logAuditEvent(
   ipAddress?: string,
   metadata?: Record<string, unknown>
 ): Promise<void> {
+  // 1. Direct PostgreSQL connection via connection string
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      await sql`
+        INSERT INTO audit_events (event_type, phone_e164, customer_id, ip_address, metadata)
+        VALUES (
+          ${eventType},
+          ${phoneE164 || null},
+          ${customerId || null},
+          ${ipAddress || null},
+          ${sql.json((metadata as any) || {})}
+        )
+      `;
+      return;
+    } catch (err) {
+      console.warn("[Direct DB] Audit event log failed:", (err as Error).message);
+    }
+  }
+
+  // 2. Supabase REST API
   if (isLiveSupabaseAvailable()) {
     try {
       const supabase = getSupabaseServerClient();
