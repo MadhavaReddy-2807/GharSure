@@ -49,40 +49,70 @@ export async function sendWhatsAppOtp({
   // Real Meta WhatsApp Cloud API call
   const url = `https://graph.facebook.com/${env.META_GRAPH_API_VERSION}/${env.META_WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
-  const requestBody = {
-    messaging_product: "whatsapp",
-    recipient_type: "individual",
-    to: recipientDigits,
-    type: "template",
-    template: {
-      name: env.META_WHATSAPP_OTP_TEMPLATE_NAME,
-      language: {
-        code: env.META_WHATSAPP_OTP_TEMPLATE_LANGUAGE,
-      },
-      components: [
-        {
-          type: "body",
-          parameters: [
-            {
-              type: "text",
-              text: otp,
-            },
-          ],
-        },
-        {
+  // Support both Direct Send interactive authentication (no pre-approved template needed)
+  // and Pre-Approved Authentication Templates.
+  const isDirectSend = env.META_WHATSAPP_OTP_TEMPLATE_NAME.toLowerCase() === "direct";
+
+  const requestBody = isDirectSend
+    ? {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: recipientDigits,
+        type: "interactive",
+        category: "authentication",
+        interactive: {
           type: "button",
-          sub_type: "url",
-          index: "0",
-          parameters: [
+          body: {
+            text: `${otp} is your GharSure verification code. For your security, do not share this code.`,
+          },
+          action: {
+            buttons: [
+              {
+                type: "otp",
+                otp: {
+                  code: otp,
+                  otp_type: "copy_code",
+                  text: "Copy Code",
+                },
+              },
+            ],
+          },
+        },
+      }
+    : {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: recipientDigits,
+        type: "template",
+        template: {
+          name: env.META_WHATSAPP_OTP_TEMPLATE_NAME,
+          language: {
+            code: env.META_WHATSAPP_OTP_TEMPLATE_LANGUAGE,
+          },
+          components: [
             {
-              type: "text",
-              text: otp,
+              type: "body",
+              parameters: [
+                {
+                  type: "text",
+                  text: otp,
+                },
+              ],
+            },
+            {
+              type: "button",
+              sub_type: "url",
+              index: "0",
+              parameters: [
+                {
+                  type: "text",
+                  text: otp,
+                },
+              ],
             },
           ],
         },
-      ],
-    },
-  };
+      };
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -114,7 +144,23 @@ export async function sendWhatsAppOtp({
         // Never log OTP or auth tokens
       });
 
-      // Distinguish common errors
+      // Distinguish common Meta Cloud API errors
+      if (errorCode === 131048) {
+        return {
+          success: false,
+          error: "Daily WhatsApp messaging volume limit reached for your account tier. Please verify business in Meta Business Manager to increase limits.",
+          errorCode: "MESSAGING_LIMIT_REACHED",
+        };
+      }
+
+      if (errorCode === 131056) {
+        return {
+          success: false,
+          error: "Recipient has reached WhatsApp's frequency limit for automated messages. Please try again in a few minutes.",
+          errorCode: "RECIPIENT_FREQUENCY_LIMIT",
+        };
+      }
+
       if (response.status === 429 || errorCode === 130429 || errorCode === 80007) {
         return {
           success: false,
