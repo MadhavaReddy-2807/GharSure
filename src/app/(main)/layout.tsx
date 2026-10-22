@@ -16,16 +16,15 @@ export default async function MainAppLayout({
     <div className="min-h-screen bg-slate-50 flex flex-col antialiased">
       {/* Top Application Header */}
       <AppHeader
-        customerId={customer?.customer_id || session?.readableId}
         fullName={customer?.display_name || customer?.full_name}
       />
 
-      {/* Main Content Area with bottom padding for mobile navigation bar */}
-      <main className="flex-1 max-w-md mx-auto w-full px-4 pt-4 pb-24 md:pb-16 flex flex-col">
+      {/* Main Content Area */}
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 pb-20 md:pb-8 flex flex-col">
         {children}
       </main>
 
-      {/* Persistent Bottom Navigation */}
+      {/* Persistent Bottom Navigation (mobile only, hidden on md+) */}
       <BottomNav />
     </div>
   );

@@ -5,17 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { maskPhone, normalizeIndianPhone } from "@/lib/phone";
-import { ArrowLeft, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
 
 function VerifyOtpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [phone, setPhone] = useState<string>("");
+  const [isReady, setIsReady] = useState(false);
   const [otpDigits, setOtpDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState<number>(60);
   const [isResending, setIsResending] = useState<boolean>(false);
   const [mockHint, setMockHint] = useState<string | null>(null);
@@ -32,9 +32,10 @@ function VerifyOtpContent() {
       router.replace("/auth");
       return;
     }
-    setPhone(normalized);
 
-    // Retrieve dev mock OTP hint if present
+    setPhone(normalized);
+    setIsReady(true);
+
     const devOtp = sessionStorage.getItem("gharsure_dev_mock_otp");
     if (devOtp) {
       setMockHint(devOtp);
@@ -50,17 +51,17 @@ function VerifyOtpContent() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // Focus first input on mount
+  // Focus first input once ready
   useEffect(() => {
-    inputRefs.current[0]?.focus();
-  }, []);
+    if (isReady) {
+      inputRefs.current[0]?.focus();
+    }
+  }, [isReady]);
 
   const handleDigitChange = (index: number, value: string) => {
-    // Only accept numeric digits
     const digitsOnly = value.replace(/\D/g, "");
     if (errorMessage) setErrorMessage(null);
 
-    // Handle single digit input
     if (digitsOnly.length <= 1) {
       const nextDigits = [...otpDigits];
       nextDigits[index] = digitsOnly;
@@ -70,7 +71,6 @@ function VerifyOtpContent() {
         inputRefs.current[index + 1]?.focus();
       }
 
-      // Auto submit if 6th digit entered
       if (digitsOnly && index === 5) {
         const fullOtp = nextDigits.join("");
         if (fullOtp.length === 6) {
@@ -127,12 +127,8 @@ function VerifyOtpContent() {
         return;
       }
 
-      setSuccessMessage("Verified successfully! Redirecting...");
       sessionStorage.removeItem("gharsure_dev_mock_otp");
-
-      setTimeout(() => {
-        router.replace(data.nextStep || "/home");
-      }, 400);
+      router.replace(data.nextStep || "/home");
     } catch {
       setErrorMessage("Network connection error. Please try again.");
       setIsLoading(false);
@@ -168,132 +164,138 @@ function VerifyOtpContent() {
         setMockHint(data.devMockOtp);
       }
     } catch {
-      setErrorMessage("Network error. Could not resend OTP.");
+      setErrorMessage("Network error. Could not resend code.");
     } finally {
       setIsResending(false);
     }
   };
 
+  if (!isReady) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-brand-orange" />
+      </div>
+    );
+  }
+
   const isComplete = otpDigits.every((d) => d.length === 1);
 
   return (
-    <div className="flex-1 min-h-screen bg-white flex flex-col justify-between px-5 py-8 max-w-md mx-auto w-full safe-top safe-bottom">
-      {/* Top Navigation */}
-      <div className="flex items-center justify-between pt-2">
-        <button
-          onClick={() => router.push("/auth")}
-          className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-brand-navy p-2 -ml-2 rounded-lg transition-colors"
-          aria-label="Back to phone number entry"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Edit number</span>
-        </button>
-        <Logo size="sm" />
-      </div>
-
-      {/* Main Form Content */}
-      <div className="my-auto py-6 animate-fade-in">
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight mb-2">
-            Verify WhatsApp Code
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 py-8 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        {/* Brand Header */}
+        <div className="flex flex-col items-center mb-8">
+          <Logo size="lg" className="mb-3" />
+          <h1 className="text-2xl font-bold text-brand-navy tracking-tight">
+            Ghar<span className="text-brand-orange">Sure</span>
           </h1>
-          <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-            We sent a 6-digit verification code to WhatsApp on{" "}
-            <span className="font-semibold text-brand-navy">{maskPhone(phone)}</span>.
-          </p>
+          <p className="text-sm text-slate-500 mt-1">Household Intelligence</p>
         </div>
 
-        {mockHint && (
-          <div className="mb-4 p-3 rounded-xl bg-orange-50 border border-orange-200 text-xs text-brand-orange-800">
-            <span className="font-bold">Dev Mock Mode Active:</span> Use OTP code{" "}
-            <code className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-orange-300 text-brand-orange">
-              {mockHint}
-            </code>
-          </div>
-        )}
-
-        {errorMessage && (
-          <div
-            role="alert"
-            className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2.5"
-          >
-            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <span className="leading-snug">{errorMessage}</span>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="mb-5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm flex items-center gap-2.5">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span>{successMessage}</span>
-          </div>
-        )}
-
-        {/* 6 Digit Input Group */}
-        <div className="flex justify-between gap-2 sm:gap-2.5 mb-6" onPaste={handlePaste}>
-          {otpDigits.map((digit, idx) => (
-            <input
-              key={idx}
-              ref={(el) => {
-                inputRefs.current[idx] = el;
-              }}
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoComplete={idx === 0 ? "one-time-code" : "off"}
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleDigitChange(idx, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(idx, e)}
-              disabled={isLoading}
-              className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold rounded-xl border border-slate-300 bg-white text-brand-navy focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 focus:outline-none transition-all disabled:opacity-50"
-              aria-label={`Digit ${idx + 1}`}
-            />
-          ))}
-        </div>
-
-        <Button
-          onClick={() => triggerVerification()}
-          variant="primary"
-          size="lg"
-          className="w-full text-base font-semibold"
-          isLoading={isLoading}
-          disabled={!isComplete || isLoading}
-        >
-          Verify & Continue
-        </Button>
-
-        {/* Resend Cooldown */}
-        <div className="mt-6 text-center">
-          {cooldown > 0 ? (
-            <p className="text-xs sm:text-sm text-slate-500 font-medium">
-              Resend code via WhatsApp in{" "}
-              <span className="font-bold text-brand-navy font-mono">{cooldown}s</span>
-            </p>
-          ) : (
+        {/* Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
+          <div className="flex items-center justify-between mb-5">
             <button
-              onClick={handleResend}
-              disabled={isResending}
-              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-brand-orange hover:text-brand-orange-700 active:scale-95 transition-all"
+              onClick={() => router.push("/auth")}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-brand-navy transition-colors py-1 px-2 -ml-2 rounded-lg hover:bg-slate-100"
             >
-              <RefreshCw className={`w-4 h-4 ${isResending ? "animate-spin" : ""}`} />
-              <span>Resend WhatsApp Code</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Change number</span>
             </button>
+          </div>
+
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-brand-navy">Verify WhatsApp Code</h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              Sent 6-digit code to <span className="font-semibold text-slate-800">{maskPhone(phone)}</span>
+            </p>
+          </div>
+
+          {mockHint && (
+            <div className="mb-4 p-2.5 rounded-lg bg-orange-50 border border-orange-200 text-xs text-brand-orange flex items-center justify-between">
+              <span>Dev Mock Mode</span>
+              <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-orange-300">
+                {mockHint}
+              </span>
+            </div>
           )}
+
+          {errorMessage && (
+            <div
+              role="alert"
+              className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2"
+            >
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          <div className="space-y-5">
+            <div className="flex justify-between gap-2 sm:gap-2.5" onPaste={handlePaste}>
+              {otpDigits.map((digit, idx) => (
+                <input
+                  key={idx}
+                  ref={(el) => {
+                    inputRefs.current[idx] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleDigitChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(idx, e)}
+                  disabled={isLoading}
+                  className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-bold font-mono text-brand-navy bg-white border border-slate-300 rounded-xl focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 focus:outline-none transition-all disabled:opacity-50"
+                  aria-label={`Digit ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              className="w-full text-sm font-semibold"
+              onClick={() => triggerVerification()}
+              isLoading={isLoading}
+              disabled={!isComplete || isLoading}
+            >
+              Verify OTP
+            </Button>
+
+            <div className="text-center pt-2">
+              {cooldown > 0 ? (
+                <span className="text-xs text-slate-400">
+                  Resend code in {cooldown}s
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={isResending}
+                  className="text-xs font-semibold text-brand-orange hover:underline focus:outline-none"
+                >
+                  {isResending ? "Resending..." : "Resend code via WhatsApp"}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Safety Notice */}
-      <footer className="text-center text-xs text-slate-400 pt-4">
-        Didn&apos;t receive it? Check your WhatsApp notifications or wait for the resend countdown.
-      </footer>
     </div>
   );
 }
 
 export default function VerifyOtpPage() {
   return (
-    <Suspense fallback={<div className="flex-1 bg-white min-h-screen" />}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-brand-orange" />
+        </div>
+      }
+    >
       <VerifyOtpContent />
     </Suspense>
   );

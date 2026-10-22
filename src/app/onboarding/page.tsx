@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, MapPin, User, Sparkles } from "lucide-react";
+import { AlertCircle, User, MapPin, Loader2 } from "lucide-react";
 
 const TOP_CITIES = [
   "Bangalore",
@@ -27,7 +27,6 @@ export default function OnboardingPage() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Restore any incomplete onboarding state on load
   useEffect(() => {
     let isMounted = true;
     async function loadExistingProfile() {
@@ -102,144 +101,135 @@ export default function OnboardingPage() {
 
       router.replace("/home");
     } catch {
-      setErrorMessage("Network error occurred. Your input has been preserved, please retry.");
+      setErrorMessage("Network error occurred. Please try again.");
       setIsLoading(false);
     }
   };
 
   if (isInitializing) {
-    return <div className="flex-1 min-h-screen bg-white" />;
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-brand-orange" />
+      </div>
+    );
   }
 
   return (
-    <div className="flex-1 min-h-screen bg-white flex flex-col justify-between px-5 py-8 max-w-md mx-auto w-full safe-top safe-bottom">
-      {/* Top Header */}
-      <div className="flex items-center justify-between pt-2">
-        <Logo size="md" showText />
-        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-50 text-brand-orange border border-orange-100">
-          Step 2 of 2
-        </span>
-      </div>
-
-      {/* Form Content */}
-      <div className="my-auto py-6 animate-fade-in">
-        <div className="mb-6">
-          <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-orange mb-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Almost there!</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight mb-2">
-            Tell us about yourself
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 py-8 sm:px-6 lg:px-8">
+      <div className="w-full max-w-lg">
+        {/* Brand Header */}
+        <div className="flex flex-col items-center mb-8">
+          <Logo size="lg" className="mb-3" />
+          <h1 className="text-2xl font-bold text-brand-navy tracking-tight">
+            Ghar<span className="text-brand-orange">Sure</span>
           </h1>
-          <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-            Personalize your GharSure household intelligence reports and water quality insights.
-          </p>
+          <p className="text-sm text-slate-500 mt-1">Household Intelligence</p>
         </div>
 
-        {errorMessage && (
-          <div
-            role="alert"
-            className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2.5"
-          >
-            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <span className="leading-snug">{errorMessage}</span>
+        {/* Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-brand-navy">Complete Your Profile</h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              Enter your details to receive local water quality reports and product trials.
+            </p>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Full Name */}
-          <Input
-            id="full-name"
-            label="Full Name *"
-            placeholder="e.g. Priya Sharma"
-            value={fullName}
-            onChange={(e) => {
-              setFullName(e.target.value);
-              if (errorMessage) setErrorMessage(null);
-            }}
-            leftElement={<User className="w-5 h-5 text-slate-400" />}
-            required
-            autoFocus
-            maxLength={100}
-          />
-
-          {/* Display Name (Optional) */}
-          <Input
-            id="display-name"
-            label="Nickname or Preferred Name (Optional)"
-            placeholder="e.g. Priya"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            helperText="How we address you on your household dashboard."
-            maxLength={50}
-          />
-
-          {/* City Selection with Quick-Select Chips */}
-          <div>
-            <label
-              htmlFor="city-input"
-              className="block text-sm font-semibold text-slate-700 mb-1.5"
+          {errorMessage && (
+            <div
+              role="alert"
+              className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2"
             >
-              City *
-            </label>
-
-            {/* Quick chips */}
-            <div className="flex flex-wrap gap-1.5 mb-2.5">
-              {TOP_CITIES.map((c) => {
-                const isSelected = city.toLowerCase() === c.toLowerCase();
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => {
-                      setCity(c);
-                      if (errorMessage) setErrorMessage(null);
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                      isSelected
-                        ? "bg-brand-orange text-white shadow-sm ring-2 ring-brand-orange/30"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                );
-              })}
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
             </div>
+          )}
 
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              id="city-input"
-              placeholder="Or type your city name"
-              value={city}
+              id="full-name"
+              label="Full Name"
+              placeholder="e.g. Priya Sharma"
+              value={fullName}
               onChange={(e) => {
-                setCity(e.target.value);
+                setFullName(e.target.value);
                 if (errorMessage) setErrorMessage(null);
               }}
-              leftElement={<MapPin className="w-5 h-5 text-slate-400" />}
+              leftElement={<User className="w-4 h-4 text-slate-400" />}
               required
+              autoFocus
               maxLength={100}
             />
-          </div>
 
-          <div className="pt-2">
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full text-base font-semibold"
-              isLoading={isLoading}
-              disabled={!fullName.trim() || !city.trim() || isLoading}
-            >
-              Complete Onboarding
-            </Button>
-          </div>
-        </form>
+            <Input
+              id="display-name"
+              label="Preferred Name (Optional)"
+              placeholder="e.g. Priya"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              maxLength={50}
+            />
+
+            <div>
+              <label
+                htmlFor="city-input"
+                className="block text-sm font-medium text-slate-700 mb-1.5"
+              >
+                City
+              </label>
+
+              <div className="flex flex-wrap gap-1.5 mb-2.5">
+                {TOP_CITIES.map((c) => {
+                  const isSelected = city.toLowerCase() === c.toLowerCase();
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        setCity(c);
+                        if (errorMessage) setErrorMessage(null);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors select-none ${
+                        isSelected
+                          ? "bg-brand-orange text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Input
+                id="city-input"
+                placeholder="Or type city name"
+                value={city}
+                onChange={(e) => {
+                  setCity(e.target.value);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+                leftElement={<MapPin className="w-4 h-4 text-slate-400" />}
+                required
+                maxLength={100}
+              />
+            </div>
+
+            <div className="pt-2">
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                className="w-full text-sm font-semibold"
+                isLoading={isLoading}
+                disabled={!fullName.trim() || !city.trim() || isLoading}
+              >
+                Save and Continue
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
-
-      {/* Footer info */}
-      <footer className="text-center text-xs text-slate-400 pt-4">
-        We never share your personal information with third-party advertisers.
-      </footer>
     </div>
   );
 }

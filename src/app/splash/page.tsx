@@ -29,7 +29,6 @@ export default function SplashScreen() {
             }
           }
         }
-        // If not authenticated or error, go to auth
         router.replace("/auth");
       } catch {
         if (isMounted) {
@@ -42,8 +41,7 @@ export default function SplashScreen() {
       }
     }
 
-    // Small delay (350ms) to allow subtle branding fade-in without artificial blocking
-    const timer = setTimeout(checkAuthStatus, 400);
+    const timer = setTimeout(checkAuthStatus, 300);
 
     return () => {
       isMounted = false;
@@ -52,28 +50,14 @@ export default function SplashScreen() {
   }, [router]);
 
   return (
-    <div className="flex-1 min-h-screen bg-white flex flex-col items-center justify-between px-6 py-12 select-none safe-top safe-bottom">
-      <div className="w-full" />
-
-      {/* Center Branding */}
-      <div className="flex flex-col items-center text-center animate-fade-in max-w-sm">
-        <Logo size="xl" className="mb-6 drop-shadow-sm" />
-        <h1 className="text-3xl font-extrabold text-brand-navy tracking-tight mb-2">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 select-none">
+      <div className="flex flex-col items-center text-center">
+        <Logo size="lg" className="mb-4" />
+        <h1 className="text-2xl font-bold text-brand-navy tracking-tight">
           Ghar<span className="text-brand-orange">Sure</span>
         </h1>
-        <p className="text-sm font-medium text-slate-500 max-w-[260px] leading-relaxed">
-          Intelligent Household Decisions for Modern Indian Homes
-        </p>
-      </div>
-
-      {/* Bottom Loading Indicator */}
-      <div className="flex flex-col items-center justify-center min-h-[48px]">
-        {checking && (
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <Loader2 className="w-4 h-4 animate-spin text-brand-orange" />
-            <span>Loading experience...</span>
-          </div>
-        )}
+        <p className="text-sm text-slate-500 mt-1 mb-6">Household Intelligence</p>
+        {checking && <Loader2 className="w-5 h-5 animate-spin text-brand-orange" />}
       </div>
     </div>
   );

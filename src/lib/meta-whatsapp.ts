@@ -169,7 +169,39 @@ export async function sendWhatsAppOtp({
         };
       }
 
-      if (errorCode === 131026 || errorCode === 131030) {
+      if (errorCode === 190) {
+        return {
+          success: false,
+          error: "Meta WhatsApp Access Token is invalid or expired. Please update META_WHATSAPP_ACCESS_TOKEN in .env.local.",
+          errorCode: "INVALID_CREDENTIALS",
+        };
+      }
+
+      if (errorCode === 131030) {
+        return {
+          success: false,
+          error: "Recipient number is not in your Meta test whitelist. Go to Meta Developer Dashboard -> WhatsApp -> API Setup and add this mobile number to the 'To' list.",
+          errorCode: "RECIPIENT_NOT_IN_ALLOWED_LIST",
+        };
+      }
+
+      if (errorCode === 133010) {
+        return {
+          success: false,
+          error: "Phone number is not registered on WhatsApp Cloud API. Please complete 2-step registration in Meta WhatsApp Manager.",
+          errorCode: "ACCOUNT_NOT_REGISTERED",
+        };
+      }
+
+      if (errorCode === 131047) {
+        return {
+          success: false,
+          error: "A pre-approved WhatsApp Authentication Template is required for business-initiated OTP messages. Please configure META_WHATSAPP_OTP_TEMPLATE_NAME with an approved template.",
+          errorCode: "TEMPLATE_REQUIRED",
+        };
+      }
+
+      if (errorCode === 131026) {
         return {
           success: false,
           error: "Unable to deliver WhatsApp message to this mobile number.",
