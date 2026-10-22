@@ -2,12 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 const SESSION_COOKIE_NAME = "gharsure_session";
+const ADMIN_COOKIE_NAME = "gharsure_admin_session";
 
-async function verifyToken(token: string) {
+async function verifyCustomerToken(token: string) {
   try {
-    const secret = process.env.AUTH_SESSION_SECRET || "gharsure-development-super-secure-jwt-signing-key-32-chars-minimum";
+    const secret =
+      process.env.AUTH_SESSION_SECRET ||
+      "gharsure-development-super-secure-jwt-signing-key-32-chars-minimum";
     const key = new TextEncoder().encode(secret);
     const { payload } = await jwtVerify(token, key, { algorithms: ["HS256"] });
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+async function verifyAdminToken(token: string) {
+  try {
+    const secret =
+      process.env.ADMIN_SESSION_SECRET ||
+      process.env.AUTH_SESSION_SECRET ||
+      "gharsure-admin-super-secure-production-jwt-key-32-chars-min";
+    const key = new TextEncoder().encode(secret);
+    const { payload } = await jwtVerify(token, key, { algorithms: ["HS256"] });
+    if (!payload.adminId || !payload.email || payload.status !== "ACTIVE") {
+      return null;
+    }
     return payload;
   } catch {
     return null;
@@ -20,15 +40,61 @@ export async function middleware(req: NextRequest) {
   // Static assets and internal next routes
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
     pathname.startsWith("/favicon.ico") ||
     pathname.includes(".")
   ) {
     return NextResponse.next();
   }
 
+  // ---------------------------------------------------------------------------
+  // Admin API & Page Protection
+  // ---------------------------------------------------------------------------
+  if (pathname.startsWith("/api/admin")) {
+    if (pathname === "/api/admin/auth/login") {
+      return NextResponse.next();
+    }
+    const adminToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+    const adminSession = adminToken ? await verifyAdminToken(adminToken) : null;
+    if (!adminSession) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized: Admin session required" },
+        { status: 401 }
+      );
+    }
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/admin")) {
+    const adminToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+    const adminSession = adminToken ? await verifyAdminToken(adminToken) : null;
+    const isAdminAuthenticated = Boolean(adminSession);
+
+    if (pathname === "/admin/login") {
+      if (isAdminAuthenticated) {
+        return NextResponse.redirect(new URL("/admin", req.url));
+      }
+      return NextResponse.next();
+    }
+
+    if (!isAdminAuthenticated) {
+      const loginUrl = new URL("/admin/login", req.url);
+      loginUrl.searchParams.set("from", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.next();
+  }
+
+  // Allow other non-admin API routes
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Customer App Protection
+  // ---------------------------------------------------------------------------
   const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = token ? await verifyToken(token) : null;
+  const session = token ? await verifyCustomerToken(token) : null;
   const isAuthenticated = Boolean(session);
   const isOnboardingCompleted = Boolean(session?.onboardingCompleted);
 
@@ -37,12 +103,13 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/home") ||
     pathname.startsWith("/rewards") ||
     pathname.startsWith("/refer") ||
-    pathname.startsWith("/store");
+    pathname.startsWith("/store") ||
+    pathname.startsWith("/profile");
 
   const isOnboardingRoute = pathname.startsWith("/onboarding");
   const isAuthRoute = pathname.startsWith("/auth");
 
-  // 1. Unauthenticated users trying to access protected routes -> redirect to /auth
+  // 1. Unauthenticated users trying to access protected customer routes -> redirect to /auth
   if ((isAppRoute || isOnboardingRoute) && !isAuthenticated) {
     const loginUrl = new URL("/auth", req.url);
     return NextResponse.redirect(loginUrl);

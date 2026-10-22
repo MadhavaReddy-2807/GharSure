@@ -102,6 +102,7 @@ ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 -- Customer Profile RLS Policies:
 -- Service role bypasses RLS automatically in Supabase.
 -- Direct client access policies for Supabase Auth integration:
+DROP POLICY IF EXISTS "Customers can read own profile" ON customers;
 CREATE POLICY "Customers can read own profile"
   ON customers FOR SELECT
   USING (
@@ -109,6 +110,7 @@ CREATE POLICY "Customers can read own profile"
     OR id::text = current_setting('request.jwt.claim.sub', true)
   );
 
+DROP POLICY IF EXISTS "Customers can update own permitted profile" ON customers;
 CREATE POLICY "Customers can update own permitted profile"
   ON customers FOR UPDATE
   USING (

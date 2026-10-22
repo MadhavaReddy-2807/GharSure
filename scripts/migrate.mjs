@@ -44,53 +44,63 @@ const sql = postgres(dbUrl, {
   connect_timeout: 15,
 });
 
-async function runMigration() {
+async function runMigrations() {
   try {
-    const migrationPath = path.resolve(
-      process.cwd(),
-      "supabase/migrations/20261021000000_gharsure_initial_schema.sql"
-    );
-    const sqlContent = fs.readFileSync(migrationPath, "utf-8");
+    const migrationsDir = path.resolve(process.cwd(), "supabase/migrations");
+    if (!fs.existsSync(migrationsDir)) {
+      throw new Error(`Migrations directory not found: ${migrationsDir}`);
+    }
 
-    console.log("Applying migration 20261021000000_gharsure_initial_schema.sql...");
+    const files = fs
+      .readdirSync(migrationsDir)
+      .filter((file) => file.endsWith(".sql"))
+      .sort();
 
-    await sql.unsafe(sqlContent);
+    console.log(`Found ${files.length} migration file(s) in supabase/migrations:\n`);
 
-    console.log("\n✅ Migration applied successfully!");
+    for (const file of files) {
+      const filePath = path.join(migrationsDir, file);
+      console.log(`--> Applying ${file}...`);
+      const sqlContent = fs.readFileSync(filePath, "utf-8");
+      await sql.unsafe(sqlContent);
+      console.log(`    ✓ ${file} applied successfully.\n`);
+    }
 
-    // Verify tables and sequence
+    console.log("✅ All migrations applied successfully!\n");
+
+    // Verify critical tables
     const tables = await sql`
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-      AND table_name IN ('customers', 'otp_challenges', 'customer_sessions', 'audit_events')
       ORDER BY table_name;
     `;
 
-    console.log("Verified database tables:");
+    console.log("Verified database tables in public schema:");
     for (const t of tables) {
       console.log(` - ${t.table_name}`);
     }
 
-    const seq = await sql`
-      SELECT sequence_name 
-      FROM information_schema.sequences 
-      WHERE sequence_schema = 'public' 
-      AND sequence_name = 'customer_id_seq';
+    // Verify initial admin user
+    const admins = await sql`
+      SELECT id, email, full_name, role, status, created_at 
+      FROM admin_users;
     `;
-
-    if (seq.length > 0) {
-      console.log(` - customer_id_seq (Sequence for GH000001...)`);
+    console.log("\nConfigured Admin Users:");
+    for (const a of admins) {
+      console.log(` - ${a.email} (${a.role}, ${a.status})`);
     }
 
-    console.log("\n🎉 Supabase is fully configured and ready for GharSure!\n");
+    console.log("\n🎉 Supabase is fully configured and ready for GharSure Admin Portal!\n");
     await sql.end();
     process.exit(0);
   } catch (err) {
     console.error("\n❌ Migration failed:", err.message);
+    if (err.detail) console.error("Detail:", err.detail);
+    if (err.hint) console.error("Hint:", err.hint);
     await sql.end();
     process.exit(1);
   }
 }
 
-runMigration();
+runMigrations();
