@@ -160,14 +160,22 @@ class InMemoryStore {
   }
 }
 
-export const inMemoryDb = InMemoryStore.getInstance();
+const globalForDb = globalThis as unknown as { inMemoryDb?: InMemoryStore };
+export const inMemoryDb = globalForDb.inMemoryDb ?? InMemoryStore.getInstance();
+if (process.env.NODE_ENV !== "production") {
+  globalForDb.inMemoryDb = inMemoryDb;
+}
 
-// Check if live Supabase is configured with real URL and keys
+// Check if live Supabase REST API is configured with real URL and keys
 function isLiveSupabaseAvailable(): boolean {
   const env = getEnv();
-  return (
+  return Boolean(
+    env.NEXT_PUBLIC_SUPABASE_URL &&
+    env.SUPABASE_SERVICE_ROLE_KEY &&
     !env.NEXT_PUBLIC_SUPABASE_URL.includes("demo-gharsure-project") &&
-    !env.SUPABASE_SERVICE_ROLE_KEY.includes("demo-service-role-key")
+    !env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder") &&
+    !env.SUPABASE_SERVICE_ROLE_KEY.includes("demo-service-role-key") &&
+    !env.SUPABASE_SERVICE_ROLE_KEY.includes("placeholder")
   );
 }
 

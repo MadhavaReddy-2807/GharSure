@@ -2,9 +2,9 @@ import { z } from "zod";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url().default("https://demo-gharsure-project.supabase.co"),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).default("demo-anon-key"),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).default("demo-service-role-key"),
+  NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   
   META_WHATSAPP_PHONE_NUMBER_ID: z.string().default("demo_phone_number_id"),
   META_WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().default("demo_waba_id"),

@@ -8,15 +8,14 @@ export function getSupabaseServerClient(): SupabaseClient<Database> {
   if (supabaseServerClient) return supabaseServerClient;
 
   const env = getEnv();
-  supabaseServerClient = createClient<Database>(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.SUPABASE_SERVICE_ROLE_KEY,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    }
-  );
+  const url = env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-gharsure.supabase.co";
+  const key = env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-service-role-key";
+
+  supabaseServerClient = createClient<Database>(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
   return supabaseServerClient;
 }

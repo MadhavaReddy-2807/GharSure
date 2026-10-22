@@ -8,9 +8,9 @@ export function getSupabaseBrowserClient(): SupabaseClient<Database> {
   if (supabaseClient) return supabaseClient;
 
   const env = getEnv();
-  supabaseClient = createClient<Database>(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  const url = env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-gharsure.supabase.co";
+  const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
+
+  supabaseClient = createClient<Database>(url, key);
   return supabaseClient;
 }

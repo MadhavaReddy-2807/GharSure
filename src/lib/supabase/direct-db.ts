@@ -1,7 +1,5 @@
 import postgres from "postgres";
 
-let sqlInstance: ReturnType<typeof postgres> | null = null;
-
 export function getDatabaseUrl(): string | null {
   return (
     process.env.DATABASE_URL ||
@@ -20,8 +18,12 @@ export function isDirectDatabaseConfigured(): boolean {
   );
 }
 
+const globalForSql = globalThis as unknown as {
+  sqlInstance?: ReturnType<typeof postgres>;
+};
+
 export function getDirectSql() {
-  if (sqlInstance) return sqlInstance;
+  if (globalForSql.sqlInstance) return globalForSql.sqlInstance;
 
   const url = getDatabaseUrl();
   if (!url) {
@@ -29,12 +31,16 @@ export function getDirectSql() {
   }
 
   // Connect using postgres client with SSL required for Supabase
-  sqlInstance = postgres(url, {
+  const sql = postgres(url, {
     ssl: "require",
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,
   });
 
-  return sqlInstance;
+  if (process.env.NODE_ENV !== "production") {
+    globalForSql.sqlInstance = sql;
+  }
+
+  return sql;
 }
