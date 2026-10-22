@@ -2,28 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Logo } from "@/components/logo";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { AlertCircle, User, MapPin, Loader2 } from "lucide-react";
-
-const TOP_CITIES = [
-  "Bangalore",
-  "Mumbai",
-  "Hyderabad",
-  "Delhi NCR",
-  "Pune",
-  "Chennai",
-  "Kolkata",
-];
+import { MapPin, AlertCircle, Loader2 } from "lucide-react";
 
 export default function OnboardingPage() {
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [city, setCity] = useState("");
+  const [location, setLocation] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -42,8 +30,7 @@ export default function OnboardingPage() {
               return;
             }
             if (data.customer.fullName) setFullName(data.customer.fullName);
-            if (data.customer.city) setCity(data.customer.city);
-            if (data.customer.displayName) setDisplayName(data.customer.displayName);
+            if (data.customer.city) setLocation(data.customer.city);
           }
         }
       } catch (err) {
@@ -60,20 +47,58 @@ export default function OnboardingPage() {
     };
   }, [router]);
 
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      setErrorMessage("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setIsLocating(true);
+    setErrorMessage(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          // Attempt client reverse geocode using public OSM Nominatim
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const city =
+              data.address?.city ||
+              data.address?.town ||
+              data.address?.suburb ||
+              data.address?.state_district ||
+              data.address?.state;
+            if (city) {
+              setLocation(city);
+              setIsLocating(false);
+              return;
+            }
+          }
+        } catch {
+          // Fallback to formatted coords
+        }
+        setLocation(`${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`);
+        setIsLocating(false);
+      },
+      () => {
+        setIsLocating(false);
+        // Optional location - no intrusive error if user denies
+      },
+      { timeout: 8000 }
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
 
     const trimmedName = fullName.trim();
-    const trimmedCity = city.trim();
-
     if (!trimmedName || trimmedName.length < 2) {
-      setErrorMessage("Please enter your full name (at least 2 characters).");
-      return;
-    }
-
-    if (!trimmedCity || trimmedCity.length < 2) {
-      setErrorMessage("Please select or enter your city.");
+      setErrorMessage("Please enter your name (at least 2 characters).");
       return;
     }
 
@@ -86,8 +111,8 @@ export default function OnboardingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fullName: trimmedName,
-          city: trimmedCity,
-          displayName: displayName.trim() || undefined,
+          city: location.trim() || undefined,
+          referralCode: referralCode.trim() || undefined,
         }),
       });
 
@@ -101,135 +126,135 @@ export default function OnboardingPage() {
 
       router.replace("/home");
     } catch {
-      setErrorMessage("Network error occurred. Please try again.");
+      setErrorMessage("Connection error. Please try again.");
       setIsLoading(false);
     }
   };
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-brand-orange" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 py-8 sm:px-6 lg:px-8">
-      <div className="w-full max-w-lg">
-        {/* Brand Header */}
-        <div className="flex flex-col items-center mb-8">
-          <Logo size="lg" className="mb-3" />
-          <h1 className="text-2xl font-bold text-brand-navy tracking-tight">
-            Ghar<span className="text-brand-orange">Sure</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Household Intelligence</p>
+    <div className="min-h-screen bg-white flex flex-col justify-between p-6 max-w-sm mx-auto w-full">
+      {/* Top Bar & Header */}
+      <div>
+        <div className="pt-2 pb-6">
+          <span className="text-xs font-medium text-slate-400">Step 2 of 2</span>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-brand-navy">Complete Your Profile</h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Enter your details to receive local water quality reports and product trials.
-            </p>
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
+            Tell us your name
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            We will personalize your household reports and trials.
+          </p>
+        </div>
+
+        {errorMessage && (
+          <div
+            role="alert"
+            className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-xs flex items-start gap-2"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{errorMessage}</span>
           </div>
+        )}
 
-          {errorMessage && (
-            <div
-              role="alert"
-              className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2"
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name Field */}
+          <div>
+            <label
+              htmlFor="full-name"
+              className="block text-xs font-medium text-slate-600 mb-1.5"
             >
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
+              Name
+            </label>
+            <input
               id="full-name"
-              label="Full Name"
-              placeholder="e.g. Priya Sharma"
+              type="text"
+              placeholder="e.g. Madhava Reddy"
               value={fullName}
               onChange={(e) => {
                 setFullName(e.target.value);
                 if (errorMessage) setErrorMessage(null);
               }}
-              leftElement={<User className="w-4 h-4 text-slate-400" />}
               required
               autoFocus
               maxLength={100}
+              className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 placeholder:font-normal hover:border-slate-300 focus:border-slate-800 focus:outline-none transition-colors"
             />
+          </div>
 
-            <Input
-              id="display-name"
-              label="Preferred Name (Optional)"
-              placeholder="e.g. Priya"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              maxLength={50}
-            />
-
-            <div>
+          {/* Optional Location with GPS */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
               <label
-                htmlFor="city-input"
-                className="block text-sm font-medium text-slate-700 mb-1.5"
+                htmlFor="location-input"
+                className="block text-xs font-medium text-slate-600"
               >
-                City
+                Location <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
-
-              <div className="flex flex-wrap gap-1.5 mb-2.5">
-                {TOP_CITIES.map((c) => {
-                  const isSelected = city.toLowerCase() === c.toLowerCase();
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => {
-                        setCity(c);
-                        if (errorMessage) setErrorMessage(null);
-                      }}
-                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors select-none ${
-                        isSelected
-                          ? "bg-brand-orange text-white"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      }`}
-                    >
-                      {c}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <Input
-                id="city-input"
-                placeholder="Or type city name"
-                value={city}
-                onChange={(e) => {
-                  setCity(e.target.value);
-                  if (errorMessage) setErrorMessage(null);
-                }}
-                leftElement={<MapPin className="w-4 h-4 text-slate-400" />}
-                required
-                maxLength={100}
-              />
-            </div>
-
-            <div className="pt-2">
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                className="w-full text-sm font-semibold"
-                isLoading={isLoading}
-                disabled={!fullName.trim() || !city.trim() || isLoading}
+              <button
+                type="button"
+                onClick={handleDetectLocation}
+                disabled={isLocating}
+                className="inline-flex items-center gap-1 text-xs text-brand-orange hover:underline cursor-pointer disabled:opacity-50"
               >
-                Save and Continue
-              </Button>
+                <MapPin className="w-3 h-3" />
+                <span>{isLocating ? "Locating..." : "Use GPS"}</span>
+              </button>
             </div>
-          </form>
-        </div>
+            <input
+              id="location-input"
+              type="text"
+              placeholder="e.g. Bangalore, Indiranagar"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              maxLength={100}
+              className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 placeholder:font-normal hover:border-slate-300 focus:border-slate-800 focus:outline-none transition-colors"
+            />
+          </div>
+
+          {/* Optional Referral Code */}
+          <div>
+            <label
+              htmlFor="referral-input"
+              className="block text-xs font-medium text-slate-600 mb-1.5"
+            >
+              Referral code <span className="text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <input
+              id="referral-input"
+              type="text"
+              placeholder="e.g. GH000001"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              maxLength={30}
+              className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 font-mono placeholder:text-slate-400 placeholder:font-normal hover:border-slate-300 focus:border-slate-800 focus:outline-none transition-colors uppercase"
+            />
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={fullName.trim().length < 2 || isLoading}
+              className="w-full h-11 rounded-lg bg-brand-orange hover:bg-brand-orange-600 active:bg-brand-orange-700 disabled:opacity-50 text-white font-medium text-sm transition-colors flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+            >
+              {isLoading ? "Saving..." : "Proceed"}
+            </button>
+          </div>
+        </form>
       </div>
+
+      <footer className="text-center text-xs text-slate-400 py-4">
+        Your data is private and never shared with advertisers.
+      </footer>
     </div>
   );
 }

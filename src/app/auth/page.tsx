@@ -2,10 +2,9 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Logo } from "@/components/logo";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { normalizeIndianPhone } from "@/lib/phone";
-import { AlertCircle } from "lucide-react";
+import { ArrowLeft, AlertCircle } from "lucide-react";
 
 export default function PhoneAuthPage() {
   const router = useRouter();
@@ -54,97 +53,89 @@ export default function PhoneAuthPage() {
 
       router.push(`/auth/verify?phone=${encodeURIComponent(normalized)}`);
     } catch {
-      setErrorMessage("Network connection error. Please try again.");
+      setErrorMessage("Connection error. Please try again.");
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 py-8 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        {/* Brand Header */}
-        <div className="flex flex-col items-center mb-8">
-          <Logo size="lg" className="mb-3" />
-          <h1 className="text-2xl font-bold text-brand-navy tracking-tight">
-            Ghar<span className="text-brand-orange">Sure</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Household Intelligence</p>
+    <div className="min-h-screen bg-white flex flex-col justify-between p-6 max-w-sm mx-auto w-full">
+      {/* Top Bar */}
+      <div>
+        <div className="pt-2 pb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 transition-colors py-1 px-1.5 -ml-1.5 rounded-md"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
+          </Link>
         </div>
 
-        {/* Auth Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-brand-navy">Sign In or Sign Up</h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Enter your mobile number to receive a verification code on WhatsApp.
-            </p>
-          </div>
-
-          {errorMessage && (
-            <div
-              role="alert"
-              className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2"
-            >
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="phone-input"
-                className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider"
-              >
-                Mobile Number
-              </label>
-              <div className="flex rounded-xl border border-slate-300 focus-within:border-brand-orange focus-within:ring-2 focus-within:ring-brand-orange/20 bg-white transition-all overflow-hidden">
-                <div className="flex items-center px-3.5 bg-slate-50 border-r border-slate-200 text-slate-700 font-semibold text-sm select-none">
-                  +91
-                </div>
-                <input
-                  id="phone-input"
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  autoComplete="tel-national"
-                  placeholder="Enter 10-digit number"
-                  value={phoneNumber}
-                  onChange={handlePhoneChange}
-                  disabled={isLoading}
-                  className="flex-1 px-3.5 py-3 text-base font-medium text-slate-900 placeholder:text-slate-400 bg-transparent focus:outline-none disabled:opacity-50"
-                  maxLength={10}
-                  required
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              className="w-full text-sm font-semibold"
-              isLoading={isLoading}
-              disabled={phoneNumber.length !== 10 || isLoading}
-            >
-              Continue
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-xs text-slate-400 leading-relaxed">
-            By continuing, you agree to GharSure&apos;s{" "}
-            <a href="#terms" className="text-slate-600 underline hover:text-brand-navy">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a href="#privacy" className="text-slate-600 underline hover:text-brand-navy">
-              Privacy Policy
-            </a>
-            .
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
+            Enter your mobile number
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            We will send a 6-digit verification code to WhatsApp.
           </p>
         </div>
+
+        {errorMessage && (
+          <div
+            role="alert"
+            className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-xs flex items-start gap-2"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label
+              htmlFor="phone-input"
+              className="block text-xs font-medium text-slate-600 mb-1.5"
+            >
+              Mobile number
+            </label>
+            <div className="flex h-11 rounded-lg border border-slate-200 bg-white hover:border-slate-300 focus-within:border-slate-800 transition-colors overflow-hidden">
+              <span className="flex items-center px-3 text-sm text-slate-600 bg-slate-50/50 border-r border-slate-200 select-none">
+                +91
+              </span>
+              <input
+                id="phone-input"
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="tel-national"
+                placeholder="98765 43210"
+                value={phoneNumber}
+                onChange={handlePhoneChange}
+                disabled={isLoading}
+                className="flex-1 px-3 text-sm text-slate-900 placeholder:text-slate-400 placeholder:font-normal bg-transparent focus:outline-none"
+                maxLength={10}
+                required
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={phoneNumber.length !== 10 || isLoading}
+            className="w-full h-11 rounded-lg bg-brand-orange hover:bg-brand-orange-600 active:bg-brand-orange-700 disabled:opacity-50 text-white font-medium text-sm transition-colors flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+          >
+            {isLoading ? "Sending code..." : "Continue"}
+          </button>
+        </form>
       </div>
+
+      {/* Footer */}
+      <footer className="text-center text-xs text-slate-400 py-4">
+        By continuing, you agree to our Terms and Privacy Policy.
+      </footer>
     </div>
   );
 }

@@ -100,7 +100,7 @@ class InMemoryStore {
 
   public updateCustomerProfile(
     id: string,
-    updates: { full_name: string; city: string; display_name?: string | null }
+    updates: { full_name: string; city?: string | null; display_name?: string | null }
   ): CustomerRecord | null {
     const customer = this.customersById.get(id);
     if (!customer) return null;
@@ -108,7 +108,7 @@ class InMemoryStore {
     const updated: CustomerRecord = {
       ...customer,
       full_name: updates.full_name,
-      city: updates.city,
+      city: updates.city || null,
       display_name: updates.display_name || null,
       onboarding_completed: true,
       updated_at: new Date().toISOString(),
@@ -657,7 +657,7 @@ export async function updateCustomerProfile(
   id: string,
   profile: {
     fullName: string;
-    city: string;
+    city?: string | null;
     displayName?: string | null;
   }
 ): Promise<CustomerRecord> {
@@ -670,7 +670,7 @@ export async function updateCustomerProfile(
       const rows = await sql<CustomerRecord[]>`
         UPDATE customers
         SET full_name = ${profile.fullName.trim()},
-            city = ${profile.city.trim()},
+            city = ${profile.city?.trim() || null},
             display_name = ${profile.displayName?.trim() || null},
             onboarding_completed = true,
             updated_at = NOW()
@@ -693,7 +693,7 @@ export async function updateCustomerProfile(
         .from("customers")
         .update({
           full_name: profile.fullName.trim(),
-          city: profile.city.trim(),
+          city: profile.city?.trim() || null,
           display_name: profile.displayName?.trim() || null,
           onboarding_completed: true,
           updated_at: now,
@@ -713,7 +713,7 @@ export async function updateCustomerProfile(
 
   const updated = inMemoryDb.updateCustomerProfile(id, {
     full_name: profile.fullName.trim(),
-    city: profile.city.trim(),
+    city: profile.city?.trim() || null,
     display_name: profile.displayName?.trim() || null,
   });
 

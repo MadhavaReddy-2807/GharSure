@@ -11,13 +11,21 @@ const onboardingSchema = z.object({
     .max(100, "Full name cannot exceed 100 characters"),
   city: z
     .string()
-    .trim()
-    .min(2, "City name must be at least 2 characters")
-    .max(100, "City cannot exceed 100 characters"),
+    .refine((val) => val === undefined || val === "" || val.trim().length >= 2, {
+      message: "City name must be at least 2 characters",
+    })
+    .optional()
+    .or(z.literal("")),
   displayName: z
     .string()
     .trim()
     .max(50, "Display name cannot exceed 50 characters")
+    .optional()
+    .or(z.literal("")),
+  referralCode: z
+    .string()
+    .trim()
+    .max(30)
     .optional()
     .or(z.literal("")),
 });
@@ -46,19 +54,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { fullName, city, displayName } = parsed.data;
+    const { fullName, city, displayName, referralCode } = parsed.data;
+
+    const trimmedCity = city && city.trim().length > 0 ? city.trim() : null;
 
     // Update customer in database
     const updatedCustomer = await updateCustomerProfile(session.customerId, {
       fullName,
-      city,
+      city: trimmedCity,
       displayName: displayName || null,
     });
 
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
     await logAuditEvent("ONBOARDING_COMPLETED", session.phone, session.customerId, ip, {
-      city,
-      hasDisplayName: Boolean(displayName),
+      city: trimmedCity,
+      referralCode: referralCode || null,
     });
 
     // Refresh session token with onboardingCompleted = true

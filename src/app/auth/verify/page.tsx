@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Logo } from "@/components/logo";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { maskPhone, normalizeIndianPhone } from "@/lib/phone";
 import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
 
@@ -42,7 +41,6 @@ function VerifyOtpContent() {
     }
   }, [searchParams, router]);
 
-  // Resend countdown timer
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setInterval(() => {
@@ -51,7 +49,6 @@ function VerifyOtpContent() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // Focus first input once ready
   useEffect(() => {
     if (isReady) {
       inputRefs.current[0]?.focus();
@@ -130,7 +127,7 @@ function VerifyOtpContent() {
       sessionStorage.removeItem("gharsure_dev_mock_otp");
       router.replace(data.nextStep || "/home");
     } catch {
-      setErrorMessage("Network connection error. Please try again.");
+      setErrorMessage("Connection error. Please try again.");
       setIsLoading(false);
     }
   };
@@ -151,7 +148,7 @@ function VerifyOtpContent() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setErrorMessage(data.error || "Could not resend OTP. Please try again.");
+        setErrorMessage(data.error || "Could not resend code. Please try again.");
         setIsResending(false);
         return;
       }
@@ -172,8 +169,8 @@ function VerifyOtpContent() {
 
   if (!isReady) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-brand-orange" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
       </div>
     );
   }
@@ -181,108 +178,99 @@ function VerifyOtpContent() {
   const isComplete = otpDigits.every((d) => d.length === 1);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 py-8 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        {/* Brand Header */}
-        <div className="flex flex-col items-center mb-8">
-          <Logo size="lg" className="mb-3" />
-          <h1 className="text-2xl font-bold text-brand-navy tracking-tight">
-            Ghar<span className="text-brand-orange">Sure</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Household Intelligence</p>
+    <div className="min-h-screen bg-white flex flex-col justify-between p-6 max-w-sm mx-auto w-full">
+      {/* Top Bar */}
+      <div>
+        <div className="pt-2 pb-6">
+          <Link
+            href="/auth"
+            className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 transition-colors py-1 px-1.5 -ml-1.5 rounded-md"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Change number</span>
+          </Link>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
-          <div className="flex items-center justify-between mb-5">
-            <button
-              onClick={() => router.push("/auth")}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-brand-navy transition-colors py-1 px-2 -ml-2 rounded-lg hover:bg-slate-100"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Change number</span>
-            </button>
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
+            Verify code
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Sent to <span className="text-slate-700 font-medium">{maskPhone(phone)}</span>
+          </p>
+        </div>
+
+        {mockHint && (
+          <div className="mb-4 p-2.5 rounded-lg bg-orange-50 border border-orange-100 text-xs text-brand-orange flex items-center justify-between">
+            <span>Dev Mock Mode</span>
+            <span className="font-mono font-medium bg-white px-2 py-0.5 rounded border border-orange-200">
+              {mockHint}
+            </span>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div
+            role="alert"
+            className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-xs flex items-start gap-2"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div className="flex justify-between gap-2" onPaste={handlePaste}>
+            {otpDigits.map((digit, idx) => (
+              <input
+                key={idx}
+                ref={(el) => {
+                  inputRefs.current[idx] = el;
+                }}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handleDigitChange(idx, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(idx, e)}
+                disabled={isLoading}
+                className="w-10 h-11 sm:w-11 sm:h-12 text-center text-lg font-medium text-slate-900 bg-white border border-slate-200 rounded-lg hover:border-slate-300 focus:border-slate-800 focus:outline-none transition-colors disabled:opacity-50"
+                aria-label={`Digit ${idx + 1}`}
+              />
+            ))}
           </div>
 
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-brand-navy">Verify WhatsApp Code</h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Sent 6-digit code to <span className="font-semibold text-slate-800">{maskPhone(phone)}</span>
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={() => triggerVerification()}
+            disabled={!isComplete || isLoading}
+            className="w-full h-11 rounded-lg bg-brand-orange hover:bg-brand-orange-600 active:bg-brand-orange-700 disabled:opacity-50 text-white font-medium text-sm transition-colors flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+          >
+            {isLoading ? "Verifying..." : "Verify"}
+          </button>
 
-          {mockHint && (
-            <div className="mb-4 p-2.5 rounded-lg bg-orange-50 border border-orange-200 text-xs text-brand-orange flex items-center justify-between">
-              <span>Dev Mock Mode</span>
-              <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-orange-300">
-                {mockHint}
+          <div className="text-center pt-2">
+            {cooldown > 0 ? (
+              <span className="text-xs text-slate-400">
+                Resend code in {cooldown}s
               </span>
-            </div>
-          )}
-
-          {errorMessage && (
-            <div
-              role="alert"
-              className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2"
-            >
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          <div className="space-y-5">
-            <div className="flex justify-between gap-2 sm:gap-2.5" onPaste={handlePaste}>
-              {otpDigits.map((digit, idx) => (
-                <input
-                  key={idx}
-                  ref={(el) => {
-                    inputRefs.current[idx] = el;
-                  }}
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleDigitChange(idx, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(idx, e)}
-                  disabled={isLoading}
-                  className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-bold font-mono text-brand-navy bg-white border border-slate-300 rounded-xl focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 focus:outline-none transition-all disabled:opacity-50"
-                  aria-label={`Digit ${idx + 1}`}
-                />
-              ))}
-            </div>
-
-            <Button
-              type="button"
-              variant="primary"
-              size="md"
-              className="w-full text-sm font-semibold"
-              onClick={() => triggerVerification()}
-              isLoading={isLoading}
-              disabled={!isComplete || isLoading}
-            >
-              Verify OTP
-            </Button>
-
-            <div className="text-center pt-2">
-              {cooldown > 0 ? (
-                <span className="text-xs text-slate-400">
-                  Resend code in {cooldown}s
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={isResending}
-                  className="text-xs font-semibold text-brand-orange hover:underline focus:outline-none"
-                >
-                  {isResending ? "Resending..." : "Resend code via WhatsApp"}
-                </button>
-              )}
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={isResending}
+                className="text-xs font-medium text-brand-orange hover:underline focus:outline-none cursor-pointer"
+              >
+                {isResending ? "Resending..." : "Resend code via WhatsApp"}
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      <div />
     </div>
   );
 }
@@ -291,8 +279,8 @@ export default function VerifyOtpPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-brand-orange" />
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
         </div>
       }
     >
