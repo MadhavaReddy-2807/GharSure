@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Award, Users, ShoppingBag, User } from "lucide-react";
+import { Home, Award, Users, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -17,7 +17,6 @@ const navItems: NavItem[] = [
   { name: "Rewards", href: "/rewards", icon: Award },
   { name: "Refer & Win", href: "/refer", icon: Users },
   { name: "Store", href: "/store", icon: ShoppingBag },
-  { name: "Profile", href: "/profile", icon: User },
 ];
 
 export function BottomNav() {

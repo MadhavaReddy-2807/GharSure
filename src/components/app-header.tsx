@@ -76,13 +76,23 @@ export function AppHeader({ fullName }: AppHeaderProps) {
             })}
           </nav>
 
-          {/* Right Action: User Name & Logout */}
-          <div className="flex items-center gap-3">
-            {fullName && (
-              <span className="hidden sm:inline text-xs font-semibold text-slate-600 max-w-[140px] truncate">
-                {fullName}
-              </span>
-            )}
+          {/* Right Action: User Avatar (links to Profile) & Logout */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href="/profile"
+              className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-brand-orange/30 transition-all select-none"
+              title="My Profile"
+              aria-label="My Profile"
+            >
+              <div className="w-8 h-8 rounded-full bg-orange-100 text-brand-orange flex items-center justify-center font-bold text-xs border border-orange-200">
+                {fullName ? fullName[0]?.toUpperCase() : "U"}
+              </div>
+              {fullName && (
+                <span className="hidden sm:inline text-xs font-semibold text-slate-700 max-w-[120px] truncate">
+                  {fullName}
+                </span>
+              )}
+            </Link>
 
             <button
               onClick={handleLogout}
