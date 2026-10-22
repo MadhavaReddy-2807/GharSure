@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "./logo";
-import { Home, Award, Users, ShoppingBag, User, LogOut } from "lucide-react";
+import { Home, Award, Users, ShoppingBag, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
@@ -16,7 +16,6 @@ const desktopNavItems = [
   { name: "Rewards", href: "/rewards", icon: Award },
   { name: "Refer & Win", href: "/refer", icon: Users },
   { name: "Store", href: "/store", icon: ShoppingBag },
-  { name: "Profile", href: "/profile", icon: User },
 ];
 
 export function AppHeader({ fullName }: AppHeaderProps) {
@@ -77,19 +76,12 @@ export function AppHeader({ fullName }: AppHeaderProps) {
             })}
           </nav>
 
-          {/* User Profile & Logout */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right Action: User Name & Logout */}
+          <div className="flex items-center gap-3">
             {fullName && (
-              <Link
-                href="/profile"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-brand-navy hover:bg-slate-100 transition-colors"
-                title="View Profile"
-              >
-                <div className="w-6 h-6 rounded-full bg-orange-100 text-brand-orange flex items-center justify-center font-bold text-[11px]">
-                  {fullName[0]?.toUpperCase() || "U"}
-                </div>
-                <span className="hidden sm:inline max-w-[120px] truncate">{fullName}</span>
-              </Link>
+              <span className="hidden sm:inline text-xs font-semibold text-slate-600 max-w-[140px] truncate">
+                {fullName}
+              </span>
             )}
 
             <button
