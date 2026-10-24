@@ -251,7 +251,7 @@ function VerifyOtpContent() {
               type="button"
               onClick={() => triggerVerification()}
               disabled={!isComplete || isLoading}
-              className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 disabled:opacity-40 text-white font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:cursor-not-allowed"
+              className="w-full h-11 rounded-xl bg-brand-purple hover:bg-brand-purple/90 active:bg-brand-purple-600 disabled:opacity-40 text-white font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>

@@ -114,7 +114,7 @@ export function StoreClientView({ initialProducts }: { initialProducts: ProductI
               onClick={() => setSelectedCategory(cat)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                 selectedCategory === cat
-                  ? "bg-slate-900 text-white shadow-xs"
+                  ? "bg-brand-purple text-white shadow-xs"
                   : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               }`}
             >
@@ -203,7 +203,7 @@ export function StoreClientView({ initialProducts }: { initialProducts: ProductI
 
                   <button
                     onClick={() => handleAddToCart(product)}
-                    className="w-full h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                    className="w-full h-9 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
                   >
                     <ShoppingBag className="w-3.5 h-3.5" />
                     <span>Order Genuine Part</span>
@@ -289,7 +289,7 @@ export function StoreClientView({ initialProducts }: { initialProducts: ProductI
                     handleAddToCart(selectedProduct);
                     setSelectedProduct(null);
                   }}
-                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
                   <span>Order Part</span>

@@ -32,14 +32,22 @@ import {
   Pencil,
   Play,
   Pause,
+  Smartphone,
+  Monitor,
+  RotateCcw,
 } from "lucide-react";
 import {
   validateSurveyDefinition,
+  computeApplicableQuestions,
+  calculateProgress,
+  validateAnswerValue,
+  invalidateDownstreamAnswers,
   QuestionType,
   SurveyType,
   Operator,
   BranchAction,
 } from "@/lib/survey-engine";
+import { QuestionRenderer } from "@/components/survey/question-renderer";
 
 interface Survey {
   id: string;
@@ -153,11 +161,17 @@ export default function AdminSurveysPage() {
   // Modals & Drawers
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [builderSurvey, setBuilderSurvey] = useState<Survey | null>(null);
-  const [builderTab, setBuilderTab] = useState<"questions" | "logic" | "settings" | "publish">("questions");
+  const [builderTab, setBuilderTab] = useState<"questions" | "logic" | "settings" | "publish" | "preview">("questions");
   const [questions, setQuestions] = useState<QuestionFormItem[]>([]);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [isSavingQuestions, setIsSavingQuestions] = useState(false);
   const [surveyDetails, setSurveyDetails] = useState<Partial<Survey>>({});
+
+  // Live Preview State
+  const [previewAnswers, setPreviewAnswers] = useState<Record<string, any>>({});
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [previewDevice, setPreviewDevice] = useState<"mobile" | "desktop">("mobile");
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   // Submissions Drawer
   const [responsesSurvey, setResponsesSurvey] = useState<Survey | null>(null);
@@ -290,6 +304,9 @@ export default function AdminSurveysPage() {
       allow_review: survey.allow_review,
     });
     setBuilderTab("questions");
+    setPreviewAnswers({});
+    setPreviewIndex(0);
+    setPreviewError(null);
     setIsLoadingQuestions(true);
 
     try {
@@ -579,6 +596,219 @@ export default function AdminSurveysPage() {
     } finally {
       setIsLoadingAnalytics(false);
     }
+  };
+
+  const renderLivePreviewTab = () => {
+    const engineQuestions = questions.map((q) => ({
+      id: q.id,
+      orderNum: q.orderNum,
+      questionText: q.questionText,
+      questionType: q.questionType,
+      description: q.description,
+      options: q.questionType === "MATRIX" ? { matrixRows: q.matrixRows, matrixCols: q.matrixCols } : q.options,
+      isRequired: q.isRequired,
+      validationRules: q.validationRules,
+      branchingRules: q.branchingRules,
+      sectionName: q.sectionName,
+    }));
+
+    const nav = computeApplicableQuestions(
+      engineQuestions as any,
+      previewAnswers,
+      surveyDetails.survey_type || "STATIC"
+    );
+
+    const applicable = nav.applicableQuestions;
+    const currentQ = applicable[previewIndex] || applicable[0];
+    const isCompleted = previewIndex >= applicable.length && applicable.length > 0;
+    const isTerminated = nav.isTerminated;
+
+    const handlePreviewNext = () => {
+      if (!currentQ) return;
+      const valRes = validateAnswerValue(currentQ as any, previewAnswers[currentQ.id]);
+      if (!valRes.isValid) {
+        setPreviewError(valRes.error || "Please select an answer to advance.");
+        return;
+      }
+      setPreviewError(null);
+      setPreviewIndex(previewIndex + 1);
+    };
+
+    const handlePreviewBack = () => {
+      setPreviewError(null);
+      if (previewIndex > 0) setPreviewIndex(previewIndex - 1);
+    };
+
+    const handlePreviewChange = (val: any) => {
+      if (!currentQ) return;
+      setPreviewError(null);
+      const updated = { ...previewAnswers, [currentQ.id]: val };
+      const { cleanedAnswers } = invalidateDownstreamAnswers(
+        engineQuestions as any,
+        updated,
+        surveyDetails.survey_type || "STATIC"
+      );
+      setPreviewAnswers(cleanedAnswers);
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* Preview Control Bar */}
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-brand-purple bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
+              Interactive Preview Mode
+            </span>
+            <span className="text-xs text-slate-500">
+              {surveyDetails.survey_type === "DECISION_BASED" ? "Branching Engine Active" : "Static Flow"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Device Switcher */}
+            <div className="flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setPreviewDevice("mobile")}
+                className={`p-1.5 px-2 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  previewDevice === "mobile"
+                    ? "bg-white text-brand-purple shadow-xs"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+                title="Mobile viewport"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span className="text-[11px]">Mobile</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewDevice("desktop")}
+                className={`p-1.5 px-2 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  previewDevice === "desktop"
+                    ? "bg-white text-brand-purple shadow-xs"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+                title="Desktop viewport"
+              >
+                <Monitor className="w-3.5 h-3.5" />
+                <span className="text-[11px]">Desktop</span>
+              </button>
+            </div>
+
+            {/* Reset Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setPreviewAnswers({});
+                setPreviewIndex(0);
+                setPreviewError(null);
+              }}
+              className="p-1.5 px-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1 transition-colors"
+              title="Reset preview responses"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Viewport Frame */}
+        <div className={`mx-auto transition-all ${previewDevice === "mobile" ? "max-w-sm" : "max-w-2xl"}`}>
+          <div className="bg-[#F2F2FA] p-4 sm:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4 min-h-[460px] flex flex-col justify-between">
+            {isTerminated ? (
+              <div className="my-auto text-center p-6 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
+                <h4 className="font-bold text-sm text-slate-900">Survey Concluded Early</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  {nav.terminationReason || "Disqualification branch triggered based on preview responses."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreviewAnswers({});
+                    setPreviewIndex(0);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-brand-purple text-white text-xs font-semibold"
+                >
+                  Try Different Answers
+                </button>
+              </div>
+            ) : isCompleted ? (
+              <div className="my-auto text-center p-6 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
+                <h4 className="font-bold text-base text-slate-900">Preview Completed!</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Respondent would earn +{surveyDetails.reward_coins || 0} Coins upon real submission.
+                </p>
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs font-mono font-bold text-amber-800">
+                  +{surveyDetails.reward_coins || 0} Reward Coins Simulated
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreviewAnswers({});
+                    setPreviewIndex(0);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-brand-purple text-white text-xs font-semibold"
+                >
+                  Restart Preview
+                </button>
+              </div>
+            ) : currentQ ? (
+              <div className="space-y-4">
+                {/* Header inside frame */}
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-slate-900 truncate max-w-[180px] block">
+                      {surveyDetails.title}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Step {previewIndex + 1} of {applicable.length}
+                    </span>
+                  </div>
+                  <span className="font-mono font-bold text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    +{surveyDetails.reward_coins || 0} Coins
+                  </span>
+                </div>
+
+                {/* Question Area */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+                  <QuestionRenderer
+                    question={currentQ as any}
+                    value={previewAnswers[currentQ.id]}
+                    onChange={handlePreviewChange}
+                    error={previewError || undefined}
+                  />
+
+                  {/* Nav */}
+                  <div className="flex items-center justify-between pt-6 mt-4 border-t border-slate-100">
+                    <button
+                      type="button"
+                      disabled={previewIndex === 0}
+                      onClick={handlePreviewBack}
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-30"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePreviewNext}
+                      className="px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold shadow-xs"
+                    >
+                      {previewIndex + 1 < applicable.length ? "Next" : "Finish"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 text-center text-slate-400 text-xs my-auto">
+                No applicable questions configured.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -1163,12 +1393,12 @@ export default function AdminSurveysPage() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-slate-200 bg-white px-5">
+            <div className="flex border-b border-slate-200 bg-white px-5 overflow-x-auto scrollbar-none">
               <button
                 onClick={() => setBuilderTab("questions")}
-                className={`py-3 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 ${
+                className={`py-3 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                   builderTab === "questions"
-                    ? "border-brand-orange text-brand-orange"
+                    ? "border-brand-purple text-brand-purple"
                     : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
               >
@@ -1178,9 +1408,9 @@ export default function AdminSurveysPage() {
 
               <button
                 onClick={() => setBuilderTab("logic")}
-                className={`py-3 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 ${
+                className={`py-3 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                   builderTab === "logic"
-                    ? "border-brand-orange text-brand-orange"
+                    ? "border-brand-purple text-brand-purple"
                     : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
               >
@@ -1190,9 +1420,9 @@ export default function AdminSurveysPage() {
 
               <button
                 onClick={() => setBuilderTab("settings")}
-                className={`py-3 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 ${
+                className={`py-3 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                   builderTab === "settings"
-                    ? "border-brand-orange text-brand-orange"
+                    ? "border-brand-purple text-brand-purple"
                     : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
               >
@@ -1202,9 +1432,9 @@ export default function AdminSurveysPage() {
 
               <button
                 onClick={() => setBuilderTab("publish")}
-                className={`py-3 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 ${
+                className={`py-3 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                   builderTab === "publish"
-                    ? "border-brand-orange text-brand-orange"
+                    ? "border-brand-purple text-brand-purple"
                     : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
               >
@@ -1213,6 +1443,21 @@ export default function AdminSurveysPage() {
                 {!preflightValidation.isValid && (
                   <span className="w-2 h-2 rounded-full bg-red-500" />
                 )}
+              </button>
+
+              <button
+                onClick={() => {
+                  setBuilderTab("preview");
+                  setPreviewError(null);
+                }}
+                className={`py-3 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                  builderTab === "preview"
+                    ? "border-brand-purple text-brand-purple"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Live Preview</span>
               </button>
             </div>
 
@@ -1816,7 +2061,7 @@ export default function AdminSurveysPage() {
                     </label>
                   </div>
                 </div>
-              ) : (
+              ) : builderTab === "publish" ? (
                 /* TAB 4: PRE-FLIGHT CHECK & PUBLISH */
                 <div className="space-y-4">
                   <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
@@ -1922,7 +2167,10 @@ export default function AdminSurveysPage() {
                     </button>
                   </div>
                 </div>
-              )}
+              ) : builderTab === "preview" ? (
+                /* TAB 5: LIVE RESPONDENT PREVIEW */
+                renderLivePreviewTab()
+              ) : null}
             </div>
 
             {/* Footer */}
@@ -1939,7 +2187,7 @@ export default function AdminSurveysPage() {
                 type="button"
                 onClick={handleSaveSurvey}
                 disabled={isSavingQuestions}
-                className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-xs"
+                className="px-5 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-xs"
               >
                 {isSavingQuestions ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

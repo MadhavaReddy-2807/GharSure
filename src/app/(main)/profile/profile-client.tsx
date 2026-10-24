@@ -202,7 +202,7 @@ export function ProfileClientView({
       <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
         <div className="flex items-center gap-4">
           {/* Avatar */}
-          <div className="w-16 h-16 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-xl tracking-tight shadow-sm shrink-0">
+          <div className="w-16 h-16 rounded-2xl bg-brand-purple text-white flex items-center justify-center font-bold text-xl tracking-tight shadow-sm shrink-0">
             {initials}
           </div>
 
@@ -492,7 +492,7 @@ export function ProfileClientView({
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                   <span>Save Changes</span>
@@ -527,7 +527,7 @@ export function ProfileClientView({
                 type="button"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                className="py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
               >
                 {isLoggingOut ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>Sign Out</span>}
               </button>
@@ -595,7 +595,7 @@ export function ProfileClientView({
               <button
                 type="button"
                 onClick={() => setIsSupportModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold"
+                className="px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold shadow-xs"
               >
                 Close
               </button>
@@ -632,7 +632,7 @@ export function ProfileClientView({
               <button
                 type="button"
                 onClick={() => setIsTermsModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold"
+                className="px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold shadow-xs"
               >
                 Understood
               </button>

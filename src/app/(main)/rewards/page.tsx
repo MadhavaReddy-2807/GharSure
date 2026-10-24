@@ -109,19 +109,19 @@ export default async function RewardsPage() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                        <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-50 text-brand-purple border border-purple-100">
                           {survey.category || "General"}
                         </span>
                         {survey.surveyType === "DECISION_BASED" && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
                             <GitBranch className="w-3 h-3" />
                             <span>Smart Branch</span>
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-brand-orange bg-brand-orange/10 px-2.5 py-1 rounded-full">
-                        <Coins className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-full">
+                        <Coins className="w-3.5 h-3.5 text-amber-600" />
                         <span>+{survey.rewardCoins} Coins</span>
                       </div>
                     </div>
@@ -160,7 +160,7 @@ export default async function RewardsPage() {
                     ) : (
                       <Link
                         href={`/surveys/${survey.id}`}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-orange hover:bg-brand-orange-600 text-white text-xs font-semibold shadow-xs transition-colors"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold shadow-xs transition-colors"
                       >
                         <span>Start Survey</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -231,7 +231,7 @@ export default async function RewardsPage() {
                   <span className="text-xs text-slate-400">
                     {trial.partner_name ? `Partner: ${trial.partner_name}` : "Free Delivery"}
                   </span>
-                  <button className="px-4 py-2 rounded-xl bg-brand-orange text-white text-xs font-semibold hover:bg-brand-orange-600 transition-colors">
+                  <button className="px-4 py-2 rounded-xl bg-brand-purple text-white text-xs font-semibold hover:bg-brand-purple/90 transition-colors shadow-xs">
                     {trial.coin_cost === 0 ? "Claim Trial" : `Redeem ${trial.coin_cost} Coins`}
                   </button>
                 </div>

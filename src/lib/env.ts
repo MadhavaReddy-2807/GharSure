@@ -2,10 +2,13 @@ import { z } from "zod";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
+  NEXT_PUBLIC_APP_URL: z.string().optional(),
+  NEXT_PUBLIC_GEOCODING_API_URL: z.string().optional().default("https://nominatim.openstreetmap.org"),
   NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   
+  META_GRAPH_BASE_URL: z.string().optional().default("https://graph.facebook.com"),
   META_WHATSAPP_PHONE_NUMBER_ID: z.string().default("demo_phone_number_id"),
   META_WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().default("demo_waba_id"),
   META_WHATSAPP_ACCESS_TOKEN: z.string().default("demo_access_token"),
@@ -14,6 +17,7 @@ const envSchema = z.object({
   META_WHATSAPP_OTP_TEMPLATE_LANGUAGE: z.string().default("en_US"),
   
   AUTH_SESSION_SECRET: z.string().min(32).default("gharsure-development-super-secure-jwt-signing-key-32-chars-minimum"),
+  ADMIN_SESSION_SECRET: z.string().min(32).optional(),
   
   OTP_EXPIRY_SECONDS: z.coerce.number().positive().default(300),
   OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().positive().default(60),

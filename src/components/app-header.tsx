@@ -65,7 +65,7 @@ export function AppHeader({ fullName }: AppHeaderProps) {
                   className={cn(
                     "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all select-none",
                     isActive
-                      ? "bg-slate-900 text-white shadow-xs"
+                      ? "bg-brand-purple text-white shadow-xs"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                   )}
                 >
@@ -89,7 +89,7 @@ export function AppHeader({ fullName }: AppHeaderProps) {
               title="My Profile"
               aria-label="My Profile"
             >
-              <div className="w-7 h-7 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
+              <div className="w-7 h-7 rounded-full bg-brand-purple text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
                 {fullName ? fullName[0]?.toUpperCase() : "U"}
               </div>
               <span className="text-xs font-semibold text-slate-800 max-w-[120px] truncate">

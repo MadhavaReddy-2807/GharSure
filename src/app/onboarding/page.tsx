@@ -174,8 +174,9 @@ function OnboardingContent() {
       async (pos) => {
         const { latitude, longitude } = pos.coords;
         try {
+          const geocodingApi = (process.env.NEXT_PUBLIC_GEOCODING_API_URL || "https://nominatim.openstreetmap.org").replace(/\/+$/, "");
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+            `${geocodingApi}/reverse?lat=${latitude}&lon=${longitude}&format=json`
           );
           if (res.ok) {
             const data = await res.json();
@@ -376,7 +377,7 @@ function OnboardingContent() {
                     onClick={() => setLocation(c)}
                     className={`px-2 py-0.5 rounded-lg text-[10px] font-medium border transition-colors ${
                       location === c
-                        ? "bg-slate-900 text-white border-slate-900"
+                        ? "bg-brand-purple text-white border-brand-purple shadow-xs"
                         : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
@@ -460,7 +461,7 @@ function OnboardingContent() {
               <button
                 type="submit"
                 disabled={fullName.trim().length < 2 || isLoading || referralState.isValidating}
-                className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 disabled:opacity-40 text-white font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:cursor-not-allowed"
+                className="w-full h-11 rounded-xl bg-brand-purple hover:bg-brand-purple/90 active:bg-brand-purple-600 disabled:opacity-40 text-white font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>

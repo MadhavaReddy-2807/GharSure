@@ -47,7 +47,8 @@ export async function sendWhatsAppOtp({
   }
 
   // Real Meta WhatsApp Cloud API call
-  const url = `https://graph.facebook.com/${env.META_GRAPH_API_VERSION}/${env.META_WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const graphBase = (env.META_GRAPH_BASE_URL || "https://graph.facebook.com").replace(/\/+$/, "");
+  const url = `${graphBase}/${env.META_GRAPH_API_VERSION}/${env.META_WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
   // Support both Direct Send interactive authentication (no pre-approved template needed)
   // and Pre-Approved Authentication Templates.

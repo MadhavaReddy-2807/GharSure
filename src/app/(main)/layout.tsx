@@ -13,7 +13,7 @@ export default async function MainAppLayout({
   const customer = session ? await getCustomerById(session.customerId) : null;
 
   return (
-    <div className="min-h-screen bg-[#FBFBFD] flex flex-col antialiased">
+    <div className="min-h-screen bg-[#F2F2FA] flex flex-col antialiased">
       {/* Top Application Header */}
       <AppHeader
         fullName={customer?.display_name || customer?.full_name}

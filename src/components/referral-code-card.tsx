@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Copy, Check, Share2, Link as LinkIcon } from "lucide-react";
 import { Button } from "./ui/button";
+import { getBaseUrl } from "@/lib/base-url";
 
 interface ReferralCodeCardProps {
   code: string;
@@ -14,10 +15,7 @@ export function ReferralCodeCard({ code, bonusCoins = 100 }: ReferralCodeCardPro
   const [linkCopied, setLinkCopied] = useState(false);
 
   const getShareUrl = () => {
-    if (typeof window !== "undefined") {
-      return `${window.location.origin}/?ref=${code}`;
-    }
-    return `https://gharsure.com/?ref=${code}`;
+    return `${getBaseUrl()}/?ref=${code}`;
   };
 
   const handleCopyCode = async () => {
@@ -112,7 +110,7 @@ export function ReferralCodeCard({ code, bonusCoins = 100 }: ReferralCodeCardPro
         <button
           type="button"
           onClick={handleWhatsAppShare}
-          className="flex-1 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+          className="flex-1 py-2.5 px-4 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
         >
           <Share2 className="w-4 h-4" />
           <span>Share on WhatsApp</span>
