@@ -1,6 +1,7 @@
 import { getDirectSql, isDirectDatabaseConfigured } from "./supabase/direct-db";
 import { AdminRole } from "./admin-auth";
 import { executeReferralReward } from "./referral";
+import { validateSurveyDefinition, SurveyQuestion } from "./survey-engine";
 
 export interface AdminUserRecord {
   id: string;
@@ -439,13 +440,29 @@ export async function updateCustomerAdminFields(
 // Survey Management
 // -----------------------------------------------------------------------------
 
-export async function listSurveysAdmin(): Promise<any[]> {
+export async function listSurveysAdmin(params?: {
+  type?: string;
+  status?: string;
+  search?: string;
+}): Promise<any[]> {
   const sql = getDirectSql();
+  const searchPattern = params?.search ? `%${params.search.trim().toLowerCase()}%` : null;
+  const statusFilter = params?.status && params.status !== "ALL" ? params.status : null;
+  const typeFilter = params?.type && params.type !== "ALL" ? params.type : null;
+
   return await sql`
     SELECT s.*,
            (SELECT count(*)::int FROM survey_questions sq WHERE sq.survey_id = s.id) as questions_count,
-           (SELECT count(*)::int FROM survey_responses sr WHERE sr.survey_id = s.id AND sr.status = 'COMPLETED') as completions_count
+           (SELECT count(*)::int FROM survey_responses sr WHERE sr.survey_id = s.id AND sr.status = 'COMPLETED') as completions_count,
+           (SELECT count(*)::int FROM survey_responses sr WHERE sr.survey_id = s.id AND sr.status IN ('STARTED', 'IN_PROGRESS')) as in_progress_count
     FROM surveys s
+    WHERE (${statusFilter}::text IS NULL OR s.status = ${statusFilter})
+      AND (${typeFilter}::text IS NULL OR s.survey_type = ${typeFilter})
+      AND (${searchPattern}::text IS NULL OR (
+        LOWER(s.title) LIKE ${searchPattern}
+        OR LOWER(s.survey_id) LIKE ${searchPattern}
+        OR LOWER(s.category) LIKE ${searchPattern}
+      ))
     ORDER BY s.created_at DESC;
   `;
 }
@@ -459,16 +476,36 @@ export async function getSurveyByIdAdmin(id: string): Promise<any | null> {
 
   const survey = surveys[0];
   const questions = await sql`
-    SELECT * FROM survey_questions WHERE survey_id = ${survey.id} ORDER BY order_num ASC;
+    SELECT id, survey_id, order_num, question_text, question_type,
+           description, options, is_required, validation_rules,
+           branching_rules, section_name
+    FROM survey_questions
+    WHERE survey_id = ${survey.id}
+    ORDER BY order_num ASC;
   `;
-  const responsesCount = await sql<{ count: string }[]>`
-    SELECT count(*)::text as count FROM survey_responses WHERE survey_id = ${survey.id};
+
+  const versions = await sql`
+    SELECT id, version_num, reward_coins, published_at
+    FROM survey_versions
+    WHERE survey_id = ${survey.id}
+    ORDER BY version_num DESC;
+  `;
+
+  const counts = await sql`
+    SELECT 
+      count(*)::int as total_responses,
+      count(*) FILTER (WHERE status = 'COMPLETED')::int as completions,
+      count(*) FILTER (WHERE status IN ('STARTED', 'IN_PROGRESS'))::int as in_progress,
+      count(*) FILTER (WHERE status = 'DISQUALIFIED')::int as disqualified
+    FROM survey_responses
+    WHERE survey_id = ${survey.id};
   `;
 
   return {
     ...survey,
     questions,
-    total_responses: parseInt(responsesCount[0]?.count || "0", 10),
+    versions,
+    counts: counts[0] || { total_responses: 0, completions: 0, in_progress: 0, disqualified: 0 },
   };
 }
 
@@ -476,6 +513,7 @@ export async function createSurveyAdmin(data: {
   surveyId: string;
   title: string;
   description?: string;
+  surveyType?: "STATIC" | "DECISION_BASED";
   category: string;
   language?: string;
   estimatedDurationMin: number;
@@ -483,21 +521,65 @@ export async function createSurveyAdmin(data: {
   sponsorDetails?: string;
   rewardCoins: number;
   responseQuota: number;
+  allowResume?: boolean;
+  allowReview?: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
+  eligibilityRules?: any;
   adminId?: string;
 }): Promise<any> {
   const sql = getDirectSql();
   const rows = await sql`
     INSERT INTO surveys (
-      survey_id, title, description, category, language, 
+      survey_id, title, description, survey_type, category, language, 
       estimated_duration_min, internal_objective, sponsor_details,
-      reward_coins, response_quota, status, version, created_by
+      reward_coins, response_quota, allow_resume, allow_review,
+      start_date, end_date, eligibility_rules, status, version, created_by
     )
     VALUES (
       ${data.surveyId.trim()}, ${data.title.trim()}, ${data.description || null},
-      ${data.category}, ${data.language || "en"}, ${data.estimatedDurationMin || 5},
-      ${data.internalObjective || null}, ${data.sponsorDetails || null},
-      ${data.rewardCoins || 50}, ${data.responseQuota || 500}, 'DRAFT', 1, ${data.adminId || null}
+      ${data.surveyType || "STATIC"}, ${data.category}, ${data.language || "en"},
+      ${data.estimatedDurationMin || 5}, ${data.internalObjective || null}, ${data.sponsorDetails || null},
+      ${data.rewardCoins ?? 50}, ${data.responseQuota || 500},
+      ${data.allowResume !== false}, ${data.allowReview === true},
+      ${data.startDate || null}, ${data.endDate || null},
+      ${JSON.stringify(data.eligibilityRules || {})}::jsonb,
+      'DRAFT', 1, ${data.adminId || null}
     )
+    RETURNING *;
+  `;
+  return rows[0];
+}
+
+export async function updateSurveyDetailsAdmin(
+  id: string,
+  data: {
+    title?: string;
+    description?: string;
+    surveyType?: "STATIC" | "DECISION_BASED";
+    category?: string;
+    estimatedDurationMin?: number;
+    rewardCoins?: number;
+    responseQuota?: number;
+    allowResume?: boolean;
+    allowReview?: boolean;
+  }
+): Promise<any> {
+  const sql = getDirectSql();
+  const rows = await sql`
+    UPDATE surveys
+    SET 
+      title = COALESCE(${data.title?.trim() || null}, title),
+      description = COALESCE(${data.description || null}, description),
+      survey_type = COALESCE(${data.surveyType || null}, survey_type),
+      category = COALESCE(${data.category || null}, category),
+      estimated_duration_min = COALESCE(${data.estimatedDurationMin || null}, estimated_duration_min),
+      reward_coins = COALESCE(${data.rewardCoins !== undefined ? data.rewardCoins : null}, reward_coins),
+      response_quota = COALESCE(${data.responseQuota || null}, response_quota),
+      allow_resume = COALESCE(${data.allowResume !== undefined ? data.allowResume : null}, allow_resume),
+      allow_review = COALESCE(${data.allowReview !== undefined ? data.allowReview : null}, allow_review),
+      updated_at = NOW()
+    WHERE id = ${id}
     RETURNING *;
   `;
   return rows[0];
@@ -505,15 +587,19 @@ export async function createSurveyAdmin(data: {
 
 export async function updateSurveyStatusAdmin(
   id: string,
-  newStatus: "DRAFT" | "TESTING" | "APPROVED" | "SCHEDULED" | "PUBLISHED" | "PAUSED" | "CLOSED" | "ARCHIVED"
+  newStatus: "DRAFT" | "TESTING" | "APPROVED" | "SCHEDULED" | "PUBLISHED" | "PAUSED" | "CLOSED" | "ARCHIVED",
+  adminId?: string
 ): Promise<any> {
   const sql = getDirectSql();
-  const publishedAtClause = newStatus === "PUBLISHED" ? sql`published_at = COALESCE(published_at, NOW()),` : sql``;
+
+  if (newStatus === "PUBLISHED") {
+    return await publishSurveyAdmin(id, adminId);
+  }
+
   const rows = await sql`
     UPDATE surveys
     SET 
       status = ${newStatus},
-      ${publishedAtClause}
       updated_at = NOW()
     WHERE id = ${id}
     RETURNING *;
@@ -524,27 +610,314 @@ export async function updateSurveyStatusAdmin(
 export async function saveSurveyQuestionsAdmin(
   surveyId: string,
   questions: Array<{
+    id?: string;
     orderNum: number;
     questionText: string;
     questionType: string;
-    options: string[];
+    description?: string | null;
+    options?: any[];
     isRequired: boolean;
+    validationRules?: any;
+    branchingRules?: any[];
+    sectionName?: string | null;
   }>
 ): Promise<void> {
   const sql = getDirectSql();
   await sql.begin(async (tx) => {
     await tx`DELETE FROM survey_questions WHERE survey_id = ${surveyId};`;
     for (const q of questions) {
+      const qId = q.id || crypto.randomUUID();
       await tx`
-        INSERT INTO survey_questions (survey_id, order_num, question_text, question_type, options, is_required)
+        INSERT INTO survey_questions (
+          id, survey_id, order_num, question_text, question_type,
+          description, options, is_required, validation_rules,
+          branching_rules, section_name
+        )
         VALUES (
-          ${surveyId}, ${q.orderNum}, ${q.questionText.trim()}, ${q.questionType},
-          ${JSON.stringify(q.options || [])}::jsonb, ${q.isRequired}
+          ${qId}, ${surveyId}, ${q.orderNum}, ${q.questionText.trim()}, ${q.questionType},
+          ${q.description || null}, ${JSON.stringify(q.options || [])}::jsonb, ${q.isRequired},
+          ${JSON.stringify(q.validationRules || {})}::jsonb,
+          ${JSON.stringify(q.branchingRules || [])}::jsonb,
+          ${q.sectionName || null}
         );
       `;
     }
     await tx`UPDATE surveys SET version = version + 1, updated_at = NOW() WHERE id = ${surveyId};`;
   });
+}
+
+export async function publishSurveyAdmin(surveyId: string, adminId?: string): Promise<any> {
+  const sql = getDirectSql();
+  const survey = await getSurveyByIdAdmin(surveyId);
+  if (!survey) throw new Error("Survey not found.");
+
+  // Pre-flight validation using Survey Engine
+  const validation = validateSurveyDefinition(survey.questions as SurveyQuestion[], survey.survey_type || "STATIC");
+  if (!validation.isValid) {
+    throw new Error(`Cannot publish survey due to validation errors: ${validation.errors.join("; ")}`);
+  }
+
+  return await sql.begin(async (tx) => {
+    // 1. Snapshot survey definition into survey_versions
+    const versionNum = (survey.version || 1);
+    const snapshot = {
+      survey_id: survey.survey_id,
+      title: survey.title,
+      description: survey.description,
+      survey_type: survey.survey_type,
+      category: survey.category,
+      estimated_duration_min: survey.estimated_duration_min,
+      reward_coins: survey.reward_coins,
+      questions: survey.questions,
+      published_at: new Date().toISOString(),
+    };
+
+    const [versionRow] = await tx`
+      INSERT INTO survey_versions (
+        survey_id, version_num, snapshot, reward_coins, published_by
+      )
+      VALUES (
+        ${survey.id}, ${versionNum}, ${JSON.stringify(snapshot)}::jsonb,
+        ${survey.reward_coins}, ${adminId || null}
+      )
+      ON CONFLICT (survey_id, version_num) DO UPDATE
+      SET snapshot = EXCLUDED.snapshot, reward_coins = EXCLUDED.reward_coins, published_at = NOW()
+      RETURNING *;
+    `;
+
+    // 2. Mark survey published
+    const [updatedSurvey] = await tx`
+      UPDATE surveys
+      SET status = 'PUBLISHED', published_at = COALESCE(published_at, NOW()), updated_at = NOW()
+      WHERE id = ${survey.id}
+      RETURNING *;
+    `;
+
+    return { ...updatedSurvey, versionSnapshotId: versionRow.id };
+  });
+}
+
+export async function duplicateSurveyAdmin(surveyId: string, adminId?: string): Promise<any> {
+  const sql = getDirectSql();
+  const original = await getSurveyByIdAdmin(surveyId);
+  if (!original) throw new Error("Original survey not found.");
+
+  const newSlug = `${original.survey_id}-copy-${Date.now().toString(36).slice(-4)}`;
+  const newTitle = `${original.title} (Copy)`;
+
+  return await sql.begin(async (tx) => {
+    const [cloned] = await tx`
+      INSERT INTO surveys (
+        survey_id, title, description, survey_type, category, language,
+        estimated_duration_min, internal_objective, sponsor_details,
+        reward_coins, response_quota, allow_resume, allow_review,
+        status, version, created_by
+      )
+      VALUES (
+        ${newSlug}, ${newTitle}, ${original.description}, ${original.survey_type || "STATIC"},
+        ${original.category}, ${original.language || "en"}, ${original.estimated_duration_min},
+        ${original.internalObjective || null}, ${original.sponsorDetails || null},
+        ${original.reward_coins}, ${original.response_quota},
+        ${original.allow_resume !== false}, ${original.allow_review === true},
+        'DRAFT', 1, ${adminId || null}
+      )
+      RETURNING *;
+    `;
+
+    // Clone questions with new IDs to preserve stability
+    const oldToNewMap = new Map<string, string>();
+    for (const q of original.questions) {
+      const newQId = crypto.randomUUID();
+      oldToNewMap.set(q.id, newQId);
+    }
+
+    for (const q of original.questions) {
+      const newQId = oldToNewMap.get(q.id)!;
+      // Remap branching rule question targets
+      const remappedRules = (q.branching_rules || []).map((rule: any) => ({
+        ...rule,
+        targetQuestionId: rule.targetQuestionId ? oldToNewMap.get(rule.targetQuestionId) || rule.targetQuestionId : undefined,
+        conditionGroup: {
+          ...rule.conditionGroup,
+          conditions: (rule.conditionGroup?.conditions || []).map((c: any) => ({
+            ...c,
+            questionId: oldToNewMap.get(c.questionId) || c.questionId,
+          })),
+        },
+      }));
+
+      await tx`
+        INSERT INTO survey_questions (
+          id, survey_id, order_num, question_text, question_type,
+          description, options, is_required, validation_rules,
+          branching_rules, section_name
+        )
+        VALUES (
+          ${newQId}, ${cloned.id}, ${q.order_num}, ${q.question_text}, ${q.question_type},
+          ${q.description}, ${JSON.stringify(q.options || [])}::jsonb, ${q.is_required},
+          ${JSON.stringify(q.validation_rules || {})}::jsonb,
+          ${JSON.stringify(remappedRules)}::jsonb,
+          ${q.section_name}
+        );
+      `;
+    }
+
+    return cloned;
+  });
+}
+
+export async function getSurveyResponsesAdmin(
+  surveyId: string,
+  params?: { limit?: number; offset?: number; status?: string }
+): Promise<{ responses: any[]; total: number }> {
+  const sql = getDirectSql();
+  const limit = params?.limit || 50;
+  const offset = params?.offset || 0;
+  const statusFilter = params?.status && params.status !== "ALL" ? params.status : null;
+
+  const countRows = await sql<{ count: string }[]>`
+    SELECT count(*)::text as count
+    FROM survey_responses sr
+    WHERE sr.survey_id = ${surveyId}
+      AND (${statusFilter}::text IS NULL OR sr.status = ${statusFilter});
+  `;
+  const total = parseInt(countRows[0]?.count || "0", 10);
+
+  const responses = await sql`
+    SELECT sr.*,
+           c.customer_id as customer_readable_id, c.full_name as customer_name, c.phone_e164, c.city as customer_city
+    FROM survey_responses sr
+    JOIN customers c ON sr.customer_id = c.id
+    WHERE sr.survey_id = ${surveyId}
+      AND (${statusFilter}::text IS NULL OR sr.status = ${statusFilter})
+    ORDER BY sr.created_at DESC
+    LIMIT ${limit} OFFSET ${offset};
+  `;
+
+  return { responses, total };
+}
+
+export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
+  const sql = getDirectSql();
+  const survey = await getSurveyByIdAdmin(surveyId);
+  if (!survey) throw new Error("Survey not found.");
+
+  const summary = await sql`
+    SELECT 
+      count(*)::int as total_starts,
+      count(*) FILTER (WHERE status = 'COMPLETED')::int as completions,
+      count(*) FILTER (WHERE status IN ('STARTED', 'IN_PROGRESS'))::int as in_progress,
+      count(*) FILTER (WHERE status = 'DISQUALIFIED')::int as disqualified,
+      COALESCE(SUM(reward_coins) FILTER (WHERE reward_issued = true), 0)::int as total_coins_distributed,
+      AVG(EXTRACT(EPOCH FROM (completed_at - started_at))) FILTER (WHERE status = 'COMPLETED')::numeric(10,1) as avg_duration_seconds
+    FROM survey_responses
+    WHERE survey_id = ${survey.id};
+  `;
+
+  // Aggregate answer distribution for each question
+  const responses = await sql`
+    SELECT answers FROM survey_responses WHERE survey_id = ${survey.id} AND status = 'COMPLETED';
+  `;
+
+  const questionBreakdowns: Record<string, any> = {};
+  for (const q of survey.questions) {
+    const distribution: Record<string, number> = {};
+    let totalAnswered = 0;
+
+    for (const r of responses) {
+      const ans = r.answers?.[q.id];
+      if (ans !== undefined && ans !== null && ans !== "") {
+        totalAnswered++;
+        if (Array.isArray(ans)) {
+          ans.forEach((item) => {
+            distribution[item] = (distribution[item] || 0) + 1;
+          });
+        } else {
+          const key = String(ans);
+          distribution[key] = (distribution[key] || 0) + 1;
+        }
+      }
+    }
+
+    questionBreakdowns[q.id] = {
+      questionId: q.id,
+      questionText: q.question_text,
+      questionType: q.question_type,
+      totalAnswered,
+      distribution,
+    };
+  }
+
+  const stats = summary[0] || {
+    total_starts: 0,
+    completions: 0,
+    in_progress: 0,
+    disqualified: 0,
+    total_coins_distributed: 0,
+    avg_duration_seconds: null,
+  };
+
+  const completionRate = stats.total_starts > 0 ? Math.round((stats.completions / stats.total_starts) * 100) : 0;
+
+  return {
+    surveyId: survey.id,
+    title: survey.title,
+    stats: {
+      ...stats,
+      completionRate,
+    },
+    questionBreakdowns,
+  };
+}
+
+export async function exportSurveyResponsesCsv(surveyId: string): Promise<string> {
+  const sql = getDirectSql();
+  const survey = await getSurveyByIdAdmin(surveyId);
+  if (!survey) throw new Error("Survey not found.");
+
+  const { responses } = await getSurveyResponsesAdmin(survey.id, { limit: 10000 });
+
+  // Escape CSV value and prevent formula injection (=, +, -, @)
+  const sanitizeCsv = (val: any): string => {
+    if (val === undefined || val === null) return '""';
+    let str = typeof val === "object" ? JSON.stringify(val) : String(val);
+    if (str.startsWith("=") || str.startsWith("+") || str.startsWith("-") || str.startsWith("@")) {
+      str = "'" + str; // Prefix apostrophe to prevent spreadsheet formula execution
+    }
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+
+  const headers = [
+    "Response ID",
+    "Customer ID",
+    "Customer Name",
+    "Phone",
+    "City",
+    "Status",
+    "Reward Coins",
+    "Reward Issued",
+    "Started At",
+    "Completed At",
+    ...survey.questions.map((q: any) => `Q${q.order_num}: ${q.question_text}`),
+  ];
+
+  const rows = responses.map((r) => {
+    return [
+      sanitizeCsv(r.id),
+      sanitizeCsv(r.customer_readable_id),
+      sanitizeCsv(r.customer_name),
+      sanitizeCsv(r.phone_e164),
+      sanitizeCsv(r.customer_city),
+      sanitizeCsv(r.status),
+      sanitizeCsv(r.reward_coins),
+      sanitizeCsv(r.reward_issued),
+      sanitizeCsv(r.started_at || r.created_at),
+      sanitizeCsv(r.completed_at),
+      ...survey.questions.map((q: any) => sanitizeCsv(r.answers?.[q.id])),
+    ].join(",");
+  });
+
+  return [headers.map(sanitizeCsv).join(","), ...rows].join("\n");
 }
 
 // -----------------------------------------------------------------------------

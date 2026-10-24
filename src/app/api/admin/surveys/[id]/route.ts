@@ -3,13 +3,14 @@ import { getCurrentAdminSession, hasAdminPermission } from "@/lib/admin-auth";
 import {
   getSurveyByIdAdmin,
   updateSurveyStatusAdmin,
+  updateSurveyDetailsAdmin,
   saveSurveyQuestionsAdmin,
   logAdminAuditEvent,
 } from "@/lib/admin-db";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  DRAFT: ["TESTING", "ARCHIVED"],
-  TESTING: ["APPROVED", "DRAFT", "ARCHIVED"],
+  DRAFT: ["TESTING", "PUBLISHED", "ARCHIVED"],
+  TESTING: ["APPROVED", "PUBLISHED", "DRAFT", "ARCHIVED"],
   APPROVED: ["SCHEDULED", "PUBLISHED", "DRAFT"],
   SCHEDULED: ["PUBLISHED", "APPROVED", "DRAFT"],
   PUBLISHED: ["PAUSED", "CLOSED", "ARCHIVED"],
@@ -53,9 +54,20 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { status, questions } = body;
+    const { status, questions, details } = body;
 
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+
+    if (details) {
+      const updated = await updateSurveyDetailsAdmin(id, details);
+      await logAdminAuditEvent({
+        eventType: "ADMIN_SURVEY_DETAILS_UPDATED",
+        adminId: admin.adminId,
+        ipAddress: ip,
+        metadata: { surveyId: id, details },
+      });
+      return NextResponse.json({ success: true, survey: updated });
+    }
 
     if (status) {
       if (status === "PUBLISHED" && !hasAdminPermission(admin.role, "surveys:publish")) {
@@ -79,7 +91,7 @@ export async function PATCH(
         );
       }
 
-      const updated = await updateSurveyStatusAdmin(id, status);
+      const updated = await updateSurveyStatusAdmin(id, status, admin.adminId);
       await logAdminAuditEvent({
         eventType: "ADMIN_SURVEY_STATUS_CHANGED",
         adminId: admin.adminId,

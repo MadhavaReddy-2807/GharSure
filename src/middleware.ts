@@ -104,7 +104,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/rewards") ||
     pathname.startsWith("/refer") ||
     pathname.startsWith("/store") ||
-    pathname.startsWith("/profile");
+    pathname.startsWith("/profile") ||
+    pathname.startsWith("/surveys");
 
   const isOnboardingRoute = pathname.startsWith("/onboarding");
   const isAuthRoute = pathname.startsWith("/auth");
