@@ -15,6 +15,7 @@ export interface CustomerRecord {
   city?: string | null;
   onboarding_completed: boolean;
   reward_coins?: number;
+  referral_code?: string | null;
   status?: string;
   created_at: string;
   updated_at: string;
@@ -43,6 +44,8 @@ class InMemoryStore {
   private customersById = new Map<string, CustomerRecord>(); // key: id
   private challenges = new Map<string, OtpChallengeRecord[]>(); // key: phone_e164
   private sessions = new Map<string, { customerId: string; expiresAt: Date }>();
+  private attributions = new Map<string, any>(); // key: id
+  private attributionsByReferee = new Map<string, any>(); // key: referee_id
   private auditEvents: Array<Record<string, unknown>> = [];
 
   public static getInstance(): InMemoryStore {
@@ -66,6 +69,29 @@ class InMemoryStore {
     return this.customersById.get(id) || null;
   }
 
+  public getCustomerByReferralCode(code: string): CustomerRecord | null {
+    const clean = code.trim().toUpperCase();
+    for (const c of this.customersById.values()) {
+      if (c.referral_code && c.referral_code.toUpperCase() === clean) {
+        return c;
+      }
+    }
+    return null;
+  }
+
+  public addCustomerCoins(id: string, amount: number): CustomerRecord | null {
+    const c = this.customersById.get(id);
+    if (!c) return null;
+    const updated = {
+      ...c,
+      reward_coins: (c.reward_coins || 0) + amount,
+      updated_at: new Date().toISOString(),
+    };
+    this.customers.set(c.phone_e164, updated);
+    this.customersById.set(id, updated);
+    return updated;
+  }
+
   public upsertCustomer(phone: string): CustomerRecord {
     const existing = this.customers.get(phone);
     const now = new Date().toISOString();
@@ -81,6 +107,7 @@ class InMemoryStore {
       return updated;
     }
 
+    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
     const newCustomer: CustomerRecord = {
       id: crypto.randomUUID(),
       customer_id: this.nextCustomerId(),
@@ -91,6 +118,8 @@ class InMemoryStore {
       display_name: null,
       city: null,
       onboarding_completed: false,
+      reward_coins: 100,
+      referral_code: `GS${randomSuffix}`,
       created_at: now,
       updated_at: now,
     };
@@ -148,6 +177,36 @@ class InMemoryStore {
     this.sessions.delete(tokenHash);
   }
 
+  public addReferralAttribution(attr: any) {
+    this.attributions.set(attr.id, attr);
+    this.attributionsByReferee.set(attr.referee_id, attr);
+  }
+
+  public getReferralAttributionByReferee(refereeId: string) {
+    return this.attributionsByReferee.get(refereeId) || null;
+  }
+
+  public getReferralAttributionById(id: string) {
+    return this.attributions.get(id) || null;
+  }
+
+  public getReferralAttributions(referrerId?: string) {
+    const all = Array.from(this.attributions.values());
+    if (referrerId) {
+      return all.filter((a) => a.referrer_id === referrerId);
+    }
+    return all;
+  }
+
+  public updateReferralAttribution(id: string, updates: Partial<any>) {
+    const existing = this.attributions.get(id);
+    if (!existing) return null;
+    const updated = { ...existing, ...updates };
+    this.attributions.set(id, updated);
+    this.attributionsByReferee.set(updated.referee_id, updated);
+    return updated;
+  }
+
   public logAudit(event: Record<string, unknown>) {
     this.auditEvents.push({ ...event, created_at: new Date().toISOString() });
   }
@@ -158,6 +217,8 @@ class InMemoryStore {
     this.customersById.clear();
     this.challenges.clear();
     this.sessions.clear();
+    this.attributions.clear();
+    this.attributionsByReferee.clear();
     this.auditEvents = [];
   }
 }

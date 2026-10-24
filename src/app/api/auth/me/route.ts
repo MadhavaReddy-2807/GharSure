@@ -31,6 +31,8 @@ export async function GET(req: NextRequest) {
         fullName: customer.full_name,
         city: customer.city,
         displayName: customer.display_name,
+        referralCode: customer.referral_code,
+        rewardCoins: customer.reward_coins ?? 100,
         onboardingCompleted: customer.onboarding_completed,
       },
     });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyRequestSession, signSession, setSessionCookie } from "@/lib/session";
 import { updateCustomerProfile, logAuditEvent } from "@/lib/supabase/db";
+import { processReferralOnboarding } from "@/lib/referral";
 
 const onboardingSchema = z.object({
   fullName: z
@@ -57,6 +58,24 @@ export async function POST(req: NextRequest) {
     const { fullName, city, displayName, referralCode } = parsed.data;
 
     const trimmedCity = city && city.trim().length > 0 ? city.trim() : null;
+    const cleanReferralCode = referralCode && referralCode.trim().length > 0 ? referralCode.trim().toUpperCase() : undefined;
+
+    // Process referral code attribution and rewards if provided
+    let referralAttributionId: string | undefined;
+    if (cleanReferralCode) {
+      const referralResult = await processReferralOnboarding(session.customerId, cleanReferralCode);
+      if (!referralResult.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: referralResult.error || "Invalid referral code.",
+            fieldErrors: { referralCode: [referralResult.error || "Invalid referral code."] },
+          },
+          { status: 400 }
+        );
+      }
+      referralAttributionId = referralResult.attributionId;
+    }
 
     // Update customer in database
     const updatedCustomer = await updateCustomerProfile(session.customerId, {
@@ -68,7 +87,8 @@ export async function POST(req: NextRequest) {
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
     await logAuditEvent("ONBOARDING_COMPLETED", session.phone, session.customerId, ip, {
       city: trimmedCity,
-      referralCode: referralCode || null,
+      referralCode: cleanReferralCode || null,
+      referralAttributionId: referralAttributionId || null,
     });
 
     // Refresh session token with onboardingCompleted = true

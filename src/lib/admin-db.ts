@@ -1,5 +1,6 @@
 import { getDirectSql, isDirectDatabaseConfigured } from "./supabase/direct-db";
 import { AdminRole } from "./admin-auth";
+import { executeReferralReward } from "./referral";
 
 export interface AdminUserRecord {
   id: string;
@@ -756,8 +757,11 @@ export async function saveTrialAdmin(data: {
 // Referrals
 // -----------------------------------------------------------------------------
 
-export async function listReferralsAdmin(): Promise<any[]> {
+export async function listReferralsAdmin(filter?: { status?: string; search?: string }): Promise<any[]> {
   const sql = getDirectSql();
+  const searchPattern = filter?.search ? `%${filter.search.trim().toLowerCase()}%` : null;
+  const statusFilter = filter?.status && filter.status !== "ALL" ? filter.status : null;
+
   return await sql`
     SELECT 
       ra.*,
@@ -766,18 +770,39 @@ export async function listReferralsAdmin(): Promise<any[]> {
     FROM referral_attributions ra
     JOIN customers ref ON ra.referrer_id = ref.id
     JOIN customers rec ON ra.referee_id = rec.id
+    WHERE (${statusFilter}::text IS NULL OR ra.status = ${statusFilter})
+      AND (${searchPattern}::text IS NULL OR (
+        LOWER(ra.referral_code) LIKE ${searchPattern}
+        OR LOWER(ref.customer_id) LIKE ${searchPattern}
+        OR LOWER(COALESCE(ref.full_name, '')) LIKE ${searchPattern}
+        OR ref.phone_e164 LIKE ${searchPattern}
+        OR LOWER(rec.customer_id) LIKE ${searchPattern}
+        OR LOWER(COALESCE(rec.full_name, '')) LIKE ${searchPattern}
+        OR rec.phone_e164 LIKE ${searchPattern}
+      ))
     ORDER BY ra.created_at DESC;
   `;
 }
 
 export async function updateReferralStatusAdmin(
   id: string,
-  status: "PENDING" | "QUALIFIED" | "REWARDED" | "REJECTED"
+  status: "PENDING" | "QUALIFIED" | "REWARDED" | "REJECTED",
+  rejectionReason?: string,
+  adminId?: string
 ): Promise<any> {
   const sql = getDirectSql();
+  if (status === "REWARDED") {
+    await executeReferralReward(id, adminId);
+    const rows = await sql`SELECT * FROM referral_attributions WHERE id = ${id}`;
+    return rows[0];
+  }
+
   const rows = await sql`
     UPDATE referral_attributions
-    SET status = ${status}, qualified_at = CASE WHEN ${status} = 'QUALIFIED' THEN NOW() ELSE qualified_at END
+    SET 
+      status = ${status}, 
+      qualified_at = CASE WHEN ${status} = 'QUALIFIED' THEN NOW() ELSE qualified_at END,
+      rejection_reason = CASE WHEN ${status} = 'REJECTED' THEN ${rejectionReason || 'Rejected by administrator'} ELSE rejection_reason END
     WHERE id = ${id}
     RETURNING *;
   `;

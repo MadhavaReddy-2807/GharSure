@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { ReferralParamCapturer } from "@/components/referral-param-capturer";
 
 export const metadata: Metadata = {
   title: "GharSure - Mobile Household Intelligence",
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full bg-white">
       <body className="min-h-full flex flex-col bg-white antialiased text-slate-800">
+        <ReferralParamCapturer />
         <main className="flex-1 flex flex-col">{children}</main>
       </body>
     </html>
