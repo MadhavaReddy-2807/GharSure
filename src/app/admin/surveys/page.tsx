@@ -29,6 +29,9 @@ import {
   Search,
   Download,
   Filter,
+  Pencil,
+  Play,
+  Pause,
 } from "lucide-react";
 import {
   validateSurveyDefinition,
@@ -179,6 +182,10 @@ export default function AdminSurveysPage() {
   const [newAllowResume, setNewAllowResume] = useState(true);
   const [newAllowReview, setNewAllowReview] = useState(true);
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
+
+  // Delete Survey Modal State
+  const [surveyToDelete, setSurveyToDelete] = useState<Survey | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load Surveys
   const fetchSurveys = useCallback(async () => {
@@ -490,6 +497,34 @@ export default function AdminSurveysPage() {
     }
   };
 
+  // Quick Pause / Resume Toggle
+  const handleTogglePause = async (survey: Survey) => {
+    const nextState = survey.status === "PUBLISHED" ? "PAUSED" : "PUBLISHED";
+    await handleTransitionState(survey.id, nextState);
+  };
+
+  // Delete Survey
+  const handleDeleteSurvey = async () => {
+    if (!surveyToDelete) return;
+    setIsDeleting(true);
+    setError("");
+
+    try {
+      const res = await fetch(`/api/admin/surveys/${surveyToDelete.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete survey");
+      setSuccess(`Survey "${surveyToDelete.title}" (${surveyToDelete.survey_id}) deleted successfully.`);
+      setSurveyToDelete(null);
+      await fetchSurveys();
+    } catch (err: any) {
+      setError(err.message || "Failed to delete survey");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Duplicate Survey
   const handleDuplicateSurvey = async (surveyId: string) => {
     setIsLoading(true);
@@ -752,15 +787,69 @@ export default function AdminSurveysPage() {
                       </td>
                       <td className="px-5 py-3 text-right">
                         <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                          {/* Builder Button */}
+                          {/* 1. Edit / Builder Button */}
                           <button
                             onClick={() => handleOpenBuilder(s)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-[11px] transition-colors flex items-center gap-1 shadow-xs"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-[11px] shadow-xs transition-colors"
+                            title="Edit questions, logic, and settings"
                           >
-                            <ClipboardList className="w-3 h-3" />
-                            <span>Builder</span>
+                            <Pencil className="w-3 h-3" />
+                            <span>Edit</span>
                           </button>
 
+                          {/* 2. Pause / Resume / Publish Quick Action */}
+                          {s.status === "PUBLISHED" ? (
+                            <button
+                              onClick={() => handleTogglePause(s)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold text-[11px] transition-colors"
+                              title="Pause survey from collecting new responses"
+                            >
+                              <Pause className="w-3 h-3" />
+                              <span>Pause</span>
+                            </button>
+                          ) : s.status === "PAUSED" ? (
+                            <button
+                              onClick={() => handleTogglePause(s)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold text-[11px] transition-colors"
+                              title="Resume survey and allow users to participate"
+                            >
+                              <Play className="w-3 h-3" />
+                              <span>Resume</span>
+                            </button>
+                          ) : s.status === "DRAFT" ? (
+                            <button
+                              onClick={() => handleTransitionState(s.id, "PUBLISHED")}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold text-[11px] transition-colors"
+                              title="Publish survey"
+                            >
+                              <CheckCircle className="w-3 h-3" />
+                              <span>Publish</span>
+                            </button>
+                          ) : (
+                            (NEXT_STATES[s.status] || []).map((target) => (
+                              <button
+                                key={target}
+                                onClick={() => handleTransitionState(s.id, target)}
+                                className="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[10px] transition-colors uppercase tracking-wider"
+                              >
+                                {target === "PUBLISHED" ? "Publish" : target}
+                              </button>
+                            ))
+                          )}
+
+                          {/* 3. Delete Action */}
+                          <button
+                            onClick={() => setSurveyToDelete(s)}
+                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium text-[11px] transition-colors"
+                            title="Delete survey permanently"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </button>
+
+                          <div className="h-4 w-px bg-slate-200 mx-0.5" />
+
+                          {/* 4. Secondary Actions */}
                           {/* Responses Button */}
                           <button
                             onClick={() => handleOpenResponses(s)}
@@ -773,7 +862,7 @@ export default function AdminSurveysPage() {
                           {/* Analytics Button */}
                           <button
                             onClick={() => handleOpenAnalytics(s)}
-                            className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
                             title="View Question Analytics"
                           >
                             <BarChart3 className="w-3.5 h-3.5" />
@@ -783,7 +872,7 @@ export default function AdminSurveysPage() {
                           <a
                             href={`/api/admin/surveys/${s.id}/export`}
                             download
-                            className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
                             title="Export Responses to CSV"
                           >
                             <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -792,22 +881,11 @@ export default function AdminSurveysPage() {
                           {/* Duplicate */}
                           <button
                             onClick={() => handleDuplicateSurvey(s.id)}
-                            className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
                             title="Duplicate survey"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
-
-                          {/* Transition Actions */}
-                          {(NEXT_STATES[s.status] || []).map((target) => (
-                            <button
-                              key={target}
-                              onClick={() => handleTransitionState(s.id, target)}
-                              className="px-2 py-1 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold text-[10px] transition-colors uppercase tracking-wider"
-                            >
-                              {target === "PUBLISHED" ? "Publish" : target}
-                            </button>
-                          ))}
                         </div>
                       </td>
                     </tr>
@@ -976,6 +1054,77 @@ export default function AdminSurveysPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE SURVEY CONFIRMATION MODAL */}
+      {surveyToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 border border-slate-200 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Delete Survey</h3>
+                <p className="text-xs text-slate-500">This action will remove the survey definition.</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80 mb-4 text-xs space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Survey:</span>
+                <span className="text-slate-900 font-semibold truncate max-w-[220px]">{surveyToDelete.title}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Identifier:</span>
+                <span className="font-mono text-slate-900 font-medium">{surveyToDelete.survey_id}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Current Status:</span>
+                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border ${STATUS_BADGES[surveyToDelete.status] || "bg-slate-100 text-slate-700"}`}>
+                  {surveyToDelete.status}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Responses Collected:</span>
+                <span className="text-slate-900 font-semibold">{surveyToDelete.completions_count}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-red-600 mb-5 bg-red-50/60 p-2.5 rounded-lg border border-red-100">
+              Are you sure you want to delete this survey? Its configured questions, branch logic, and survey structure will be removed.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setSurveyToDelete(null)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteSurvey}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Survey</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

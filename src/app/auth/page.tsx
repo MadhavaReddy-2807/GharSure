@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { normalizeIndianPhone } from "@/lib/phone";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { ArrowLeft, AlertCircle, Loader2, MessageSquare, ShieldCheck } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 export default function PhoneAuthPage() {
   const router = useRouter();
@@ -59,82 +60,106 @@ export default function PhoneAuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-between p-6 max-w-sm mx-auto w-full">
-      {/* Top Bar */}
-      <div>
-        <div className="pt-2 pb-6">
+    <div className="min-h-screen bg-[#FBFBFD] flex flex-col justify-between p-4 sm:p-6 select-none">
+      {/* Top Header / Brand */}
+      <div className="max-w-sm mx-auto w-full pt-4 sm:pt-8">
+        <div className="flex items-center justify-between mb-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 transition-colors py-1 px-1.5 -ml-1.5 rounded-md"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors py-1 px-2 -ml-2 rounded-lg hover:bg-slate-100"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
           </Link>
-        </div>
-
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
-            Enter your mobile number
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            We will send a 6-digit verification code to WhatsApp.
-          </p>
-        </div>
-
-        {errorMessage && (
-          <div
-            role="alert"
-            className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-xs flex items-start gap-2"
-          >
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{errorMessage}</span>
+          <div className="flex items-center gap-2">
+            <Logo size="sm" />
+            <span className="text-sm font-bold text-brand-navy tracking-tight">GharSure</span>
           </div>
-        )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="phone-input"
-              className="block text-xs font-medium text-slate-600 mb-1.5"
-            >
-              Mobile number
-            </label>
-            <div className="flex h-11 rounded-lg border border-slate-200 bg-white hover:border-slate-300 focus-within:border-slate-800 transition-colors overflow-hidden">
-              <span className="flex items-center px-3 text-sm text-slate-600 bg-slate-50/50 border-r border-slate-200 select-none">
-                +91
-              </span>
-              <input
-                id="phone-input"
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                autoComplete="tel-national"
-                placeholder="98765 43210"
-                value={phoneNumber}
-                onChange={handlePhoneChange}
-                disabled={isLoading}
-                className="flex-1 px-3 text-sm text-slate-900 placeholder:text-slate-400 placeholder:font-normal bg-transparent focus:outline-none"
-                maxLength={10}
-                required
-                autoFocus
-              />
+        {/* Card Form */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-7">
+          <div className="mb-6">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700 mb-3">
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>WhatsApp Verification</span>
             </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              Enter mobile number
+            </h1>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              We will send a secure 6-digit one-time passcode to your WhatsApp number.
+            </p>
           </div>
 
-          <button
-            type="submit"
-            disabled={phoneNumber.length !== 10 || isLoading}
-            className="w-full h-11 rounded-lg bg-brand-orange hover:bg-brand-orange-600 active:bg-brand-orange-700 disabled:opacity-50 text-white font-medium text-sm transition-colors flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
-          >
-            {isLoading ? "Sending code..." : "Continue"}
-          </button>
-        </form>
+          {errorMessage && (
+            <div
+              role="alert"
+              className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-start gap-2 animate-fade-in"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="phone-input"
+                className="block text-xs font-semibold text-slate-700 mb-1.5"
+              >
+                Phone Number
+              </label>
+              <div className="flex h-11 rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus-within:border-brand-purple focus-within:ring-2 focus-within:ring-brand-purple/20 transition-all overflow-hidden shadow-xs">
+                <span className="flex items-center px-3.5 text-xs font-bold text-slate-600 bg-slate-50 border-r border-slate-200 select-none">
+                  +91
+                </span>
+                <input
+                  id="phone-input"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="tel-national"
+                  placeholder="98765 43210"
+                  value={phoneNumber}
+                  onChange={handlePhoneChange}
+                  disabled={isLoading}
+                  className="flex-1 px-3.5 text-sm font-semibold tracking-wide text-slate-900 placeholder:text-slate-400 placeholder:font-normal bg-transparent focus:outline-none"
+                  maxLength={10}
+                  required
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={phoneNumber.length !== 10 || isLoading}
+              className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 disabled:opacity-40 text-white font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Sending Code...</span>
+                </>
+              ) : (
+                <span>Continue</span>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+            <span>Zero spam. Secure 256-bit encrypted login.</span>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
-      <footer className="text-center text-xs text-slate-400 py-4">
-        By continuing, you agree to our Terms and Privacy Policy.
+      <footer className="text-center text-[11px] text-slate-400 py-4 max-w-sm mx-auto">
+        By continuing, you agree to GharSure&apos;s{" "}
+        <span className="text-slate-600 underline cursor-pointer">Terms of Service</span> and{" "}
+        <span className="text-slate-600 underline cursor-pointer">Privacy Policy</span>.
       </footer>
     </div>
   );

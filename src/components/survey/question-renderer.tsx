@@ -40,14 +40,14 @@ export function QuestionRenderer({
                   onClick={() => onChange(val)}
                   className={`w-full text-left p-3.5 sm:p-4 rounded-xl border transition-all flex items-center justify-between text-xs sm:text-sm cursor-pointer ${
                     isChecked
-                      ? "border-brand-orange bg-orange-50/40 text-brand-navy font-semibold ring-1 ring-brand-orange"
+                      ? "border-brand-purple bg-purple-50/50 text-slate-900 font-semibold ring-1 ring-brand-purple shadow-xs"
                       : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
                   } disabled:opacity-50`}
                 >
                   <span>{label}</span>
                   <div
                     className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                      isChecked ? "border-brand-orange bg-brand-orange" : "border-slate-300 bg-white"
+                      isChecked ? "border-brand-purple bg-brand-purple" : "border-slate-300 bg-white"
                     }`}
                   >
                     {isChecked && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
@@ -85,14 +85,14 @@ export function QuestionRenderer({
                   onClick={() => toggleOption(val)}
                   className={`w-full text-left p-3.5 sm:p-4 rounded-xl border transition-all flex items-center justify-between text-xs sm:text-sm cursor-pointer ${
                     isChecked
-                      ? "border-brand-orange bg-orange-50/40 text-brand-navy font-semibold ring-1 ring-brand-orange"
+                      ? "border-brand-purple bg-purple-50/50 text-slate-900 font-semibold ring-1 ring-brand-purple shadow-xs"
                       : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
                   } disabled:opacity-50`}
                 >
                   <span>{label}</span>
                   <div
                     className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${
-                      isChecked ? "border-brand-orange bg-brand-orange text-white" : "border-slate-300 bg-white"
+                      isChecked ? "border-brand-purple bg-brand-purple text-white" : "border-slate-300 bg-white"
                     }`}
                   >
                     {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
@@ -116,7 +116,7 @@ export function QuestionRenderer({
               onClick={() => onChange(true)}
               className={`p-4 rounded-xl border text-center font-semibold text-sm transition-all cursor-pointer ${
                 valBool
-                  ? "border-brand-orange bg-orange-50/50 text-brand-orange ring-1 ring-brand-orange"
+                  ? "border-brand-purple bg-purple-50/50 text-brand-purple ring-1 ring-brand-purple shadow-xs"
                   : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
               }`}
             >
@@ -128,7 +128,7 @@ export function QuestionRenderer({
               onClick={() => onChange(false)}
               className={`p-4 rounded-xl border text-center font-semibold text-sm transition-all cursor-pointer ${
                 valFalse
-                  ? "border-brand-orange bg-orange-50/50 text-brand-orange ring-1 ring-brand-orange"
+                  ? "border-brand-purple bg-purple-50/50 text-brand-purple ring-1 ring-brand-purple shadow-xs"
                   : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
               }`}
             >
@@ -221,7 +221,7 @@ export function QuestionRenderer({
                     onClick={() => onChange(num)}
                     className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer flex items-center justify-center ${
                       isSelected
-                        ? "border-brand-orange bg-brand-orange text-white shadow-xs"
+                        ? "border-brand-purple bg-brand-purple text-white shadow-xs"
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                     }`}
                   >

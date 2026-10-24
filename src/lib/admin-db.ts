@@ -766,6 +766,16 @@ export async function duplicateSurveyAdmin(surveyId: string, adminId?: string): 
   });
 }
 
+export async function deleteSurveyAdmin(surveyId: string): Promise<void> {
+  const sql = getDirectSql();
+  await sql.begin(async (tx) => {
+    await tx`DELETE FROM survey_responses WHERE survey_id = ${surveyId};`;
+    await tx`DELETE FROM survey_questions WHERE survey_id = ${surveyId};`;
+    await tx`DELETE FROM survey_versions WHERE survey_id = ${surveyId};`;
+    await tx`DELETE FROM surveys WHERE id = ${surveyId};`;
+  });
+}
+
 export async function getSurveyResponsesAdmin(
   surveyId: string,
   params?: { limit?: number; offset?: number; status?: string }

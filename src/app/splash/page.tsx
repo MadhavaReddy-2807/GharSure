@@ -50,14 +50,24 @@ export default function SplashScreen() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 select-none">
-      <div className="flex flex-col items-center text-center">
-        <Logo size="lg" className="mb-4" />
-        <h1 className="text-2xl font-bold text-brand-navy tracking-tight">
-          Ghar<span className="text-brand-orange">Sure</span>
+    <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center p-6 select-none relative overflow-hidden">
+      <div className="absolute inset-0 bg-radial-gradient from-purple-50/40 via-transparent to-transparent pointer-events-none" />
+      <div className="flex flex-col items-center text-center max-w-xs animate-fade-in z-10">
+        <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-center mb-5">
+          <Logo size="md" />
+        </div>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+          Ghar<span className="text-brand-purple">Sure</span>
         </h1>
-        <p className="text-sm text-slate-500 mt-1 mb-6">Household Intelligence</p>
-        {checking && <Loader2 className="w-5 h-5 animate-spin text-brand-orange" />}
+        <p className="text-xs font-medium text-slate-500 mt-1 mb-8 tracking-wide uppercase">
+          Household Intelligence & Care
+        </p>
+        {checking && (
+          <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+            <Loader2 className="w-4 h-4 animate-spin text-brand-purple" />
+            <span>Connecting...</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -25,9 +25,9 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/90 pb-[env(safe-area-inset-bottom)] md:hidden shadow-lg shadow-slate-900/5"
     >
-      <div className="max-w-md mx-auto px-2 h-14 flex items-center justify-around">
+      <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-around">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
@@ -38,19 +38,29 @@ export function BottomNav() {
               href={item.href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 py-1 min-h-[44px] transition-colors select-none",
-                isActive ? "text-brand-orange" : "text-slate-400 hover:text-slate-600"
+                "flex flex-col items-center justify-center flex-1 py-1.5 min-h-[48px] rounded-xl transition-all select-none relative",
+                isActive
+                  ? "text-brand-navy font-bold"
+                  : "text-slate-400 hover:text-slate-600 font-medium"
               )}
             >
-              <Icon className="w-5 h-5 mb-0.5" />
+              <Icon
+                className={cn(
+                  "w-5 h-5 transition-transform",
+                  isActive ? "scale-110 text-brand-purple" : "text-slate-400"
+                )}
+              />
               <span
                 className={cn(
-                  "text-[10px] leading-tight",
-                  isActive ? "font-bold text-brand-navy" : "font-medium"
+                  "text-[10px] mt-1 tracking-tight",
+                  isActive ? "font-bold text-slate-900" : "font-medium text-slate-500"
                 )}
               >
                 {item.name}
               </span>
+              {isActive && (
+                <span className="absolute bottom-1 w-1 h-1 rounded-full bg-brand-purple" />
+              )}
             </Link>
           );
         })}

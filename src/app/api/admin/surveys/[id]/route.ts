@@ -5,6 +5,7 @@ import {
   updateSurveyStatusAdmin,
   updateSurveyDetailsAdmin,
   saveSurveyQuestionsAdmin,
+  deleteSurveyAdmin,
   logAdminAuditEvent,
 } from "@/lib/admin-db";
 
@@ -114,6 +115,33 @@ export async function PATCH(
     }
 
     return NextResponse.json({ success: false, error: "No valid action provided" }, { status: 400 });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const admin = await getCurrentAdminSession();
+    if (!admin || !hasAdminPermission(admin.role, "surveys:write")) {
+      return NextResponse.json({ success: false, error: "Forbidden: surveys:write required" }, { status: 403 });
+    }
+
+    const { id } = await params;
+    await deleteSurveyAdmin(id);
+
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+    await logAdminAuditEvent({
+      eventType: "ADMIN_SURVEY_DELETED",
+      adminId: admin.adminId,
+      ipAddress: ip,
+      metadata: { surveyId: id },
+    });
+
+    return NextResponse.json({ success: true, message: "Survey deleted successfully." });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

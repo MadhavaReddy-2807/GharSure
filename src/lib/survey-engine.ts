@@ -54,14 +54,19 @@ export interface ConditionGroup {
 }
 
 export interface BranchingRule {
-  id: string;
-  conditionGroup: ConditionGroup;
+  id?: string;
+  conditionGroup?: ConditionGroup;
+  conditions?: Condition[];
+  matchType?: "ALL" | "ANY";
+  logic?: "AND" | "OR";
   action: BranchAction;
   targetQuestionId?: string;
   targetSectionId?: string;
   disqualificationReason?: string;
   completionMessage?: string;
 }
+
+export type BranchRule = BranchingRule;
 
 export interface QuestionValidationRules {
   min?: number;
@@ -79,7 +84,7 @@ export interface SurveyQuestion {
   questionText: string;
   questionType: QuestionType;
   description?: string | null;
-  options?: any[]; // string[] or { label: string; value: string }[] or matrix definitions { rows: string[]; columns: string[] }
+  options?: any; // string[] or { label: string; value: string }[] or matrix definitions { matrixRows: string[]; matrixCols: string[] }
   isRequired: boolean;
   validationRules?: QuestionValidationRules;
   branchingRules?: BranchingRule[];
@@ -535,8 +540,8 @@ export function validateAnswerValue(
     case "SINGLE_CHOICE":
     case "DROPDOWN": {
       // Must match one of the defined options
-      if (question.options && question.options.length > 0) {
-        const optionValues = question.options.map((opt) => (typeof opt === "object" ? opt.value : opt));
+      if (Array.isArray(question.options) && question.options.length > 0) {
+        const optionValues = question.options.map((opt: any) => (typeof opt === "object" ? opt.value : opt));
         if (!optionValues.includes(value)) {
           return { isValid: false, error: "Please select a valid option." };
         }
@@ -548,8 +553,8 @@ export function validateAnswerValue(
       if (!Array.isArray(value)) {
         return { isValid: false, error: "Multiple choice answers must be a list." };
       }
-      if (question.options && question.options.length > 0) {
-        const optionValues = question.options.map((opt) => (typeof opt === "object" ? opt.value : opt));
+      if (Array.isArray(question.options) && question.options.length > 0) {
+        const optionValues = question.options.map((opt: any) => (typeof opt === "object" ? opt.value : opt));
         for (const item of value) {
           if (!optionValues.includes(item)) {
             return { isValid: false, error: `Invalid option selected: ${item}` };

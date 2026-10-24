@@ -51,7 +51,7 @@ export function AppHeader({ fullName }: AppHeaderProps) {
           {/* Desktop Navigation Links */}
           <nav
             aria-label="Desktop Navigation"
-            className="hidden md:flex items-center gap-1"
+            className="hidden md:flex items-center gap-1.5"
           >
             {desktopNavItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -63,13 +63,13 @@ export function AppHeader({ fullName }: AppHeaderProps) {
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors select-none",
+                    "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all select-none",
                     isActive
-                      ? "bg-orange-50 text-brand-orange"
-                      : "text-slate-600 hover:text-brand-navy hover:bg-slate-100"
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3.5 h-3.5" />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -80,18 +80,21 @@ export function AppHeader({ fullName }: AppHeaderProps) {
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/profile"
-              className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-brand-orange/30 transition-all select-none"
+              className={cn(
+                "flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border transition-all select-none",
+                pathname === "/profile"
+                  ? "border-brand-purple bg-purple-50/50 ring-2 ring-brand-purple/20"
+                  : "border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+              )}
               title="My Profile"
               aria-label="My Profile"
             >
-              <div className="w-8 h-8 rounded-full bg-orange-100 text-brand-orange flex items-center justify-center font-bold text-xs border border-orange-200">
+              <div className="w-7 h-7 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
                 {fullName ? fullName[0]?.toUpperCase() : "U"}
               </div>
-              {fullName && (
-                <span className="hidden sm:inline text-xs font-semibold text-slate-700 max-w-[120px] truncate">
-                  {fullName}
-                </span>
-              )}
+              <span className="text-xs font-semibold text-slate-800 max-w-[120px] truncate">
+                {fullName || "Profile"}
+              </span>
             </Link>
 
             <button
@@ -99,10 +102,10 @@ export function AppHeader({ fullName }: AppHeaderProps) {
               disabled={isLoggingOut}
               aria-label="Log out"
               title="Log out"
-              className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-red-600 p-2 rounded-xl hover:bg-red-50 transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Log out</span>
+              <span className="hidden lg:inline text-[11px]">Log out</span>
             </button>
           </div>
         </div>
