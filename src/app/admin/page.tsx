@@ -183,10 +183,10 @@ export default async function AdminDashboardPage() {
           </div>
           <div>
             <div className="text-base font-bold text-slate-900">
-              Bengaluru Water Hubs
+              {metrics.totalBuildings} Registered Societies
             </div>
             <p className="text-[11px] text-slate-500">
-              Building TDS & dampness baseline active
+              Building TDS & dampness baseline telemetry
             </p>
           </div>
         </div>

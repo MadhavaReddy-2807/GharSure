@@ -167,7 +167,7 @@ export default function AdminSurveysPage() {
         orderNum: questions.length + 1,
         questionText: "",
         questionType: "SINGLE_CHOICE",
-        options: ["Option 1", "Option 2"],
+        options: ["", ""],
         isRequired: true,
       },
     ]);

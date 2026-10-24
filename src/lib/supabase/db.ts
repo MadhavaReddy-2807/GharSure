@@ -14,6 +14,8 @@ export interface CustomerRecord {
   display_name?: string | null;
   city?: string | null;
   onboarding_completed: boolean;
+  reward_coins?: number;
+  status?: string;
   created_at: string;
   updated_at: string;
 }

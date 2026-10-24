@@ -68,9 +68,9 @@ export default function AdminStorePage() {
     setTitle("");
     setDescription("");
     setCoinCost(0);
-    setInventoryStock(100);
+    setInventoryStock(0);
     setStatus("ACTIVE");
-    setPartnerName("GharSure Community Lab");
+    setPartnerName("");
     setIsModalOpen(true);
   };
 

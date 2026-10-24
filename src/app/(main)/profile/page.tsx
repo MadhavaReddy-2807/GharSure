@@ -7,15 +7,17 @@ export default async function ProfilePage() {
   const session = await getCurrentSession();
   const customer = session ? await getCustomerById(session.customerId) : null;
 
-  const fullName = customer?.full_name || "Madhava Reddy";
-  const phone = customer?.phone_e164 || "+91 98765 43210";
-  const city = customer?.city || "Bangalore";
+  const fullName = customer?.full_name || customer?.display_name || "Resident";
+  const phone = customer?.phone_e164 || session?.phone || "";
+  const city = customer?.city || "Location not set";
+  const coins = customer?.reward_coins ?? 0;
 
   return (
     <ProfileClientView
       fullName={fullName}
       phone={phone}
       city={city}
+      coins={coins}
     />
   );
 }

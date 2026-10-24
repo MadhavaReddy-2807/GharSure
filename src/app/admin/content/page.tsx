@@ -73,10 +73,10 @@ export default function AdminContentPage() {
     setCategory("Water Purifiers");
     setBrand("");
     setSummary("");
-    setPriceInr(999);
-    setScore(8.5);
-    setStatus("PUBLISHED");
-    setEvidenceSource("GharSure Lab Testing Batch #2026");
+    setPriceInr(0);
+    setScore(0);
+    setStatus("DRAFT");
+    setEvidenceSource("");
     setIsModalOpen(true);
   };
 

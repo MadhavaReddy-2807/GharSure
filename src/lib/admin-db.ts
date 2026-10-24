@@ -25,6 +25,7 @@ export interface DashboardMetrics {
   coinsRedeemed: number;
   totalProducts: number;
   activeTrials: number;
+  totalBuildings: number;
   openTickets: number;
   recentAuditEvents: Array<{
     id: string;
@@ -257,11 +258,15 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       (SELECT count(*)::text FROM trial_campaigns WHERE status = 'ACTIVE') as trials;
   `;
 
-  // 5. Support tickets
+  // 5. Support tickets & Buildings
   const ticketStats = await sql<{ open_tickets: string }[]>`
     SELECT count(*)::text as open_tickets
     FROM support_tickets
     WHERE status IN ('OPEN', 'IN_PROGRESS');
+  `;
+
+  const buildingStats = await sql<{ count: string }[]>`
+    SELECT count(*)::text as count FROM buildings;
   `;
 
   // 6. Recent audit events
@@ -282,6 +287,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     coinsRedeemed: parseInt(coinStats[0]?.redeemed || "0", 10),
     totalProducts: parseInt(catalogStats[0]?.products || "0", 10),
     activeTrials: parseInt(catalogStats[0]?.trials || "0", 10),
+    totalBuildings: parseInt(buildingStats[0]?.count || "0", 10),
     openTickets: parseInt(ticketStats[0]?.open_tickets || "0", 10),
     recentAuditEvents: recentEvents.map((r) => ({
       id: r.id,

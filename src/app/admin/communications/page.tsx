@@ -35,8 +35,8 @@ export default function AdminCommunicationsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [channel, setChannel] = useState<"WHATSAPP" | "IN_APP" | "SMS">("WHATSAPP");
-  const [templateName, setTemplateName] = useState("survey_invite_v1");
-  const [bodyText, setBodyText] = useState("Namaste {{fullName}}! A new water quality audit survey is available for your neighborhood. Earn 50 GharSure coins now.");
+  const [templateName, setTemplateName] = useState("");
+  const [bodyText, setBodyText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isSending, setIsSending] = useState(false);
 

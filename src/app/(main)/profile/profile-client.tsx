@@ -22,9 +22,10 @@ interface ProfileClientViewProps {
   fullName: string;
   phone: string;
   city: string;
+  coins: number;
 }
 
-export function ProfileClientView({ fullName, phone, city }: ProfileClientViewProps) {
+export function ProfileClientView({ fullName, phone, city, coins }: ProfileClientViewProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -139,7 +140,7 @@ export function ProfileClientView({ fullName, phone, city }: ProfileClientViewPr
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-sm sm:text-base font-extrabold text-brand-orange">
-              1,250
+              {coins.toLocaleString()}
             </span>
             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
           </div>

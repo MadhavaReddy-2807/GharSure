@@ -51,12 +51,12 @@ export default function AdminBuildingsPage() {
   // Add Building Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState("");
-  const [pincode, setPincode] = useState("560001");
-  const [city, setCity] = useState("Bengaluru");
+  const [pincode, setPincode] = useState("");
+  const [city, setCity] = useState("");
   const [locality, setLocality] = useState("");
-  const [units, setUnits] = useState<number>(200);
-  const [waterSource, setWaterSource] = useState("Cauvery + Borewell Blend");
-  const [avgTds, setAvgTds] = useState<number>(350);
+  const [units, setUnits] = useState<number>(0);
+  const [waterSource, setWaterSource] = useState("Cauvery Municipal Water");
+  const [avgTds, setAvgTds] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchData = useCallback(async () => {

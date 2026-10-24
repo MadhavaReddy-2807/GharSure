@@ -1,6 +1,7 @@
 import React from "react";
 import { getCurrentSession } from "@/lib/session";
 import { getCustomerById } from "@/lib/supabase/db";
+import { isDirectDatabaseConfigured, getDirectSql } from "@/lib/supabase/direct-db";
 import { Droplets, Wrench, Gift, ArrowRight, ShieldCheck, MapPin } from "lucide-react";
 import Link from "next/link";
 
@@ -10,6 +11,19 @@ export default async function HomePage() {
 
   const displayName = customer?.display_name || customer?.full_name?.split(" ")[0] || "Homeowner";
   const city = customer?.city || "India";
+
+  let activeTrialsCount = 0;
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const res = await sql<{ count: string }[]>`
+        SELECT count(*)::text as count FROM trial_campaigns WHERE status = 'ACTIVE'
+      `;
+      activeTrialsCount = parseInt(res[0]?.count || "0", 10);
+    } catch {
+      activeTrialsCount = 0;
+    }
+  }
 
   return (
     <div className="space-y-6 w-full">
@@ -57,7 +71,7 @@ export default async function HomePage() {
                   <Droplets className="w-5 h-5" />
                 </div>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">
-                  Live
+                  Telemetry
                 </span>
               </div>
               <h3 className="text-base font-bold text-brand-navy mb-1">
@@ -68,7 +82,7 @@ export default async function HomePage() {
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-400">
-              Updated today
+              Live updates
             </div>
           </div>
 
@@ -80,19 +94,19 @@ export default async function HomePage() {
                   <Wrench className="w-5 h-5" />
                 </div>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                  0 Registered
+                  Maintenance
                 </span>
               </div>
               <h3 className="text-base font-bold text-brand-navy mb-1">
                 Appliance Health
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                Register appliances to track maintenance schedules and warranty renewals.
+                Register appliances to track maintenance schedules and filter replacement intervals.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-100">
               <span className="text-xs font-semibold text-brand-orange cursor-pointer hover:underline">
-                + Add Appliance
+                Appliance Registry
               </span>
             </div>
           </div>
@@ -107,15 +121,19 @@ export default async function HomePage() {
                 <div className="w-10 h-10 rounded-xl bg-white/10 text-brand-orange flex items-center justify-center">
                   <Gift className="w-5 h-5" />
                 </div>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-brand-orange text-white">
-                  1 Available
+                <span
+                  className={`text-xs font-semibold px-2 py-0.5 rounded-md ${
+                    activeTrialsCount > 0 ? "bg-brand-orange text-white" : "bg-white/10 text-slate-300"
+                  }`}
+                >
+                  {activeTrialsCount > 0 ? `${activeTrialsCount} Available` : "Explore"}
                 </span>
               </div>
               <h3 className="text-base font-bold text-white mb-1">
                 Product Trials
               </h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Claim full-size washing machine descaler and home testing kits for ₹0.
+                Claim zero-cost product trials and sample kits as surveys qualify.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-brand-orange font-semibold">
