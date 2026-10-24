@@ -81,7 +81,28 @@ async function runMigrations() {
       console.log(` - ${t.table_name}`);
     }
 
-    // Verify initial admin user
+    // Provision / Sync Initial Super Admin from Environment Variables
+    const initialEmail = (process.env.ADMIN_INITIAL_EMAIL || "admin@gharsure.com").toLowerCase().trim();
+    const initialPassword = process.env.ADMIN_INITIAL_PASSWORD || "GharSureAdmin@2026!";
+    const initialName = process.env.ADMIN_INITIAL_NAME || "GharSure Super Admin";
+
+    const cryptoModule = await import("crypto");
+    const salt = cryptoModule.randomBytes(16).toString("hex");
+    const hash = cryptoModule.pbkdf2Sync(initialPassword, salt, 100000, 64, "sha512").toString("hex");
+    const passwordHash = `${salt}:${hash}`;
+
+    await sql`
+      INSERT INTO admin_users (email, full_name, password_hash, role, status)
+      VALUES (${initialEmail}, ${initialName}, ${passwordHash}, 'SUPER_ADMIN', 'ACTIVE')
+      ON CONFLICT (email) DO UPDATE
+      SET password_hash = EXCLUDED.password_hash,
+          full_name = EXCLUDED.full_name,
+          role = 'SUPER_ADMIN',
+          status = 'ACTIVE',
+          updated_at = NOW();
+    `;
+
+    // Verify configured admin users
     const admins = await sql`
       SELECT id, email, full_name, role, status, created_at 
       FROM admin_users;
