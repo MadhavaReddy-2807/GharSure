@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Star, Check, ChevronDown, Calendar, ThumbsUp, ThumbsDown, Plus, Minus, Info } from "lucide-react";
+import { Star, Check, ChevronDown, Calendar, Info } from "lucide-react";
 import { SurveyQuestion } from "@/lib/survey-engine";
 
 interface QuestionRendererProps {
@@ -10,6 +10,8 @@ interface QuestionRendererProps {
   onChange: (value: any) => void;
   error?: string;
   disabled?: boolean;
+  index?: number;
+  hideHeader?: boolean;
 }
 
 export function QuestionRenderer({
@@ -18,66 +20,57 @@ export function QuestionRenderer({
   onChange,
   error,
   disabled = false,
+  index,
+  hideHeader = false,
 }: QuestionRendererProps) {
   const { questionType, options = [], questionText, description, isRequired, sectionName } = question;
 
   const renderControl = () => {
     switch (questionType) {
       // -----------------------------------------------------------------------
-      // 1. SINGLE CHOICE (Dribbble Radio Card Style)
+      // 1. SINGLE CHOICE (Clean Radio Row with Blue Accent)
       // -----------------------------------------------------------------------
       case "SINGLE_CHOICE": {
         const selected = value ?? "";
         const optionsList = Array.isArray(options) ? options : [];
 
         return (
-          <div className="space-y-3" role="radiogroup" aria-label={questionText}>
+          <div className="space-y-2" role="radiogroup" aria-label={questionText}>
             {optionsList.map((opt: any, idx: number) => {
               const label = typeof opt === "object" ? opt.label || opt.value : opt;
               const val = typeof opt === "object" ? opt.value : opt;
               const isChecked = String(selected) === String(val);
 
-              // Alphabet letter marker (A, B, C...)
-              const letter = String.fromCharCode(65 + idx);
-
               return (
-                <button
-                  type="button"
+                <label
                   key={idx}
-                  role="radio"
-                  aria-checked={isChecked}
-                  disabled={disabled}
-                  onClick={() => onChange(val)}
-                  className={`w-full text-left p-4 sm:p-4.5 rounded-2xl border transition-all flex items-center justify-between text-xs sm:text-sm cursor-pointer group select-none ${
-                    isChecked
-                      ? "border-brand-purple bg-purple-50/50 text-slate-900 font-semibold ring-2 ring-brand-purple/20 shadow-xs"
-                      : "border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-700 shadow-2xs"
-                  } disabled:opacity-50`}
+                  onClick={() => !disabled && onChange(val)}
+                  className="flex items-center gap-3 py-1 cursor-pointer select-none group"
                 >
-                  <div className="flex items-center gap-3.5 pr-3">
-                    <span
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold transition-all shrink-0 ${
-                        isChecked
-                          ? "bg-brand-purple text-white shadow-xs"
-                          : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
-                      }`}
-                    >
-                      {letter}
-                    </span>
-                    <span className="leading-snug">{label}</span>
-                  </div>
-
                   {/* Radio Indicator */}
                   <div
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                    className={`w-4.5 h-4.5 rounded-full border transition-all flex items-center justify-center shrink-0 ${
                       isChecked
-                        ? "border-brand-purple bg-brand-purple"
+                        ? "border-blue-600 bg-white"
                         : "border-slate-300 bg-white group-hover:border-slate-400"
+                    } ${disabled ? "opacity-50" : ""}`}
+                  >
+                    {isChecked && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-600 transition-transform scale-100" />
+                    )}
+                  </div>
+
+                  {/* Option Label Text */}
+                  <span
+                    className={`text-[13px] leading-tight transition-colors ${
+                      isChecked
+                        ? "text-blue-600 font-bold"
+                        : "text-slate-600 font-medium group-hover:text-slate-800"
                     }`}
                   >
-                    {isChecked && <div className="w-2 h-2 rounded-full bg-white" />}
-                  </div>
-                </button>
+                    {label}
+                  </span>
+                </label>
               );
             })}
           </div>
@@ -85,13 +78,14 @@ export function QuestionRenderer({
       }
 
       // -----------------------------------------------------------------------
-      // 2. MULTIPLE CHOICE (Checkboxes / Multi-select Cards)
+      // 2. MULTIPLE CHOICE (Square Checkbox with Blue Selected State)
       // -----------------------------------------------------------------------
       case "MULTIPLE_CHOICE": {
         const selectedArray: string[] = Array.isArray(value) ? value : [];
         const optionsList = Array.isArray(options) ? options : [];
 
         const toggleOption = (val: string) => {
+          if (disabled) return;
           if (selectedArray.includes(val)) {
             onChange(selectedArray.filter((item) => item !== val));
           } else {
@@ -100,48 +94,40 @@ export function QuestionRenderer({
         };
 
         return (
-          <div className="space-y-3" role="group" aria-label={questionText}>
-            <div className="flex items-center justify-between text-[11px] text-slate-400 px-1 mb-1">
-              <span>Select all that apply</span>
-              {selectedArray.length > 0 && (
-                <span className="font-semibold text-brand-purple">
-                  {selectedArray.length} selected
-                </span>
-              )}
-            </div>
-
+          <div className="space-y-2" role="group" aria-label={questionText}>
             {optionsList.map((opt: any, idx: number) => {
               const label = typeof opt === "object" ? opt.label || opt.value : opt;
               const val = typeof opt === "object" ? opt.value : opt;
               const isChecked = selectedArray.includes(val);
 
               return (
-                <button
-                  type="button"
+                <label
                   key={idx}
-                  role="checkbox"
-                  aria-checked={isChecked}
-                  disabled={disabled}
                   onClick={() => toggleOption(val)}
-                  className={`w-full text-left p-4 sm:p-4.5 rounded-2xl border transition-all flex items-center justify-between text-xs sm:text-sm cursor-pointer group select-none ${
-                    isChecked
-                      ? "border-brand-purple bg-purple-50/50 text-slate-900 font-semibold ring-2 ring-brand-purple/20 shadow-xs"
-                      : "border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-700 shadow-2xs"
-                  } disabled:opacity-50`}
+                  className="flex items-center gap-3 py-1 cursor-pointer select-none group"
                 >
-                  <span className="leading-snug pr-3">{label}</span>
-
-                  {/* Square Checkbox Indicator */}
+                  {/* Square Checkbox (Exact Match to Reference Screenshot) */}
                   <div
-                    className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                    className={`w-4.5 h-4.5 rounded-[5px] border transition-all flex items-center justify-center shrink-0 ${
                       isChecked
-                        ? "border-brand-purple bg-brand-purple text-white shadow-xs"
+                        ? "border-blue-600 bg-blue-600 text-white shadow-2xs"
                         : "border-slate-300 bg-white group-hover:border-slate-400"
-                    }`}
+                    } ${disabled ? "opacity-50" : ""}`}
                   >
                     {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                   </div>
-                </button>
+
+                  {/* Option Label Text: Bold Blue when selected */}
+                  <span
+                    className={`text-[13px] leading-tight transition-colors ${
+                      isChecked
+                        ? "text-blue-600 font-bold"
+                        : "text-slate-600 font-medium group-hover:text-slate-800"
+                    }`}
+                  >
+                    {label}
+                  </span>
+                </label>
               );
             })}
           </div>
@@ -149,63 +135,51 @@ export function QuestionRenderer({
       }
 
       // -----------------------------------------------------------------------
-      // 3. YES / NO (Friendly Big Toggle Buttons)
+      // 3. YES / NO (Compact Radio Rows)
       // -----------------------------------------------------------------------
       case "YES_NO": {
         const isYes = value === true || value === "true" || value === "YES";
         const isNo = value === false || value === "false" || value === "NO";
 
         return (
-          <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onChange(true)}
-              className={`p-5 sm:p-6 rounded-2xl border text-center font-bold text-sm sm:text-base transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group select-none ${
-                isYes
-                  ? "border-brand-purple bg-purple-50/60 text-brand-purple ring-2 ring-brand-purple/20 shadow-xs"
-                  : "border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-700 shadow-2xs"
-              } disabled:opacity-50`}
-            >
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                  isYes
-                    ? "bg-brand-purple text-white shadow-xs"
-                    : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
-                }`}
+          <div className="space-y-2">
+            {[
+              { label: "Yes", val: true, isChecked: isYes },
+              { label: "No", val: false, isChecked: isNo },
+            ].map((item) => (
+              <label
+                key={item.label}
+                onClick={() => !disabled && onChange(item.val)}
+                className="flex items-center gap-3 py-1 cursor-pointer select-none group"
               >
-                <ThumbsUp className="w-5 h-5" />
-              </div>
-              <span>Yes</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onChange(false)}
-              className={`p-5 sm:p-6 rounded-2xl border text-center font-bold text-sm sm:text-base transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group select-none ${
-                isNo
-                  ? "border-brand-purple bg-purple-50/60 text-brand-purple ring-2 ring-brand-purple/20 shadow-xs"
-                  : "border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-700 shadow-2xs"
-              } disabled:opacity-50`}
-            >
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                  isNo
-                    ? "bg-brand-purple text-white shadow-xs"
-                    : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
-                }`}
-              >
-                <ThumbsDown className="w-5 h-5" />
-              </div>
-              <span>No</span>
-            </button>
+                <div
+                  className={`w-4.5 h-4.5 rounded-full border transition-all flex items-center justify-center shrink-0 ${
+                    item.isChecked
+                      ? "border-blue-600 bg-white"
+                      : "border-slate-300 bg-white group-hover:border-slate-400"
+                  } ${disabled ? "opacity-50" : ""}`}
+                >
+                  {item.isChecked && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                  )}
+                </div>
+                <span
+                  className={`text-[13px] leading-tight transition-colors ${
+                    item.isChecked
+                      ? "text-blue-600 font-bold"
+                      : "text-slate-600 font-medium group-hover:text-slate-800"
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </label>
+            ))}
           </div>
         );
       }
 
       // -----------------------------------------------------------------------
-      // 4. DROPDOWN (Clean Select)
+      // 4. DROPDOWN (Compact Clean Select)
       // -----------------------------------------------------------------------
       case "DROPDOWN": {
         const optionsList = Array.isArray(options) ? options : [];
@@ -216,7 +190,7 @@ export function QuestionRenderer({
               value={value ?? ""}
               disabled={disabled}
               onChange={(e) => onChange(e.target.value)}
-              className="w-full h-12 pl-4 pr-10 rounded-2xl border border-slate-200/90 bg-white text-xs sm:text-sm text-slate-900 font-medium appearance-none focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 shadow-2xs transition-all cursor-pointer"
+              className="w-full h-10 pl-3 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 font-medium appearance-none focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
             >
               <option value="">Select your answer...</option>
               {optionsList.map((opt: any, idx: number) => {
@@ -229,7 +203,7 @@ export function QuestionRenderer({
                 );
               })}
             </select>
-            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-4 pointer-events-none" />
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
           </div>
         );
       }
@@ -242,20 +216,15 @@ export function QuestionRenderer({
         const maxLen = question.validationRules?.maxLength || 120;
 
         return (
-          <div className="space-y-1.5">
-            <input
-              type="text"
-              disabled={disabled}
-              placeholder="Type your answer here..."
-              value={textVal}
-              maxLength={maxLen}
-              onChange={(e) => onChange(e.target.value)}
-              className="w-full h-12 px-4 rounded-2xl border border-slate-200/90 bg-white text-xs sm:text-sm text-slate-900 font-medium placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 shadow-2xs transition-all"
-            />
-            <div className="flex justify-end text-[10px] text-slate-400 px-1">
-              <span>{textVal.length} / {maxLen}</span>
-            </div>
-          </div>
+          <input
+            type="text"
+            disabled={disabled}
+            placeholder="Type your answer here..."
+            value={textVal}
+            maxLength={maxLen}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 font-medium placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+          />
         );
       }
 
@@ -267,25 +236,20 @@ export function QuestionRenderer({
         const maxLen = question.validationRules?.maxLength || 500;
 
         return (
-          <div className="space-y-1.5">
-            <textarea
-              disabled={disabled}
-              rows={4}
-              placeholder="Share your thoughts or observations..."
-              value={textVal}
-              maxLength={maxLen}
-              onChange={(e) => onChange(e.target.value)}
-              className="w-full p-4 rounded-2xl border border-slate-200/90 bg-white text-xs sm:text-sm text-slate-900 font-medium placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 shadow-2xs transition-all resize-y"
-            />
-            <div className="flex justify-end text-[10px] text-slate-400 px-1">
-              <span>{textVal.length} / {maxLen}</span>
-            </div>
-          </div>
+          <textarea
+            disabled={disabled}
+            rows={3}
+            placeholder="Share your thoughts or observations..."
+            value={textVal}
+            maxLength={maxLen}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full p-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 font-medium placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-y"
+          />
         );
       }
 
       // -----------------------------------------------------------------------
-      // 7. NUMBER (With optional stepper buttons)
+      // 7. NUMBER
       // -----------------------------------------------------------------------
       case "NUMBER": {
         const numVal = value !== undefined && value !== null && value !== "" ? Number(value) : "";
@@ -293,25 +257,16 @@ export function QuestionRenderer({
         const maxVal = question.validationRules?.max;
 
         return (
-          <div className="space-y-2">
-            <div className="relative">
-              <input
-                type="number"
-                disabled={disabled}
-                placeholder="Enter a numeric value..."
-                value={numVal}
-                min={minVal}
-                max={maxVal}
-                onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
-                className="w-full h-12 px-4 rounded-2xl border border-slate-200/90 bg-white text-xs sm:text-sm font-mono font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-sans placeholder:font-normal focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 shadow-2xs transition-all"
-              />
-            </div>
-            {(minVal !== undefined || maxVal !== undefined) && (
-              <p className="text-[11px] text-slate-400 px-1">
-                Supported range: {minVal ?? 0} to {maxVal ?? "unlimited"}
-              </p>
-            )}
-          </div>
+          <input
+            type="number"
+            disabled={disabled}
+            placeholder="Enter a numeric value..."
+            value={numVal}
+            min={minVal}
+            max={maxVal}
+            onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
+            className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+          />
         );
       }
 
@@ -324,8 +279,8 @@ export function QuestionRenderer({
         const scaleArray = Array.from({ length: maxScale }, (_, i) => i + 1);
 
         return (
-          <div className="space-y-2.5">
-            <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {scaleArray.map((num) => {
                 const isSelected = rating === num;
                 return (
@@ -334,10 +289,10 @@ export function QuestionRenderer({
                     key={num}
                     disabled={disabled}
                     onClick={() => onChange(num)}
-                    className={`h-11 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer flex items-center justify-center select-none ${
+                    className={`w-8 h-8 rounded-lg text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center select-none ${
                       isSelected
-                        ? "border-brand-purple bg-brand-purple text-white shadow-xs scale-105"
-                        : "border-slate-200/90 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                        ? "border-blue-600 bg-blue-600 text-white font-bold shadow-2xs"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                     }`}
                   >
                     {num}
@@ -345,90 +300,80 @@ export function QuestionRenderer({
                 );
               })}
             </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
-              <span>1 - Poor / Unsatisfied</span>
-              <span>10 - Outstanding</span>
+            <div className="flex items-center justify-between text-[10px] text-slate-400">
+              <span>1 - Poor</span>
+              <span>10 - Excellent</span>
             </div>
           </div>
         );
       }
 
       // -----------------------------------------------------------------------
-      // 9. STAR RATING (1 - 5 Large Gold Stars)
+      // 9. STAR RATING (1 - 5 Stars)
       // -----------------------------------------------------------------------
       case "STAR_RATING": {
         const currentStars = Number(value || 0);
         const [hoverStars, setHoverStars] = useState<number | null>(null);
         const activeCount = hoverStars !== null ? hoverStars : currentStars;
 
-        const starLabels = ["Poor", "Fair", "Good", "Very Good", "Excellent"];
-
         return (
-          <div className="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/80 text-center space-y-3">
-            <div className="flex items-center justify-center gap-2 sm:gap-3">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  type="button"
-                  key={star}
-                  disabled={disabled}
-                  onMouseEnter={() => setHoverStars(star)}
-                  onMouseLeave={() => setHoverStars(null)}
-                  onClick={() => onChange(star)}
-                  className="p-1 rounded-xl text-slate-300 hover:scale-115 focus:outline-none transition-all cursor-pointer"
-                  title={`${star} Star${star > 1 ? "s" : ""}`}
-                >
-                  <Star
-                    className={`w-9 h-9 sm:w-10 sm:h-10 transition-colors ${
-                      star <= activeCount
-                        ? "fill-amber-400 text-amber-400 drop-shadow-xs"
-                        : "fill-white text-slate-200"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-            <div className="text-xs font-semibold text-slate-700 h-5">
-              {activeCount > 0 ? (
-                <span className="text-brand-purple font-bold">
-                  {activeCount} Star{activeCount > 1 ? "s" : ""} · {starLabels[activeCount - 1]}
-                </span>
-              ) : (
-                <span className="text-slate-400">Click a star to rate</span>
-              )}
-            </div>
+          <div className="flex items-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                type="button"
+                key={star}
+                disabled={disabled}
+                onMouseEnter={() => setHoverStars(star)}
+                onMouseLeave={() => setHoverStars(null)}
+                onClick={() => onChange(star)}
+                className="p-0.5 rounded focus:outline-none transition-transform hover:scale-110 cursor-pointer"
+                title={`${star} Star${star > 1 ? "s" : ""}`}
+              >
+                <Star
+                  className={`w-6 h-6 transition-colors ${
+                    star <= activeCount
+                      ? "fill-amber-400 text-amber-400"
+                      : "fill-slate-100 text-slate-200"
+                  }`}
+                />
+              </button>
+            ))}
+            {activeCount > 0 && (
+              <span className="text-xs font-semibold text-blue-600 ml-2">
+                {activeCount} / 5
+              </span>
+            )}
           </div>
         );
       }
 
       // -----------------------------------------------------------------------
-      // 10. DATE PICKER
+      // 10. DATE
       // -----------------------------------------------------------------------
       case "DATE": {
         return (
-          <div className="relative">
-            <input
-              type="date"
-              disabled={disabled}
-              value={value ?? ""}
-              onChange={(e) => onChange(e.target.value)}
-              className="w-full h-12 px-4 rounded-2xl border border-slate-200/90 bg-white text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 shadow-2xs transition-all"
-            />
-          </div>
+          <input
+            type="date"
+            disabled={disabled}
+            value={value ?? ""}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+          />
         );
       }
 
       // -----------------------------------------------------------------------
-      // 11. MATRIX / GRID (Responsive: Table on Desktop, Cards on Mobile)
+      // 11. MATRIX
       // -----------------------------------------------------------------------
       case "MATRIX": {
         const matrixDef =
           typeof options === "object" && !Array.isArray(options)
             ? {
-                rows: options.matrixRows || options.rows || ["Statement 1", "Statement 2"],
+                rows: options.matrixRows || options.rows || ["Item 1", "Item 2"],
                 columns: options.matrixCols || options.columns || ["Poor", "Fair", "Good", "Excellent"],
               }
             : {
-                rows: Array.isArray(options) && options.length > 0 ? options : ["Statement 1", "Statement 2"],
+                rows: Array.isArray(options) && options.length > 0 ? options : ["Item 1", "Item 2"],
                 columns: ["Poor", "Fair", "Good", "Excellent"],
               };
 
@@ -436,79 +381,36 @@ export function QuestionRenderer({
 
         return (
           <div className="space-y-3">
-            {/* Mobile View: Cards per row (no horizontal scrolling!) */}
-            <div className="sm:hidden space-y-3">
-              {matrixDef.rows.map((row: string, rIdx: number) => (
-                <div key={rIdx} className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-2.5">
-                  <span className="text-xs font-bold text-slate-900 block">{row}</span>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {matrixDef.columns.map((col: string, cIdx: number) => {
-                      const isChecked = matrixAnswers[row] === col;
-                      return (
-                        <button
-                          type="button"
-                          key={cIdx}
-                          disabled={disabled}
-                          onClick={() => onChange({ ...matrixAnswers, [row]: col })}
-                          className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center select-none ${
-                            isChecked
-                              ? "border-brand-purple bg-brand-purple text-white shadow-xs"
-                              : "border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100"
-                          }`}
-                        >
-                          {col}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop View: Clean Table */}
-            <div className="hidden sm:block overflow-hidden border border-slate-200/90 rounded-2xl bg-white shadow-2xs">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
-                  <tr>
-                    <th className="p-3.5 pl-4">Statement</th>
-                    {matrixDef.columns.map((col: string, idx: number) => (
-                      <th key={idx} className="p-3.5 text-center">
+            {matrixDef.rows.map((row: string, rIdx: number) => (
+              <div key={rIdx} className="space-y-1.5 pb-2 border-b border-slate-100 last:border-b-0">
+                <span className="text-xs font-semibold text-slate-700 block">{row}</span>
+                <div className="flex flex-wrap gap-2">
+                  {matrixDef.columns.map((col: string, cIdx: number) => {
+                    const isChecked = matrixAnswers[row] === col;
+                    return (
+                      <button
+                        type="button"
+                        key={cIdx}
+                        disabled={disabled}
+                        onClick={() =>
+                          onChange({
+                            ...matrixAnswers,
+                            [row]: col,
+                          })
+                        }
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                          isChecked
+                            ? "border-blue-600 bg-blue-50 text-blue-700 font-bold"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                        }`}
+                      >
                         {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {matrixDef.rows.map((row: string, rIdx: number) => (
-                    <tr key={rIdx} className="hover:bg-purple-50/20 transition-colors">
-                      <td className="p-3.5 pl-4 font-semibold text-slate-800">{row}</td>
-                      {matrixDef.columns.map((col: string, cIdx: number) => {
-                        const isChecked = matrixAnswers[row] === col;
-                        return (
-                          <td key={cIdx} className="p-3.5 text-center">
-                            <label className="cursor-pointer inline-flex items-center justify-center p-1">
-                              <input
-                                type="radio"
-                                name={`matrix_${question.id}_${rIdx}`}
-                                disabled={disabled}
-                                checked={isChecked}
-                                onChange={() =>
-                                  onChange({
-                                    ...matrixAnswers,
-                                    [row]: col,
-                                  })
-                                }
-                                className="w-4 h-4 text-brand-purple border-slate-300 focus:ring-brand-purple cursor-pointer"
-                              />
-                            </label>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         );
       }
@@ -520,39 +422,39 @@ export function QuestionRenderer({
             disabled={disabled}
             value={value ?? ""}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full h-12 px-4 rounded-2xl border border-slate-200/90 bg-white text-xs sm:text-sm text-slate-900 font-medium"
+            className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 font-medium"
           />
         );
     }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Question Header */}
-      <div>
-        {sectionName && (
-          <div className="inline-block text-[10px] font-bold uppercase tracking-wider text-brand-purple bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100 mb-2">
-            {sectionName}
-          </div>
-        )}
-        <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug tracking-tight">
-          {questionText}
-          {isRequired && <span className="text-brand-purple ml-1">*</span>}
-        </h2>
-        {description && (
-          <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed font-normal">
-            {description}
-          </p>
-        )}
-      </div>
+    <div className="space-y-2">
+      {/* Question Header (Compact grey label + clean title matching reference screenshot) */}
+      {!hideHeader && (
+        <div className="space-y-0.5">
+          <span className="text-[11px] font-medium text-slate-400 block tracking-normal">
+            Question - {index !== undefined ? index + 1 : 1}
+          </span>
+          <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-800 leading-snug">
+            {questionText}
+            {isRequired && <span className="text-blue-600 ml-0.5">*</span>}
+          </h3>
+          {description && (
+            <p className="text-[11px] text-slate-500 font-normal leading-normal">
+              {description}
+            </p>
+          )}
+        </div>
+      )}
 
-      {/* Render Answer Controls */}
-      <div className="pt-2">{renderControl()}</div>
+      {/* Answer Controls */}
+      <div className="pt-0.5">{renderControl()}</div>
 
       {/* Inline Field Error */}
       {error && (
-        <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-semibold flex items-center gap-1.5 animate-in fade-in duration-150">
-          <Info className="w-4 h-4 text-red-500 shrink-0" />
+        <div className="text-[11px] text-red-500 font-medium flex items-center gap-1 animate-in fade-in duration-100">
+          <Info className="w-3.5 h-3.5 text-red-500 shrink-0" />
           <span>{error}</span>
         </div>
       )}

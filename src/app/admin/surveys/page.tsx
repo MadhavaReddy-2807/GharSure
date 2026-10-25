@@ -775,6 +775,7 @@ export default function AdminSurveysPage() {
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
                   <QuestionRenderer
                     question={currentQ as any}
+                    index={previewIndex}
                     value={previewAnswers[currentQ.id]}
                     onChange={handlePreviewChange}
                     error={previewError || undefined}
