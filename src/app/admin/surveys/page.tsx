@@ -2300,19 +2300,50 @@ export default function AdminSurveysPage() {
                       {isExpanded && (
                         <div className="p-4 bg-slate-50 border-t border-slate-100 text-xs space-y-2">
                           <div className="font-semibold text-slate-700">Submitted Answers:</div>
-                          {Object.keys(resp.answers || {}).length === 0 ? (
-                            <div className="text-slate-400 italic">No answers saved yet.</div>
-                          ) : (
+                          {resp.formatted_answers && resp.formatted_answers.length > 0 ? (
                             <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                              {Object.entries(resp.answers).map(([key, val]) => (
-                                <div key={key} className="p-2.5 flex items-start justify-between gap-4">
-                                  <span className="font-mono text-slate-600 text-[11px] shrink-0">{key}</span>
-                                  <span className="font-medium text-slate-900 text-right text-[11px] break-all">
-                                    {typeof val === "object" ? JSON.stringify(val) : String(val)}
+                              {resp.formatted_answers.map((item: any, idx: number) => (
+                                <div key={item.question_id || idx} className="p-2.5 flex items-start justify-between gap-4">
+                                  <div className="shrink-0 max-w-[65%]">
+                                    <span className="font-semibold text-slate-800 text-[11px] block">
+                                      Q{item.order_num}: {item.question_text}
+                                    </span>
+                                  </div>
+                                  <span className="font-medium text-blue-700 text-right text-[11px] break-all bg-blue-50/60 px-2 py-0.5 rounded border border-blue-100">
+                                    {item.answer_value}
                                   </span>
                                 </div>
                               ))}
                             </div>
+                          ) : (
+                            (() => {
+                              let answersObj: Record<string, any> = {};
+                              if (typeof resp.answers === "string") {
+                                try {
+                                  answersObj = JSON.parse(resp.answers);
+                                } catch {
+                                  answersObj = {};
+                                }
+                              } else if (resp.answers && typeof resp.answers === "object") {
+                                answersObj = resp.answers;
+                              }
+                              const entries = Object.entries(answersObj);
+                              if (entries.length === 0) {
+                                return <div className="text-slate-400 italic">No answers saved yet.</div>;
+                              }
+                              return (
+                                <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+                                  {entries.map(([key, val]) => (
+                                    <div key={key} className="p-2.5 flex items-start justify-between gap-4">
+                                      <span className="font-mono text-slate-600 text-[11px] shrink-0">{key}</span>
+                                      <span className="font-medium text-slate-900 text-right text-[11px] break-all">
+                                        {typeof val === "object" ? JSON.stringify(val) : String(val)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()
                           )}
                         </div>
                       )}

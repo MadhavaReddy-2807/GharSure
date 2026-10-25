@@ -1058,7 +1058,14 @@ export async function getSurveyResponsesAdmin(
       `;
       const total = parseInt(countRows[0]?.count || "0", 10);
 
-      const responses = await sql`
+      const rawQuestions = await sql`
+        SELECT id, order_num, question_text, question_type, options
+        FROM survey_questions
+        WHERE survey_id::text = ${targetUuid}
+        ORDER BY order_num ASC;
+      `;
+
+      const rawResponses = await sql`
         SELECT sr.*,
                c.customer_id as customer_readable_id, c.full_name as customer_name, c.phone_e164, c.city as customer_city
         FROM survey_responses sr
@@ -1069,6 +1076,78 @@ export async function getSurveyResponsesAdmin(
         LIMIT ${limit} OFFSET ${offset};
       `;
 
+      const responses = rawResponses.map((sr: any) => {
+        let answersObj: Record<string, any> = {};
+        if (typeof sr.answers === "string") {
+          try {
+            answersObj = JSON.parse(sr.answers);
+          } catch {
+            answersObj = {};
+          }
+        } else if (sr.answers && typeof sr.answers === "object") {
+          answersObj = sr.answers;
+        }
+
+        const answerKeys = Object.keys(answersObj);
+        const formattedAnswers: Array<{
+          question_id: string;
+          order_num: number;
+          question_text: string;
+          question_type: string;
+          answer_value: string;
+          raw_value: any;
+        }> = [];
+
+        rawQuestions.forEach((q: any, idx: number) => {
+          let val = answersObj[q.id];
+          if (val === undefined) {
+            if (finalAnswersByPos(answerKeys, answersObj, idx, q.order_num) !== undefined) {
+              val = finalAnswersByPos(answerKeys, answersObj, idx, q.order_num);
+            }
+          }
+
+          if (val !== undefined && val !== null && val !== "") {
+            let opts: any[] = [];
+            try {
+              opts = typeof q.options === "string" ? JSON.parse(q.options) : q.options || [];
+            } catch {
+              opts = [];
+            }
+
+            let displayVal = String(val);
+            if (typeof val === "boolean") {
+              displayVal = val ? "Yes" : "No";
+            } else if (Array.isArray(opts) && opts.length > 0) {
+              const matched = opts.find(
+                (o: any, oIdx: number) =>
+                  o.value === val ||
+                  o.label === val ||
+                  String(oIdx + 1) === String(val) ||
+                  String(oIdx) === String(val)
+              );
+              if (matched) {
+                displayVal = matched.label || matched.value || displayVal;
+              }
+            }
+
+            formattedAnswers.push({
+              question_id: q.id,
+              order_num: q.order_num,
+              question_text: q.question_text,
+              question_type: q.question_type,
+              answer_value: displayVal,
+              raw_value: val,
+            });
+          }
+        });
+
+        return {
+          ...sr,
+          answers: answersObj,
+          formatted_answers: formattedAnswers,
+        };
+      });
+
       return { responses, total };
     } catch (err) {
       console.warn("[AdminDB] DB error getting survey responses:", (err as Error).message);
@@ -1078,6 +1157,13 @@ export async function getSurveyResponsesAdmin(
   return { responses: [], total: 0 };
 }
 
+function finalAnswersByPos(keys: string[], answers: Record<string, any>, idx: number, orderNum: number): any {
+  if (answers[`q_${orderNum}`] !== undefined) return answers[`q_${orderNum}`];
+  if (answers[String(orderNum)] !== undefined) return answers[String(orderNum)];
+  if (keys[idx] !== undefined) return answers[keys[idx]];
+  return undefined;
+}
+
 export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
   const survey = await getSurveyByIdAdmin(surveyId);
   if (!survey) throw new Error("Survey not found.");
@@ -1085,6 +1171,8 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
   if (isDirectDatabaseConfigured()) {
     try {
       const sql = getDirectSql();
+      const targetUuid = survey.id;
+
       const summary = await sql`
         SELECT 
           count(*)::int as total_starts,
@@ -1094,7 +1182,7 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
           COALESCE(SUM(reward_coins) FILTER (WHERE reward_issued = true), 0)::int as total_coins_distributed,
           AVG(EXTRACT(EPOCH FROM (completed_at - started_at))) FILTER (WHERE status = 'COMPLETED')::numeric(10,1) as avg_duration_seconds
         FROM survey_responses
-        WHERE survey_id = ${survey.id};
+        WHERE survey_id::text = ${targetUuid};
       `;
 
       const stats = summary[0] || {
@@ -1107,14 +1195,129 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
       };
 
       const completionRate = stats.total_starts > 0 ? Math.round((stats.completions / stats.total_starts) * 100) : 0;
+      const avgDurationMin = stats.avg_duration_seconds
+        ? Number((Number(stats.avg_duration_seconds) / 60).toFixed(1))
+        : 0;
+
+      // Fetch survey questions
+      const rawQuestions = await sql`
+        SELECT id, order_num, question_text, question_type, options
+        FROM survey_questions
+        WHERE survey_id::text = ${targetUuid}
+        ORDER BY order_num ASC;
+      `;
+
+      // Fetch all responses to compute question breakdowns
+      const allResponses = await sql`
+        SELECT answers, status
+        FROM survey_responses
+        WHERE survey_id::text = ${targetUuid};
+      `;
+
+      const questionsWithAnalytics = rawQuestions.map((q: any, qIdx: number) => {
+        let opts: any[] = [];
+        try {
+          opts = typeof q.options === "string" ? JSON.parse(q.options) : q.options || [];
+        } catch {
+          opts = [];
+        }
+
+        const distribution: Record<string, number> = {};
+        if (Array.isArray(opts)) {
+          opts.forEach((opt: any) => {
+            const label = typeof opt === "string" ? opt : opt.label || opt.value || "";
+            if (label) distribution[label] = 0;
+          });
+        }
+
+        let responseCount = 0;
+        let sumRatings = 0;
+        let ratingCount = 0;
+
+        for (const resp of allResponses) {
+          let ansObj: Record<string, any> = {};
+          if (typeof resp.answers === "string") {
+            try {
+              ansObj = JSON.parse(resp.answers);
+            } catch {
+              ansObj = {};
+            }
+          } else if (resp.answers && typeof resp.answers === "object") {
+            ansObj = resp.answers;
+          }
+
+          let userVal = ansObj[q.id];
+          if (userVal === undefined) {
+            const keys = Object.keys(ansObj);
+            if (ansObj[`q_${q.order_num}`] !== undefined) {
+              userVal = ansObj[`q_${q.order_num}`];
+            } else if (keys[qIdx] !== undefined) {
+              userVal = ansObj[keys[qIdx]];
+            }
+          }
+
+          if (userVal !== undefined && userVal !== null && userVal !== "") {
+            responseCount++;
+
+            if (q.question_type === "RATING" || q.question_type === "NPS" || q.question_type === "NUMBER") {
+              const numVal = Number(userVal);
+              if (!isNaN(numVal)) {
+                sumRatings += numVal;
+                ratingCount++;
+              }
+            }
+
+            let label = String(userVal);
+            if (typeof userVal === "boolean") {
+              label = userVal ? "Yes" : "No";
+            } else if (Array.isArray(opts) && opts.length > 0) {
+              const matchedOpt = opts.find(
+                (o: any, oIdx: number) =>
+                  o.value === userVal ||
+                  o.label === userVal ||
+                  String(oIdx + 1) === String(userVal) ||
+                  String(oIdx) === String(userVal)
+              );
+              if (matchedOpt) {
+                label = matchedOpt.label || matchedOpt.value || label;
+              }
+            }
+
+            distribution[label] = (distribution[label] || 0) + 1;
+          }
+        }
+
+        const average = ratingCount > 0 ? (sumRatings / ratingCount).toFixed(1) : undefined;
+
+        return {
+          id: q.id,
+          order_num: q.order_num,
+          question_text: q.question_text,
+          question_type: q.question_type,
+          response_count: responseCount,
+          distribution,
+          average,
+        };
+      });
 
       return {
         surveyId: survey.id,
         title: survey.title,
+        summary: {
+          total_responses: stats.total_starts,
+          completions: stats.completions,
+          in_progress: stats.in_progress,
+          disqualified: stats.disqualified,
+          completion_rate: completionRate,
+          avg_completion_time_min: avgDurationMin,
+          total_coins_distributed: stats.total_coins_distributed,
+        },
         stats: {
           ...stats,
           completionRate,
+          avg_duration_min: avgDurationMin,
         },
+        questions: questionsWithAnalytics,
         questionBreakdowns: {},
       };
     } catch (err) {
@@ -1126,6 +1329,15 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
   return {
     surveyId: survey.id,
     title: survey.title,
+    summary: {
+      total_responses: completions + 18,
+      completions,
+      in_progress: 14,
+      disqualified: 4,
+      completion_rate: 87,
+      avg_completion_time_min: 2.4,
+      total_coins_distributed: completions * (survey.reward_coins || 50),
+    },
     stats: {
       total_starts: completions + 18,
       completions,
@@ -1135,6 +1347,7 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
       avg_duration_seconds: 145,
       completionRate: 87,
     },
+    questions: [],
     questionBreakdowns: {},
   };
 }
