@@ -16,7 +16,12 @@ export async function POST(
     const result = await startOrResumeSurveyAttempt(id, session.customerId);
 
     if (result.error) {
-      return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      const status =
+        result.error.toLowerCase().includes("sign in") ||
+        result.error.toLowerCase().includes("unauthorized")
+          ? 401
+          : 400;
+      return NextResponse.json({ success: false, error: result.error }, { status });
     }
 
     return NextResponse.json({ success: true, ...result });

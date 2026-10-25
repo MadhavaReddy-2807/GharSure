@@ -39,6 +39,9 @@ export default function SurveyTakingPage({
   const [attempt, setAttempt] = useState<any>(null);
   const [customer, setCustomer] = useState<{ fullName?: string; displayName?: string } | null>(null);
 
+  // Auth / session required state
+  const [isAuthRequired, setIsAuthRequired] = useState(false);
+
   // Intro Screen State (True until user taps Start or Resume)
   const [hasStarted, setHasStarted] = useState(false);
   const [isResumeAttempt, setIsResumeAttempt] = useState(false);
@@ -74,13 +77,37 @@ export default function SurveyTakingPage({
   const loadSurvey = useCallback(async () => {
     setIsLoading(true);
     setGeneralError(null);
+    setIsAuthRequired(false);
     try {
-      // First start or resume attempt
+      // Step A: Load survey definition & questions (accessible even to guests)
+      const surveyRes = await fetch(`/api/surveys/${surveyId}`);
+      const surveyData = await surveyRes.json();
+
+      if (!surveyRes.ok || !surveyData.success) {
+        throw new Error(surveyData.error || "Failed to load survey details.");
+      }
+
+      setSurvey(surveyData.survey);
+      setQuestions(surveyData.questions || []);
+
+      // Step B: Start or resume survey attempt
       const startRes = await fetch(`/api/surveys/${surveyId}/start`, { method: "POST" });
       const startData = await startRes.json();
 
+      if (startRes.status === 401) {
+        setIsAuthRequired(true);
+        setIsLoading(false);
+        return;
+      }
+
       if (!startRes.ok || !startData.success) {
-        throw new Error(startData.error || "Unable to start survey.");
+        if (startData.error?.toLowerCase().includes("sign in")) {
+          setIsAuthRequired(true);
+        } else {
+          setGeneralError(startData.error || "Unable to start survey.");
+        }
+        setIsLoading(false);
+        return;
       }
 
       if (startData.isCompleted) {
@@ -99,17 +126,6 @@ export default function SurveyTakingPage({
         setIsResumeAttempt(true);
         setAnswers(existingAnswers);
       }
-
-      // Load survey definition & questions
-      const surveyRes = await fetch(`/api/surveys/${surveyId}`);
-      const surveyData = await surveyRes.json();
-
-      if (!surveyRes.ok || !surveyData.success) {
-        throw new Error(surveyData.error || "Failed to load survey details.");
-      }
-
-      setSurvey(surveyData.survey);
-      setQuestions(surveyData.questions || []);
     } catch (err: any) {
       setGeneralError(err.message);
     } finally {
@@ -287,6 +303,30 @@ export default function SurveyTakingPage({
     );
   }
 
+  // Survey Not Found / Error State
+  if (generalError && !survey) {
+    return (
+      <div className="min-h-screen bg-[#EDF4FE] relative flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+        <div className="w-full max-w-[420px] bg-white rounded-[32px] sm:rounded-[36px] shadow-[0_20px_50px_rgba(37,99,235,0.07)] border border-white/80 p-7 text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto border border-red-100">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <h1 className="text-lg font-bold text-slate-800">Survey Not Available</h1>
+          <p className="text-xs text-slate-500 leading-relaxed">{generalError}</p>
+          <div className="pt-2">
+            <Link
+              href="/rewards"
+              className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition-all"
+            >
+              <span>Explore Available Surveys</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // A. SURVEY INTRODUCTION SCREEN (Before Questions)
   // ---------------------------------------------------------------------------
@@ -393,16 +433,27 @@ export default function SurveyTakingPage({
               )}
             </div>
 
-            {/* Start Button */}
+            {/* Start / Sign in Button */}
             <div className="pt-2 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => setHasStarted(true)}
-                className="w-full h-11 sm:h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>{isResumeAttempt ? "Resume Survey" : "Start Survey"}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {isAuthRequired ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/auth?from=${encodeURIComponent(`/surveys/${surveyId}`)}`)}
+                  className="w-full h-11 sm:h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Sign In with Mobile to Start</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setHasStarted(true)}
+                  className="w-full h-11 sm:h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>{isResumeAttempt ? "Resume Survey" : "Start Survey"}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
 
               <Link
                 href="/rewards"

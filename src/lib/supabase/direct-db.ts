@@ -31,11 +31,13 @@ export function getDirectSql() {
   }
 
   // Connect using postgres client with SSL required for Supabase
+  // prepare: false is mandatory for Supabase PgBouncer transaction pooler (port 6543)
   const sql = postgres(url, {
     ssl: "require",
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,
+    prepare: false,
   });
 
   if (process.env.NODE_ENV !== "production") {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyRequestSession } from "@/lib/session";
-import { getCustomerById } from "@/lib/supabase/db";
+import { verifyRequestSession, signSession, setSessionCookie, clearSessionCookie } from "@/lib/session";
+import { getCustomerById, getCustomerByPhone } from "@/lib/supabase/db";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,16 +13,27 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const customer = await getCustomerById(session.customerId);
+    let customer = await getCustomerById(session.customerId);
+
+    // Fallback: if session customerId does not exist (e.g. from previous environment), lookup by verified phone
+    let sessionNeedsUpdate = false;
+    if (!customer && session.phone) {
+      customer = await getCustomerByPhone(session.phone);
+      if (customer) {
+        sessionNeedsUpdate = true;
+      }
+    }
 
     if (!customer) {
-      return NextResponse.json(
+      const resp = NextResponse.json(
         { authenticated: false, customer: null },
         { status: 401 }
       );
+      clearSessionCookie(resp);
+      return resp;
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       authenticated: true,
       customer: {
         id: customer.id,
@@ -36,6 +47,18 @@ export async function GET(req: NextRequest) {
         onboardingCompleted: customer.onboarding_completed,
       },
     });
+
+    if (sessionNeedsUpdate) {
+      const newToken = await signSession({
+        customerId: customer.id,
+        readableId: customer.customer_id,
+        phone: customer.phone_e164,
+        onboardingCompleted: customer.onboarding_completed,
+      });
+      setSessionCookie(response, newToken);
+    }
+
+    return response;
   } catch (error) {
     console.error("[API auth/me error]", error);
     return NextResponse.json(

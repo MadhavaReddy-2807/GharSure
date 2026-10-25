@@ -694,7 +694,7 @@ export async function getCustomerById(id: string): Promise<CustomerRecord | null
     try {
       const sql = getDirectSql();
       const rows = await sql<CustomerRecord[]>`
-        SELECT * FROM customers WHERE id = ${id} OR customer_id = ${id}
+        SELECT * FROM customers WHERE id::text = ${id} OR customer_id = ${id}
       `;
       if (rows && rows.length > 0) {
         return rows[0];

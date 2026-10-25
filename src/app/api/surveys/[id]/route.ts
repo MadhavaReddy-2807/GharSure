@@ -8,18 +8,16 @@ export async function GET(
 ) {
   try {
     const session = await verifyRequestSession(req);
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Unauthorized. Please sign in." }, { status: 401 });
-    }
+    const customerId = session?.customerId || "";
 
     const { id } = await params;
-    const data = await getSurveyForTaking(id, session.customerId);
+    const data = await getSurveyForTaking(id, customerId);
 
     if (!data) {
       return NextResponse.json({ success: false, error: "Survey not found." }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, ...data });
+    return NextResponse.json({ success: true, ...data, isAuthenticated: Boolean(session) });
   } catch (err: any) {
     console.error("[API /api/surveys/[id] error]", err);
     return NextResponse.json({ success: false, error: "Failed to fetch survey." }, { status: 500 });

@@ -117,7 +117,9 @@ export async function getSurveyForTaking(surveyId: string, customerId: string): 
     try {
       const sql = getDirectSql();
       const [survey] = await sql`
-        SELECT * FROM surveys WHERE id = ${surveyId} OR survey_id = ${surveyId} LIMIT 1;
+        SELECT * FROM surveys 
+        WHERE id::text = ${surveyId} OR survey_id = ${surveyId} OR LOWER(survey_id) = LOWER(${surveyId})
+        LIMIT 1;
       `;
       if (survey) {
         // Get latest published version snapshot if available
@@ -128,11 +130,11 @@ export async function getSurveyForTaking(surveyId: string, customerId: string): 
           LIMIT 1;
         `;
 
-        let questions: any[] = [];
-        if (versionRow && versionRow.snapshot?.questions) {
-          questions = versionRow.snapshot.questions;
+        let rawQuestions: any[] = [];
+        if (versionRow && versionRow.snapshot?.questions && Array.isArray(versionRow.snapshot.questions) && versionRow.snapshot.questions.length > 0) {
+          rawQuestions = versionRow.snapshot.questions;
         } else {
-          questions = await sql`
+          rawQuestions = await sql`
             SELECT id, order_num, question_text, question_type, description,
                    options, is_required, validation_rules, branching_rules, section_name
             FROM survey_questions
@@ -141,12 +143,33 @@ export async function getSurveyForTaking(surveyId: string, customerId: string): 
           `;
         }
 
+        const questions = (rawQuestions || []).map((q: any, idx: number) => ({
+          id: q.id,
+          orderNum: q.order_num ?? q.orderNum ?? idx + 1,
+          questionText: q.question_text ?? q.questionText ?? "",
+          questionType: q.question_type ?? q.questionType ?? "SINGLE_CHOICE",
+          description: q.description || null,
+          options: q.options || [],
+          isRequired: q.is_required !== undefined ? q.is_required : q.isRequired !== false,
+          validationRules: q.validation_rules || q.validationRules || {},
+          branchingRules: Array.isArray(q.branching_rules)
+            ? q.branching_rules
+            : Array.isArray(q.branchingRules)
+            ? q.branchingRules
+            : [],
+          sectionName: q.section_name || q.sectionName || null,
+        }));
+
         // Check existing attempt for customer
-        const [attempt] = await sql`
-          SELECT * FROM survey_responses
-          WHERE survey_id = ${survey.id} AND customer_id = ${customerId}
-          LIMIT 1;
-        `;
+        let attempt = null;
+        if (customerId) {
+          const attempts = await sql`
+            SELECT * FROM survey_responses
+            WHERE survey_id = ${survey.id} AND (customer_id::text = ${customerId} OR customer_id IN (SELECT id FROM customers WHERE customer_id = ${customerId}))
+            LIMIT 1;
+          `;
+          attempt = attempts[0] || null;
+        }
 
         return {
           survey: {
@@ -213,17 +236,38 @@ export async function startOrResumeSurveyAttempt(
     try {
       const sql = getDirectSql();
       const [survey] = await sql`
-        SELECT id, status, reward_coins, allow_resume FROM surveys WHERE id = ${surveyId} OR survey_id = ${surveyId} LIMIT 1;
+        SELECT id, status, reward_coins, allow_resume 
+        FROM surveys 
+        WHERE id::text = ${surveyId} OR survey_id = ${surveyId} OR LOWER(survey_id) = LOWER(${surveyId})
+        LIMIT 1;
       `;
       if (survey) {
         if (survey.status !== "PUBLISHED") {
           return { attempt: null, isResume: false, isCompleted: false, error: "Survey is not open for responses." };
         }
 
+        // Verify customer exists in database to avoid foreign key violation
+        const customers = await sql`
+          SELECT id FROM customers 
+          WHERE id::text = ${customerId} OR customer_id = ${customerId}
+          LIMIT 1;
+        `;
+
+        if (!customers || customers.length === 0) {
+          return {
+            attempt: null,
+            isResume: false,
+            isCompleted: false,
+            error: "Please sign in to take this survey.",
+          };
+        }
+
+        const resolvedCustomerUuid = customers[0].id;
+
         // Check existing attempt
         const [existing] = await sql`
           SELECT * FROM survey_responses
-          WHERE survey_id = ${survey.id} AND customer_id = ${customerId}
+          WHERE survey_id = ${survey.id} AND customer_id = ${resolvedCustomerUuid}
           LIMIT 1;
         `;
 
@@ -249,7 +293,7 @@ export async function startOrResumeSurveyAttempt(
             started_at, last_saved_at, reward_coins
           )
           VALUES (
-            ${survey.id}, ${customerId}, 'IN_PROGRESS', '{}'::jsonb, '[]'::jsonb,
+            ${survey.id}, ${resolvedCustomerUuid}, 'IN_PROGRESS', '{}'::jsonb, '[]'::jsonb,
             NOW(), NOW(), ${survey.reward_coins}
           )
           ON CONFLICT (survey_id, customer_id) DO UPDATE
@@ -317,7 +361,7 @@ export async function saveSurveyAutosave(
           current_question_id = ${currentQuestionId || null},
           question_path = ${JSON.stringify(questionPath || [])}::jsonb,
           last_saved_at = NOW()
-        WHERE id = ${attemptId} AND customer_id = ${customerId} AND status IN ('STARTED', 'IN_PROGRESS')
+        WHERE id::text = ${attemptId} AND (customer_id::text = ${customerId} OR customer_id IN (SELECT id FROM customers WHERE customer_id = ${customerId})) AND status IN ('STARTED', 'IN_PROGRESS')
         RETURNING *;
       `;
 
@@ -358,7 +402,7 @@ export async function submitSurveyCompletion(
           SELECT sr.*, s.title as survey_title, s.survey_type, s.reward_coins as configured_reward
           FROM survey_responses sr
           JOIN surveys s ON sr.survey_id = s.id
-          WHERE sr.id = ${attemptId} AND sr.customer_id = ${customerId}
+          WHERE sr.id::text = ${attemptId} AND (sr.customer_id::text = ${customerId} OR sr.customer_id IN (SELECT id FROM customers WHERE customer_id = ${customerId}))
           FOR UPDATE;
         `;
 
@@ -394,10 +438,26 @@ export async function submitSurveyCompletion(
           sectionName: q.section_name ?? q.sectionName,
         }));
 
+        // Normalize answers to map by question ID, or by index/orderNum if question IDs were updated
+        const normalizedAnswers: Record<string, any> = { ...finalAnswers };
+        const answerEntries = Object.entries(finalAnswers);
+
+        mappedQuestions.forEach((q, idx) => {
+          if (normalizedAnswers[q.id] === undefined) {
+            if (finalAnswers[`q_${q.orderNum}`] !== undefined) {
+              normalizedAnswers[q.id] = finalAnswers[`q_${q.orderNum}`];
+            } else if (finalAnswers[String(q.orderNum)] !== undefined) {
+              normalizedAnswers[q.id] = finalAnswers[String(q.orderNum)];
+            } else if (answerEntries[idx] !== undefined) {
+              normalizedAnswers[q.id] = answerEntries[idx][1];
+            }
+          }
+        });
+
         // Clean downstream answers according to branching rules
         const { cleanedAnswers } = invalidateDownstreamAnswers(
           mappedQuestions,
-          finalAnswers,
+          normalizedAnswers,
           attempt.survey_type || "STATIC"
         );
 
@@ -416,7 +476,7 @@ export async function submitSurveyCompletion(
                 answers = ${JSON.stringify(cleanedAnswers)}::jsonb,
                 disqualification_reason = ${navEval.terminationReason || "Disqualified"},
                 completed_at = NOW()
-            WHERE id = ${attemptId};
+            WHERE id::text = ${attemptId};
           `;
           return {
             success: true,
@@ -437,6 +497,7 @@ export async function submitSurveyCompletion(
         // 3. Mark completed and issue coins atomically
         const coinsToAward = Number(attempt.configured_reward || 0);
         const idempotencyKey = `survey_reward_${attempt.id}`;
+        const targetCustomerId = attempt.customer_id;
 
         // Insert coin transaction if reward > 0
         if (coinsToAward > 0) {
@@ -445,7 +506,7 @@ export async function submitSurveyCompletion(
               customer_id, amount, type, description, idempotency_key, metadata
             )
             VALUES (
-              ${customerId},
+              ${targetCustomerId},
               ${coinsToAward},
               'SURVEY_REWARD',
               ${`Survey completion reward: ${attempt.survey_title}`},
@@ -459,7 +520,7 @@ export async function submitSurveyCompletion(
           await tx`
             UPDATE customers
             SET reward_coins = COALESCE(reward_coins, 0) + ${coinsToAward}, updated_at = NOW()
-            WHERE id = ${customerId};
+            WHERE id = ${targetCustomerId};
           `;
         }
 
@@ -472,7 +533,7 @@ export async function submitSurveyCompletion(
               reward_issued = ${coinsToAward > 0},
               idempotency_key = ${idempotencyKey},
               completed_at = NOW()
-          WHERE id = ${attemptId};
+          WHERE id::text = ${attemptId};
         `;
 
         // 5. Increment surveys responses_count
@@ -489,8 +550,14 @@ export async function submitSurveyCompletion(
           message: `Survey completed! +${coinsToAward} coins added to your wallet.`,
         };
       });
-    } catch (err) {
-      console.warn("[SurveyDB] Submit failed via DB, falling back to dummy store:", (err as Error).message);
+    } catch (err: any) {
+      console.warn("[SurveyDB] Submit direct DB error:", err.message);
+      return {
+        success: false,
+        coinsAwarded: 0,
+        status: "ERROR",
+        error: err.message || "Failed to submit survey answers.",
+      };
     }
   }
 
