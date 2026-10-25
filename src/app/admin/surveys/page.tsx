@@ -314,20 +314,20 @@ export default function AdminSurveysPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         const loadedQuestions = (data.survey.questions || []).map((q: any, idx: number) => ({
-          id: q.id || `q-${idx + 1}`,
-          orderNum: q.order_num || idx + 1,
-          questionText: q.question_text || "",
-          questionType: q.question_type || "SINGLE_CHOICE",
+          id: q.id || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `q-${Date.now()}-${idx}`),
+          orderNum: q.order_num || q.orderNum || idx + 1,
+          questionText: q.question_text || q.questionText || "",
+          questionType: q.question_type || q.questionType || "SINGLE_CHOICE",
           description: q.description || "",
           options: Array.isArray(q.options)
             ? q.options.map((opt: any) => (typeof opt === "string" ? opt : opt.label || opt.value || ""))
             : [],
           matrixRows: q.options?.matrixRows || ["Ease of Use", "Value for Money", "Customer Support"],
           matrixCols: q.options?.matrixCols || ["Poor", "Average", "Good", "Excellent"],
-          isRequired: q.is_required !== false,
-          validationRules: q.validation_rules || {},
-          branchingRules: q.branching_rules || [],
-          sectionName: q.section_name || "",
+          isRequired: q.is_required !== undefined ? q.is_required : q.isRequired !== false,
+          validationRules: q.validation_rules || q.validationRules || {},
+          branchingRules: q.branching_rules || q.branchingRules || [],
+          sectionName: q.section_name || q.sectionName || "",
         }));
 
         setQuestions(loadedQuestions);
@@ -341,7 +341,10 @@ export default function AdminSurveysPage() {
 
   // Add Question to Form
   const handleAddQuestion = () => {
-    const newId = `q-${Date.now()}`;
+    const newId =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `q-${Date.now()}`;
     setQuestions([
       ...questions,
       {

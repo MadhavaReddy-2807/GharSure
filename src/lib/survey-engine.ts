@@ -392,23 +392,28 @@ export function validateSurveyDefinition(
 
   const questionIds = new Set(questions.map((q) => q.id));
 
-  questions.forEach((q, idx) => {
+  questions.forEach((q: any, idx) => {
+    const qText = q.questionText || q.question_text || "";
+    const qType = q.questionType || q.question_type || "SINGLE_CHOICE";
+    const qOptions = q.options;
+    const qBranchRules = q.branchingRules || q.branching_rules;
+
     // 1. Validate question text
-    if (!q.questionText || !q.questionText.trim()) {
+    if (!qText || !qText.trim()) {
       errors.push(`Question ${idx + 1} is missing question text.`);
     }
 
     // 2. Validate options for choice-based questions
-    const isChoice = ["SINGLE_CHOICE", "MULTIPLE_CHOICE", "DROPDOWN"].includes(q.questionType);
+    const isChoice = ["SINGLE_CHOICE", "MULTIPLE_CHOICE", "DROPDOWN"].includes(qType);
     if (isChoice) {
-      if (!q.options || q.options.length < 2) {
-        errors.push(`Question #${idx + 1} ("${q.questionText || "Untitled"}") must have at least 2 options.`);
+      if (!qOptions || qOptions.length < 2) {
+        errors.push(`Question #${idx + 1} ("${qText || "Untitled"}") must have at least 2 options.`);
       }
     }
 
     // 3. Validate decision rules for decision-based surveys
-    if (surveyType === "DECISION_BASED" && q.branchingRules) {
-      q.branchingRules.forEach((rule, rIdx) => {
+    if (surveyType === "DECISION_BASED" && Array.isArray(qBranchRules)) {
+      qBranchRules.forEach((rule: any, rIdx: number) => {
         // Validate target question reference
         if (["SKIP_TO_QUESTION", "SHOW_QUESTION", "HIDE_QUESTION"].includes(rule.action)) {
           if (!rule.targetQuestionId) {
@@ -421,7 +426,7 @@ export function validateSurveyDefinition(
         }
 
         // Validate rule condition references
-        const conditions = rule.conditionGroup?.conditions || (rule as any).conditions || [];
+        const conditions = rule.conditionGroup?.conditions || rule.conditions || [];
         conditions.forEach((cond: any, cIdx: number) => {
           if (!questionIds.has(cond.questionId)) {
             errors.push(

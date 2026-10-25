@@ -591,11 +591,11 @@ export async function getSurveyByIdAdmin(id: string): Promise<any | null> {
     try {
       const sql = getDirectSql();
       const surveys = await sql`
-        SELECT * FROM surveys WHERE id = ${id} OR survey_id = ${id} LIMIT 1;
+        SELECT * FROM surveys WHERE id::text = ${id} OR survey_id = ${id} LIMIT 1;
       `;
       if (surveys && surveys.length > 0) {
         const survey = surveys[0];
-        const questions = await sql`
+        const rawQuestions = await sql`
           SELECT id, survey_id, order_num, question_text, question_type,
                  description, options, is_required, validation_rules,
                  branching_rules, section_name
@@ -603,6 +603,17 @@ export async function getSurveyByIdAdmin(id: string): Promise<any | null> {
           WHERE survey_id = ${survey.id}
           ORDER BY order_num ASC;
         `;
+
+        const questions = rawQuestions.map((q: any) => ({
+          ...q,
+          orderNum: q.order_num || q.orderNum,
+          questionText: q.question_text || q.questionText || "",
+          questionType: q.question_type || q.questionType || "SINGLE_CHOICE",
+          isRequired: q.is_required !== undefined ? q.is_required : q.isRequired !== false,
+          validationRules: q.validation_rules || q.validationRules || {},
+          branchingRules: q.branching_rules || q.branchingRules || [],
+          sectionName: q.section_name || q.sectionName || null,
+        }));
 
         const versions = await sql`
           SELECT id, version_num, reward_coins, published_at
@@ -780,24 +791,71 @@ export async function saveSurveyQuestionsAdmin(
   surveyId: string,
   questions: Array<{
     id?: string;
-    orderNum: number;
-    questionText: string;
-    questionType: string;
+    orderNum?: number;
+    order_num?: number;
+    questionText?: string;
+    question_text?: string;
+    questionType?: string;
+    question_type?: string;
     description?: string | null;
-    options?: any[];
-    isRequired: boolean;
+    options?: any;
+    isRequired?: boolean;
+    is_required?: boolean;
     validationRules?: any;
+    validation_rules?: any;
     branchingRules?: any[];
+    branching_rules?: any[];
     sectionName?: string | null;
+    section_name?: string | null;
   }>
 ): Promise<void> {
+  const isUuid = (val?: string): boolean =>
+    Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
   if (isDirectDatabaseConfigured()) {
     try {
       const sql = getDirectSql();
       await sql.begin(async (tx) => {
-        await tx`DELETE FROM survey_questions WHERE survey_id = ${surveyId};`;
+        // 1. Safely resolve survey UUID
+        const matching = await tx<{ id: string }[]>`
+          SELECT id FROM surveys WHERE id::text = ${surveyId} OR survey_id = ${surveyId} LIMIT 1;
+        `;
+        const targetSurveyUuid = matching[0]?.id || surveyId;
+
+        // 2. Clear existing questions for this survey
+        await tx`DELETE FROM survey_questions WHERE survey_id = ${targetSurveyUuid};`;
+
+        // 3. Map any non-UUID question IDs (e.g. q-123456) to valid UUIDs
+        const idMap = new Map<string, string>();
         for (const q of questions) {
-          const qId = q.id || crypto.randomUUID();
+          const rawId = q.id;
+          const validUuid = isUuid(rawId) ? rawId! : crypto.randomUUID();
+          if (rawId) idMap.set(rawId, validUuid);
+        }
+
+        // 4. Insert normalized questions
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          const rawId = q.id;
+          const qId = (rawId && idMap.get(rawId)) || crypto.randomUUID();
+          const orderNum = q.orderNum || q.order_num || (i + 1);
+          const qText = (q.questionText || q.question_text || "").trim();
+          const qType = q.questionType || q.question_type || "SINGLE_CHOICE";
+          const desc = q.description?.trim() || null;
+          const isReq = q.isRequired !== undefined ? q.isRequired : q.is_required !== false;
+          const valRules = q.validationRules || q.validation_rules || {};
+          let branchRules = q.branchingRules || q.branching_rules || [];
+
+          // Remap targetQuestionId in branching rules if referencing mapped IDs
+          if (Array.isArray(branchRules)) {
+            branchRules = branchRules.map((r: any) => {
+              if (r.targetQuestionId && idMap.has(r.targetQuestionId)) {
+                return { ...r, targetQuestionId: idMap.get(r.targetQuestionId) };
+              }
+              return r;
+            });
+          }
+
           await tx`
             INSERT INTO survey_questions (
               id, survey_id, order_num, question_text, question_type,
@@ -805,19 +863,20 @@ export async function saveSurveyQuestionsAdmin(
               branching_rules, section_name
             )
             VALUES (
-              ${qId}, ${surveyId}, ${q.orderNum}, ${q.questionText.trim()}, ${q.questionType},
-              ${q.description || null}, ${JSON.stringify(q.options || [])}::jsonb, ${q.isRequired},
-              ${JSON.stringify(q.validationRules || {})}::jsonb,
-              ${JSON.stringify(q.branchingRules || [])}::jsonb,
-              ${q.sectionName || null}
+              ${qId}, ${targetSurveyUuid}, ${orderNum}, ${qText}, ${qType},
+              ${desc}, ${JSON.stringify(q.options || [])}::jsonb, ${isReq},
+              ${JSON.stringify(valRules)}::jsonb,
+              ${JSON.stringify(branchRules)}::jsonb,
+              ${q.sectionName || q.section_name || null}
             );
           `;
         }
-        await tx`UPDATE surveys SET version = version + 1, updated_at = NOW() WHERE id = ${surveyId};`;
+        await tx`UPDATE surveys SET version = version + 1, updated_at = NOW() WHERE id = ${targetSurveyUuid};`;
       });
       return;
     } catch (err) {
-      console.warn("[AdminDB] DB error in saveSurveyQuestionsAdmin, saving in dummy store:", (err as Error).message);
+      console.error("[AdminDB] DB error in saveSurveyQuestionsAdmin:", (err as Error).message);
+      throw err;
     }
   }
 
@@ -828,8 +887,23 @@ export async function publishSurveyAdmin(surveyId: string, adminId?: string): Pr
   const survey = await getSurveyByIdAdmin(surveyId);
   if (!survey) throw new Error("Survey not found.");
 
+  // Normalize questions for engine validation
+  const normalizedQuestions: SurveyQuestion[] = (survey.questions || []).map((q: any) => ({
+    id: q.id,
+    surveyId: q.survey_id || survey.id,
+    orderNum: q.order_num || q.orderNum || 1,
+    questionText: q.question_text || q.questionText || "",
+    questionType: q.question_type || q.questionType || "SINGLE_CHOICE",
+    description: q.description || null,
+    options: q.options || [],
+    isRequired: q.is_required !== undefined ? q.is_required : q.isRequired !== false,
+    validationRules: q.validation_rules || q.validationRules || {},
+    branchingRules: q.branching_rules || q.branchingRules || [],
+    sectionName: q.section_name || q.sectionName || null,
+  }));
+
   // Pre-flight validation using Survey Engine
-  const validation = validateSurveyDefinition(survey.questions as SurveyQuestion[], survey.survey_type || "STATIC");
+  const validation = validateSurveyDefinition(normalizedQuestions, survey.survey_type || "STATIC");
   if (!validation.isValid) {
     throw new Error(`Cannot publish survey due to validation errors: ${validation.errors.join("; ")}`);
   }
@@ -847,7 +921,7 @@ export async function publishSurveyAdmin(surveyId: string, adminId?: string): Pr
           category: survey.category,
           estimated_duration_min: survey.estimated_duration_min,
           reward_coins: survey.reward_coins,
-          questions: survey.questions,
+          questions: normalizedQuestions,
           published_at: new Date().toISOString(),
         };
 
@@ -871,10 +945,11 @@ export async function publishSurveyAdmin(surveyId: string, adminId?: string): Pr
           RETURNING *;
         `;
 
-        return { ...updatedSurvey, versionSnapshotId: versionRow.id };
+        return { ...updatedSurvey, versionSnapshotId: versionRow?.id };
       });
     } catch (err) {
-      console.warn("[AdminDB] DB error publishing survey, updating dummy store:", (err as Error).message);
+      console.error("[AdminDB] DB error publishing survey:", (err as Error).message);
+      throw err;
     }
   }
 

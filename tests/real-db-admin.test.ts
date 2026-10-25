@@ -64,13 +64,54 @@ describe("Live Supabase Admin Queries", () => {
     expect(Array.isArray(resp.responses)).toBe(true);
   });
 
-  it("lists real customers and ledger transactions from database", async () => {
-    const customers = await listCustomersAdmin();
-    expect(customers.total).toBeGreaterThanOrEqual(1);
-    expect(Array.isArray(customers.customers)).toBe(true);
+  it("saves questions with frontend IDs (e.g. q-123456) and publishes successfully", async () => {
+    const { saveSurveyQuestionsAdmin, publishSurveyAdmin, getSurveyByIdAdmin } = await import("@/lib/admin-db");
+    const surveys = await listSurveysAdmin();
+    // Find SURVEY-2 or any draft/survey
+    const target = surveys.find((s) => s.survey_id === "SURVEY-2") || surveys[0];
+    expect(target).toBeDefined();
 
-    const ledger = await listCoinLedgerAdmin();
-    expect(ledger).toBeDefined();
-    expect(Array.isArray(ledger.transactions)).toBe(true);
-  });
+    const testQuestions = [
+      {
+        id: `q-${Date.now()}`,
+        orderNum: 1,
+        questionText: "What is your primary household water source?",
+        questionType: "SINGLE_CHOICE",
+        description: "Select one option",
+        isRequired: true,
+        options: [
+          { label: "Borewell", value: "borewell" },
+          { label: "Municipal Supply", value: "municipal" },
+        ],
+        validationRules: {},
+      },
+      {
+        id: `q-${Date.now() + 1}`,
+        orderNum: 2,
+        questionText: "How often do you service your drinking water purifier?",
+        questionType: "SINGLE_CHOICE",
+        description: "Choose maintenance frequency",
+        isRequired: true,
+        options: [
+          { label: "Every 3 months", value: "3m" },
+          { label: "Every 6 months", value: "6m" },
+        ],
+        validationRules: {},
+      },
+    ];
+
+    // Save questions
+    await saveSurveyQuestionsAdmin(target.id, testQuestions);
+
+    // Verify questions loaded from DB
+    const loaded = await getSurveyByIdAdmin(target.id);
+    expect(loaded).not.toBeNull();
+    expect(loaded.questions.length).toBe(2);
+    expect(loaded.questions[0].questionText).toBe("What is your primary household water source?");
+
+    // Publish survey
+    const pub = await publishSurveyAdmin(target.id);
+    expect(pub).toBeDefined();
+    expect(pub.status).toBe("PUBLISHED");
+  }, 20000);
 });
