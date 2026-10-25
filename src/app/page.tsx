@@ -56,12 +56,9 @@ export default function HomePageBanner() {
               className="object-contain w-full h-full p-1"
             />
           </div>
-          <div>
-            <span className="font-bold text-lg text-brand-navy tracking-tight leading-none block">
-              Ghar<span className="text-brand-orange">Sure</span>
-            </span>
-            <span className="text-[11px] text-slate-500 font-medium">Household Intelligence</span>
-          </div>
+          <span className="font-bold text-lg text-brand-navy tracking-tight leading-none block">
+            Ghar<span className="text-brand-orange">Sure</span>
+          </span>
         </div>
 
         <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">

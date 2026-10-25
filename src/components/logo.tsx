@@ -36,14 +36,9 @@ export function Logo({ className, size = "md", showText = false }: LogoProps) {
         />
       </div>
       {showText && (
-        <div className="flex flex-col">
-          <span className="font-bold text-lg leading-tight text-brand-navy tracking-tight">
-            Ghar<span className="text-brand-orange">Sure</span>
-          </span>
-          <span className="text-[10px] tracking-wider uppercase text-slate-500 font-medium">
-            Household Intelligence
-          </span>
-        </div>
+        <span className="font-bold text-lg leading-tight text-brand-navy tracking-tight">
+          Ghar<span className="text-brand-orange">Sure</span>
+        </span>
       )}
     </div>
   );
