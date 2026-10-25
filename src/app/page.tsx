@@ -113,7 +113,7 @@ export default function HomePageBanner() {
       <div className="pb-4 space-y-3">
         <Link
           href="/auth"
-          className="w-full h-12 rounded-xl bg-brand-orange hover:bg-brand-orange-600 active:bg-brand-orange-700 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm"
+          className="w-full h-12 rounded-xl bg-brand-purple hover:bg-brand-purple/90 active:bg-brand-purple-600 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-xs"
         >
           <span>Continue</span>
           <ArrowRight className="w-4 h-4" />

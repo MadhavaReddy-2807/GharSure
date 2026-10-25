@@ -2143,7 +2143,7 @@ export default function AdminSurveysPage() {
                   </div>
 
                   {/* Publish Action Card */}
-                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-5 rounded-2xl border border-emerald-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="bg-emerald-50/70 p-5 rounded-xl border border-emerald-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                       <h4 className="font-bold text-sm text-emerald-900">
                         Publish Survey & Increment Version
@@ -2323,7 +2323,7 @@ export default function AdminSurveysPage() {
             <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
               <button
                 onClick={() => setResponsesSurvey(null)}
-                className="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold"
+                className="px-4 py-2 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold"
               >
                 Done
               </button>
@@ -2450,7 +2450,7 @@ export default function AdminSurveysPage() {
             <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
               <button
                 onClick={() => setAnalyticsSurvey(null)}
-                className="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold"
+                className="px-4 py-2 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold"
               >
                 Close
               </button>

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Copy, Check, Share2, Link as LinkIcon } from "lucide-react";
-import { Button } from "./ui/button";
+import { Copy, Check, Share2 } from "lucide-react";
 import { getBaseUrl } from "@/lib/base-url";
 
 interface ReferralCodeCardProps {
@@ -12,7 +11,6 @@ interface ReferralCodeCardProps {
 
 export function ReferralCodeCard({ code, bonusCoins = 100 }: ReferralCodeCardProps) {
   const [codeCopied, setCodeCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
 
   const getShareUrl = () => {
     return `${getBaseUrl()}/?ref=${code}`;
@@ -28,35 +26,6 @@ export function ReferralCodeCard({ code, bonusCoins = 100 }: ReferralCodeCardPro
     }
   };
 
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(getShareUrl());
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch {
-      // Fallback
-    }
-  };
-
-  const handleShare = async () => {
-    const url = getShareUrl();
-    const shareText = `Join me on GharSure with my invite code ${code} to get ${bonusCoins} bonus coins for free home water & appliance trials:`;
-
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: "Join GharSure",
-          text: shareText,
-          url,
-        });
-        return;
-      } catch {
-        // Fallback to copy link
-      }
-    }
-    handleCopyLink();
-  };
-
   const handleWhatsAppShare = () => {
     const url = getShareUrl();
     const shareText = encodeURIComponent(
@@ -66,25 +35,25 @@ export function ReferralCodeCard({ code, bonusCoins = 100 }: ReferralCodeCardPro
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+    <div className="bg-white rounded-xl p-5 border border-slate-200 flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Personal Invite Code
+            Your Invite Code
           </span>
-          <span className="text-[11px] font-bold text-brand-orange bg-brand-orange/10 px-2.5 py-0.5 rounded-full border border-brand-orange/20">
+          <span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
             +{bonusCoins} Coins Per Neighbor
           </span>
         </div>
 
         {/* Code Box */}
-        <div className="my-4 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 shadow-inner">
-          <span className="text-2xl sm:text-3xl font-mono font-bold text-slate-900 tracking-widest select-all">
+        <div className="my-3.5 p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
+          <span className="text-xl sm:text-2xl font-mono font-bold text-slate-900 tracking-wider select-all">
             {code}
           </span>
           <button
             onClick={handleCopyCode}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:border-slate-300 transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white border border-slate-200 text-xs font-medium text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
             title="Copy referral code"
           >
             {codeCopied ? (
@@ -95,45 +64,25 @@ export function ReferralCodeCard({ code, bonusCoins = 100 }: ReferralCodeCardPro
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5 text-slate-500" />
-                <span>Copy Code</span>
+                <span>Copy</span>
               </>
             )}
           </button>
         </div>
 
-        <p className="text-xs text-slate-500 leading-relaxed mb-6">
-          Share with your apartment WhatsApp group or society neighbors. Both of you receive {bonusCoins} bonus coins automatically as soon as their phone is verified.
+        <p className="text-xs text-slate-500 leading-relaxed mb-4">
+          Share with your apartment WhatsApp group or society neighbors. Both of you receive {bonusCoins} bonus coins when they verify their phone.
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2.5">
-        <button
-          type="button"
-          onClick={handleWhatsAppShare}
-          className="flex-1 py-2.5 px-4 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
-        >
-          <Share2 className="w-4 h-4" />
-          <span>Share on WhatsApp</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleCopyLink}
-          className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-        >
-          {linkCopied ? (
-            <>
-              <Check className="w-4 h-4 text-emerald-600" />
-              <span className="text-emerald-700">Link Copied!</span>
-            </>
-          ) : (
-            <>
-              <LinkIcon className="w-4 h-4 text-slate-400" />
-              <span>Copy Link</span>
-            </>
-          )}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={handleWhatsAppShare}
+        className="w-full py-2 px-3.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+      >
+        <Share2 className="w-4 h-4" />
+        <span>Share on WhatsApp</span>
+      </button>
     </div>
   );
 }

@@ -342,7 +342,7 @@ export default function AdminSupportPage() {
               <button
                 onClick={() => handleUpdateTicket()}
                 disabled={isUpdating}
-                className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
               >
                 {isUpdating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>Save Changes</span>

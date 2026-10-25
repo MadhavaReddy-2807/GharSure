@@ -2,20 +2,15 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   ArrowLeft,
   ChevronRight,
   Home,
   MapPin,
-  Bookmark,
   Bell,
   HelpCircle,
   Shield,
-  Settings,
   LogOut,
-  Coins,
-  User,
   ShieldCheck,
   Edit2,
   CheckCircle2,
@@ -23,8 +18,6 @@ import {
   Loader2,
   X,
   Wrench,
-  Droplets,
-  Building2,
   FileText,
   Trash2,
   AlertTriangle,
@@ -153,22 +146,22 @@ export function ProfileClientView({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-6 pb-12 select-none">
+    <div className="w-full max-w-3xl mx-auto space-y-5 pb-10 select-none">
       {/* Top Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => router.back()}
-            className="p-2 -ml-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors"
+            className="p-1.5 -ml-1.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+            <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
           </button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              My Profile & Settings
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              My Profile
             </h1>
-            <p className="text-xs text-slate-500 font-mono">ID: {customerId}</p>
+            <p className="text-[11px] text-slate-400 font-mono">Customer ID: {customerId}</p>
           </div>
         </div>
 
@@ -178,7 +171,7 @@ export function ProfileClientView({
             setEditCity(city);
             setIsEditing(true);
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors cursor-pointer"
         >
           <Edit2 className="w-3.5 h-3.5 text-brand-purple" />
           <span>Edit Profile</span>
@@ -187,7 +180,7 @@ export function ProfileClientView({
 
       {/* Success Alert */}
       {saveSuccess && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center justify-between animate-fade-in shadow-xs">
+        <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{saveSuccess}</span>
@@ -199,26 +192,26 @@ export function ProfileClientView({
       )}
 
       {/* Profile Overview Card */}
-      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-        <div className="flex items-center gap-4">
+      <div className="bg-white rounded-xl p-5 border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3.5">
           {/* Avatar */}
-          <div className="w-16 h-16 rounded-2xl bg-brand-purple text-white flex items-center justify-center font-bold text-xl tracking-tight shadow-sm shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-brand-purple text-white flex items-center justify-center font-bold text-base tracking-tight shrink-0">
             {initials}
           </div>
 
           {/* User Details */}
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-snug">
+              <h2 className="text-base font-bold text-slate-900 leading-snug">
                 {fullName}
               </h2>
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold">
                 <ShieldCheck className="w-3 h-3 text-emerald-600" />
                 <span>Verified</span>
               </span>
             </div>
-            <p className="text-xs font-medium text-slate-500 font-mono mt-0.5">{phone}</p>
-            <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-400 font-mono">{phone}</p>
+            <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
               <MapPin className="w-3 h-3 text-brand-purple" />
               <span>{city}</span>
             </div>
@@ -226,114 +219,99 @@ export function ProfileClientView({
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
           <div className="text-center px-2">
             <div className="text-[10px] font-semibold uppercase text-slate-400">Coins</div>
-            <div className="text-base font-bold font-mono text-brand-orange mt-0.5">
+            <div className="text-sm font-bold font-mono text-amber-700 mt-0.5">
               {coins.toLocaleString()}
             </div>
           </div>
           <div className="text-center px-2 border-x border-slate-200">
             <div className="text-[10px] font-semibold uppercase text-slate-400">Surveys</div>
-            <div className="text-base font-bold font-mono text-slate-900 mt-0.5">
+            <div className="text-sm font-bold font-mono text-slate-900 mt-0.5">
               {surveysCompleted}
             </div>
           </div>
           <div className="text-center px-2">
             <div className="text-[10px] font-semibold uppercase text-slate-400">Referrals</div>
-            <div className="text-base font-bold font-mono text-emerald-700 mt-0.5">
+            <div className="text-sm font-bold font-mono text-emerald-700 mt-0.5">
               {referralsRewarded}
             </div>
           </div>
         </div>
       </div>
 
-      {/* SECTION 1: My Household & Appliances */}
-      <div className="space-y-3">
+      {/* SECTION 1: Household & Appliances */}
+      <div className="space-y-2">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
-          My Household & Telemetry
+          Household & Appliances
         </h3>
 
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs divide-y divide-slate-100 overflow-hidden">
-          {/* Household Details */}
-          <div className="p-4 sm:p-5 flex items-start justify-between">
-            <div className="flex items-start gap-3.5">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 text-brand-purple flex items-center justify-center shrink-0">
-                <Home className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-900 block">Home Profile</span>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Apartment residence · Primary water source: Municipal supply + RO Purifier
-                </p>
-                <div className="flex items-center gap-1.5 mt-2">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                    3 BHK
-                  </span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
-                    Water Hardness: 380 ppm
-                  </span>
-                </div>
+        <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+          <div className="p-4 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <Home className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-semibold text-slate-900 block">Home Residence</span>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Apartment residence · Primary water source: Municipal supply + RO Purifier
+              </p>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                  3 BHK
+                </span>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                  Water Hardness: 380 ppm
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Registered Appliances */}
-          <div className="p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-brand-orange" />
-                <span className="text-xs font-bold text-slate-900">Registered Appliances & Maintenance</span>
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5 text-slate-500" />
+                <span className="text-xs font-semibold text-slate-900">Registered Appliances</span>
               </div>
-              <span className="text-[10px] font-bold text-slate-400">3 Devices Active</span>
+              <span className="text-[10px] text-slate-400 font-medium">3 Devices Active</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                <div className="font-bold text-slate-800">Kent Grand Plus RO</div>
-                <div className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span>Filter OK (~45 days)</span>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                <div className="font-semibold text-slate-800">Kent Grand Plus RO</div>
+                <div className="text-[11px] text-emerald-700 mt-0.5">Filter OK (~45 days)</div>
               </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                <div className="font-bold text-slate-800">IFB Front Load Washer</div>
-                <div className="text-[11px] text-amber-700 mt-1 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  <span>Descaling Due</span>
-                </div>
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                <div className="font-semibold text-slate-800">IFB Front Load Washer</div>
+                <div className="text-[11px] text-amber-700 mt-0.5">Descaling Due</div>
               </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                <div className="font-bold text-slate-800">AO Smith 25L Geyser</div>
-                <div className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span>Anode Rod Verified</span>
-                </div>
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                <div className="font-semibold text-slate-800">AO Smith 25L Geyser</div>
+                <div className="text-[11px] text-emerald-700 mt-0.5">Anode Rod Verified</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* SECTION 2: Account, Preferences & Privacy */}
-      <div className="space-y-3">
+      {/* SECTION 2: Account Preferences */}
+      <div className="space-y-2">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
-          Account & Preferences
+          Preferences
         </h3>
 
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs divide-y divide-slate-100 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
           {/* WhatsApp Notifications Toggle */}
-          <div className="p-4 sm:p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-9 h-9 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
+          <div className="p-3.5 sm:p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
                 <Bell className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-slate-900 block">WhatsApp Notifications</span>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Receive verified trial kit dispatch updates and new survey alerts.
+                <span className="text-xs font-semibold text-slate-900 block">WhatsApp Notifications</span>
+                <p className="text-[11px] text-slate-500">
+                  Dispatch updates and survey invitations.
                 </p>
               </div>
             </div>
@@ -344,20 +322,20 @@ export function ProfileClientView({
                 onChange={(e) => setWhatsappAlerts(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple" />
+              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple" />
             </label>
           </div>
 
           {/* Privacy & Telemetry Consent */}
-          <div className="p-4 sm:p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-9 h-9 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
+          <div className="p-3.5 sm:p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
                 <Shield className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-slate-900 block">Community Telemetry Sharing</span>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Contribute anonymized water test readings to your society benchmark.
+                <span className="text-xs font-semibold text-slate-900 block">Community Telemetry Sharing</span>
+                <p className="text-[11px] text-slate-500">
+                  Contribute anonymized water readings to society benchmarks.
                 </p>
               </div>
             </div>
@@ -368,7 +346,7 @@ export function ProfileClientView({
                 onChange={(e) => setTelemetryConsent(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple" />
+              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple" />
             </label>
           </div>
 
@@ -376,15 +354,15 @@ export function ProfileClientView({
           <button
             type="button"
             onClick={() => setIsSupportModalOpen(true)}
-            className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-slate-50 transition-colors text-left"
+            className="w-full p-3.5 sm:p-4 flex items-center justify-between hover:bg-slate-50 transition-colors text-left cursor-pointer"
           >
-            <div className="flex items-center gap-3.5">
-              <div className="w-9 h-9 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
                 <HelpCircle className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-slate-900 block">Help & Support Desk</span>
-                <p className="text-[11px] text-slate-500 mt-0.5">Contact resident support or read FAQs.</p>
+                <span className="text-xs font-semibold text-slate-900 block">Help & Support Desk</span>
+                <p className="text-[11px] text-slate-500">Contact resident support or read FAQs.</p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -394,15 +372,15 @@ export function ProfileClientView({
           <button
             type="button"
             onClick={() => setIsTermsModalOpen(true)}
-            className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-slate-50 transition-colors text-left"
+            className="w-full p-3.5 sm:p-4 flex items-center justify-between hover:bg-slate-50 transition-colors text-left cursor-pointer"
           >
-            <div className="flex items-center gap-3.5">
-              <div className="w-9 h-9 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
                 <FileText className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-slate-900 block">Terms of Service & Privacy Policy</span>
-                <p className="text-[11px] text-slate-500 mt-0.5">Read data protection and coin redemption rules.</p>
+                <span className="text-xs font-semibold text-slate-900 block">Terms of Service & Privacy</span>
+                <p className="text-[11px] text-slate-500">Data protection and coin rules.</p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -410,12 +388,12 @@ export function ProfileClientView({
         </div>
       </div>
 
-      {/* SECTION 3: Account Actions & Danger Zone */}
-      <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* SECTION 3: Account Actions */}
+      <div className="pt-1 flex flex-col sm:flex-row items-center justify-between gap-2.5">
         <button
           type="button"
           onClick={() => setIsSignOutModalOpen(true)}
-          className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors flex items-center justify-center gap-2 shadow-xs"
+          className="w-full sm:w-auto px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5 text-slate-400" />
           <span>Sign Out</span>
@@ -424,40 +402,37 @@ export function ProfileClientView({
         <button
           type="button"
           onClick={() => setIsDeleteModalOpen(true)}
-          className="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-red-600 hover:text-red-700 hover:underline flex items-center justify-center gap-1.5 transition-colors"
+          className="w-full sm:w-auto px-3 py-1.5 text-xs text-red-600 hover:text-red-700 hover:underline flex items-center justify-center gap-1 transition-colors cursor-pointer"
         >
           <Trash2 className="w-3.5 h-3.5" />
-          <span>Request Account Deletion</span>
+          <span>Delete Account</span>
         </button>
       </div>
 
       {/* EDIT PROFILE MODAL */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 border border-slate-200 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div className="flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-brand-purple" />
-                <h3 className="text-sm font-bold text-slate-900">Edit Resident Profile</h3>
-              </div>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-5 border border-slate-200 animate-fade-in">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-3">
+              <h3 className="text-xs font-bold text-slate-900 uppercase">Edit Profile</h3>
               <button
                 onClick={() => setIsEditing(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {editError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
+              <div className="mb-3 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-1.5">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{editError}</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveProfile} className="space-y-4">
+            <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block font-medium text-slate-700 mb-1">
                   Full Name
                 </label>
                 <input
@@ -465,19 +440,19 @@ export function ProfileClientView({
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   required
-                  className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white font-medium text-slate-900 focus:outline-none focus:border-brand-purple"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block font-medium text-slate-700 mb-1">
                   City / Locality
                 </label>
                 <input
                   type="text"
                   value={editCity}
                   onChange={(e) => setEditCity(e.target.value)}
-                  className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white font-medium text-slate-900 focus:outline-none focus:border-brand-purple"
                 />
               </div>
 
@@ -485,17 +460,17 @@ export function ProfileClientView({
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="px-3.5 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                  <span>Save Changes</span>
+                  <span>Save</span>
                 </button>
               </div>
             </form>
@@ -505,21 +480,17 @@ export function ProfileClientView({
 
       {/* SIGN OUT CONFIRMATION MODAL */}
       {isSignOutModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 border border-slate-200 animate-fade-in text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mx-auto mb-3">
-              <LogOut className="w-6 h-6 stroke-[2]" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900">Sign out of GharSure?</h3>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              You will need to verify your WhatsApp number to sign back in.
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-5 border border-slate-200 animate-fade-in text-center">
+            <h3 className="text-sm font-bold text-slate-900 mb-1">Sign out of GharSure?</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              You can sign back in anytime with your WhatsApp verified number.
             </p>
-
-            <div className="mt-5 grid grid-cols-2 gap-2">
+            <div className="flex items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={() => setIsSignOutModalOpen(false)}
-                className="py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                className="px-4 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
                 Cancel
               </button>
@@ -527,116 +498,95 @@ export function ProfileClientView({
                 type="button"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-xs font-semibold hover:bg-brand-purple/90 cursor-pointer"
               >
-                {isLoggingOut ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>Sign Out</span>}
+                {isLoggingOut ? "Signing out..." : "Sign Out"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ACCOUNT DELETION MODAL */}
+      {/* DELETE ACCOUNT CONFIRMATION MODAL */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 border border-slate-200 animate-fade-in">
-            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-3">
-              <AlertTriangle className="w-6 h-6 stroke-[2]" />
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-5 border border-slate-200 animate-fade-in text-center">
+            <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-2">
+              <AlertTriangle className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-slate-900">Request Account Deletion</h3>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              This action will deactivate your profile, revoke active sessions, and schedule your data for permanent deletion in compliance with data privacy regulations. Unredeemed coin balances will be forfeited.
+            <h3 className="text-sm font-bold text-slate-900 mb-1">Delete Account?</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Your profile, coin wallet, and household records will be permanently removed.
             </p>
-
-            <div className="mt-6 flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                className="px-4 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
-                Keep Account
+                Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-4 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 cursor-pointer"
               >
-                {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                <span>Confirm Deletion</span>
+                {isDeleting ? "Deleting..." : "Delete Permanently"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* HELP & SUPPORT MODAL */}
+      {/* SUPPORT MODAL */}
       {isSupportModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 border border-slate-200 animate-fade-in text-xs space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-brand-purple" />
-                <h3 className="font-bold text-sm text-slate-900">Resident Support & FAQ</h3>
-              </div>
-              <button onClick={() => setIsSupportModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-5 border border-slate-200 animate-fade-in">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-3">
+              <h3 className="text-xs font-bold text-slate-900 uppercase">Support Desk</h3>
+              <button onClick={() => setIsSupportModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="space-y-2 text-slate-600 leading-relaxed">
-              <p>
-                <strong>How do reward coins work?</strong> You earn coins by completing localized surveys and diagnostics. Coins can be redeemed for ₹0 trial kits and appliance spares.
-              </p>
-              <p>
-                <strong>Need WhatsApp Support?</strong> Our community engineering desk is available 9 AM - 6 PM IST on WhatsApp for water purifier testing and telemetry assistance.
-              </p>
+            <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+              For assistance with water readings, survey rewards, or appliance trials, reach out to our team:
+            </p>
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1 mb-4">
+              <div className="font-semibold text-slate-900">Email: support@gharsure.com</div>
+              <div className="text-slate-500">Response time: Within 24 hours</div>
             </div>
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsSupportModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold shadow-xs"
-              >
-                Close
-              </button>
-            </div>
+            <button
+              onClick={() => setIsSupportModalOpen(false)}
+              className="w-full py-1.5 rounded-lg bg-slate-100 text-xs font-medium text-slate-700 hover:bg-slate-200 cursor-pointer"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
 
-      {/* TERMS & PRIVACY MODAL */}
+      {/* TERMS MODAL */}
       {isTermsModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-6 border border-slate-200 animate-fade-in text-xs space-y-3 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-slate-700" />
-                <h3 className="font-bold text-sm text-slate-900">Terms & Privacy Principles</h3>
-              </div>
-              <button onClick={() => setIsTermsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-5 border border-slate-200 animate-fade-in max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-3">
+              <h3 className="text-xs font-bold text-slate-900 uppercase">Terms & Privacy</h3>
+              <button onClick={() => setIsTermsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="space-y-2 text-slate-600 leading-relaxed">
-              <p>
-                <strong>1. Data Confidentiality:</strong> GharSure operates strictly on a privacy-first model. Individual survey responses and contact numbers are never sold or shared with commercial marketing agencies.
-              </p>
-              <p>
-                <strong>2. Community Telemetry:</strong> Water hardness (TDS) readings are aggregated at the building/pincode level to produce accurate community water reports.
-              </p>
-              <p>
-                <strong>3. Coin Ledger:</strong> Reward coins possess no monetary fiat value and are redeemable solely within the GharSure platform for verified trial kits and products.
-              </p>
+            <div className="text-xs text-slate-600 space-y-2.5 leading-relaxed mb-4">
+              <p><strong>1. Privacy:</strong> Contact numbers and survey responses are never sold to external marketing agencies.</p>
+              <p><strong>2. Telemetry:</strong> Water hardness readings are aggregated anonymously to compute society-level insights.</p>
+              <p><strong>3. Coin Ledger:</strong> Reward coins possess no cash fiat value and are redeemable solely for platform trial kits.</p>
             </div>
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsTermsModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold shadow-xs"
-              >
-                Understood
-              </button>
-            </div>
+            <button
+              onClick={() => setIsTermsModalOpen(false)}
+              className="w-full py-1.5 rounded-lg bg-slate-100 text-xs font-medium text-slate-700 hover:bg-slate-200 cursor-pointer"
+            >
+              Understood
+            </button>
           </div>
         </div>
       )}

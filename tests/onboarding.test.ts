@@ -7,7 +7,8 @@ describe("Onboarding Profile Completion", () => {
   });
 
   it("updates customer profile and sets onboarding_completed to true", async () => {
-    const customer = await getOrCreateCustomer("+919876543210");
+    const testPhone = `+9198${Date.now().toString().slice(-8)}`;
+    const customer = await getOrCreateCustomer(testPhone);
     expect(customer.onboarding_completed).toBe(false);
     expect(customer.full_name).toBeNull();
 
@@ -25,7 +26,8 @@ describe("Onboarding Profile Completion", () => {
   });
 
   it("allows retrieving the updated profile by customer id", async () => {
-    const customer = await getOrCreateCustomer("+919876543210");
+    const testPhone = `+9197${Date.now().toString().slice(-8)}`;
+    const customer = await getOrCreateCustomer(testPhone);
     await updateCustomerProfile(customer.id, {
       fullName: "Priya Sharma",
       city: "Mumbai",

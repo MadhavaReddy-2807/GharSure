@@ -178,7 +178,7 @@ function VerifyOtpContent() {
   const isComplete = otpDigits.every((d) => d.length === 1);
 
   return (
-    <div className="min-h-screen bg-[#FBFBFD] flex flex-col justify-between p-4 sm:p-6 select-none">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-between p-4 sm:p-6 select-none">
       {/* Top Header / Brand */}
       <div className="max-w-sm mx-auto w-full pt-4 sm:pt-8">
         <div className="flex items-center justify-between mb-8">
@@ -195,7 +195,7 @@ function VerifyOtpContent() {
         </div>
 
         {/* Card Form */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-7">
+        <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-7 shadow-xs">
           <div className="mb-6">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Enter verification code

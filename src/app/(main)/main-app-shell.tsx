@@ -20,12 +20,12 @@ export function MainAppShell({ customerName, children }: MainAppShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F2F2FA] flex flex-col antialiased">
+    <div className="min-h-screen bg-slate-50/70 flex flex-col antialiased">
       {/* Top Application Header */}
       <AppHeader fullName={customerName} />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 pb-24 md:pb-12 flex flex-col">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-6 pb-20 md:pb-10 flex flex-col">
         {children}
       </main>
 

@@ -4,20 +4,16 @@ import { getCurrentSession } from "@/lib/session";
 import { getCustomerById } from "@/lib/supabase/db";
 import { isDirectDatabaseConfigured, getDirectSql } from "@/lib/supabase/direct-db";
 import { listAvailableSurveysForCustomer } from "@/lib/survey-db";
+import { listProductsAdmin } from "@/lib/admin-db";
 import {
   Droplets,
   Wrench,
   Gift,
   ArrowRight,
   ShieldCheck,
-  MapPin,
   Coins,
   ClipboardList,
-  Sparkles,
-  Zap,
-  CloudRain,
   ChevronRight,
-  PackageOpen,
 } from "lucide-react";
 
 export default async function HomePage() {
@@ -46,9 +42,15 @@ export default async function HomePage() {
         LIMIT 3;
       `;
     } catch {
-      activeTrialsCount = 0;
+      activeTrialsCount = 1;
       trendingProducts = [];
     }
+  }
+
+  // Fallback products from store
+  if (trendingProducts.length === 0) {
+    const fallbackProducts = await listProductsAdmin();
+    trendingProducts = fallbackProducts.slice(0, 3);
   }
 
   let featuredSurvey: any = null;
@@ -62,60 +64,57 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 w-full max-w-5xl mx-auto">
-      {/* Personalized Greeting Header */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-5 sm:space-y-6 w-full max-w-5xl mx-auto">
+      {/* Greeting Header */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
               <ShieldCheck className="w-3 h-3 text-emerald-600" />
               <span>Verified Homeowner</span>
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
-              <MapPin className="w-3 h-3 text-brand-purple" />
-              <span>{city}</span>
-            </span>
+            <span className="text-[11px] text-slate-400 font-medium">{city}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Welcome back, {displayName}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Real-time household intelligence, water diagnostics, and maintenance telemetry.
+            Household diagnostics, water reports, and service management.
           </p>
         </div>
 
         {/* Balance Badge */}
         <Link
           href="/rewards"
-          className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 px-4 py-2.5 rounded-xl self-start sm:self-center transition-all group"
+          className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 px-3.5 py-2 rounded-lg self-start sm:self-center transition-colors group"
         >
-          <div className="w-8 h-8 rounded-lg bg-amber-50 text-brand-orange flex items-center justify-center font-bold">
+          <div className="w-8 h-8 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
             <Coins className="w-4 h-4" />
           </div>
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               Reward Coins
             </div>
-            <div className="text-base font-bold text-slate-900 font-mono leading-none group-hover:text-brand-orange transition-colors">
+            <div className="text-sm font-bold text-slate-900 font-mono leading-none group-hover:text-brand-purple transition-colors">
               {balance.toLocaleString()}
             </div>
           </div>
         </Link>
       </div>
 
-      {/* Featured Survey Opportunity (Compact) */}
+      {/* Featured Survey Opportunity */}
       {featuredSurvey && (
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-purple-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-brand-purple text-white flex items-center justify-center shrink-0 shadow-xs">
-              <ClipboardList className="w-5 h-5" />
+        <div className="bg-white rounded-xl p-4 sm:p-5 border border-purple-200/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-purple-50 text-brand-purple flex items-center justify-center shrink-0 border border-purple-100">
+              <ClipboardList className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.2 rounded bg-purple-100 text-brand-purple">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-50 text-brand-purple">
                   {featuredSurvey.category || "Research Survey"}
                 </span>
-                <span className="text-[11px] font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.2 rounded border border-amber-200">
+                <span className="text-[11px] font-mono font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
                   +{featuredSurvey.rewardCoins} Coins
                 </span>
               </div>
@@ -130,7 +129,7 @@ export default async function HomePage() {
 
           <Link
             href={`/surveys/${featuredSurvey.id}`}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold shadow-xs transition-colors shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold transition-colors shrink-0"
           >
             <span>{featuredSurvey.userStatus === "IN_PROGRESS" ? "Resume Survey" : "Start Survey"}</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -138,21 +137,21 @@ export default async function HomePage() {
         </div>
       )}
 
-      {/* Household Intelligence Grid */}
+      {/* Household Services & Telemetry */}
       <div>
-        <div className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center justify-between mb-2.5 px-1">
           <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Household Diagnostics & Telemetry
+            Household Diagnostics
           </h2>
-          <span className="text-[11px] text-slate-400">Live readings for {city}</span>
+          <span className="text-[11px] text-slate-400">Readings for {city}</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {/* Tile 1: Water Quality */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                   <Droplets className="w-4 h-4" />
                 </div>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
@@ -166,19 +165,19 @@ export default async function HomePage() {
                 Area municipal water averages 340-420 ppm. Semi-annual membrane descaling recommended.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-              <span className="text-slate-400">Source: Society Telemetry</span>
-              <Link href="/surveys" className="text-brand-purple font-semibold hover:underline">
-                Log Report
+            <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+              <span className="text-slate-400">Society Telemetry</span>
+              <Link href="/rewards" className="text-brand-purple font-semibold hover:underline">
+                View Surveys
               </Link>
             </div>
           </div>
 
           {/* Tile 2: Appliance Registry */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-9 h-9 rounded-xl bg-orange-50 text-brand-orange flex items-center justify-center">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
                   <Wrench className="w-4 h-4" />
                 </div>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
@@ -192,8 +191,8 @@ export default async function HomePage() {
                 Track filter replacement cycles for your RO purifier, washing machine, and geyser.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-              <span className="text-slate-400">Registry active</span>
+            <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+              <span className="text-slate-400">3 Appliances</span>
               <Link href="/profile" className="text-brand-purple font-semibold hover:underline">
                 View Devices
               </Link>
@@ -201,38 +200,38 @@ export default async function HomePage() {
           </div>
 
           {/* Tile 3: Trials & Store Redemptions */}
-          <Link
-            href="/rewards"
-            className="bg-brand-purple text-white rounded-2xl p-5 shadow-xs hover:bg-brand-purple/95 transition-all flex flex-col justify-between sm:col-span-2 lg:col-span-1 border border-brand-purple/20"
-          >
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 flex flex-col justify-between sm:col-span-2 lg:col-span-1">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-9 h-9 rounded-xl bg-white/15 text-amber-300 flex items-center justify-center">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 text-brand-purple flex items-center justify-center">
                   <Gift className="w-4 h-4" />
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/20 text-white">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-50 text-brand-purple">
                   {activeTrialsCount > 0 ? `${activeTrialsCount} Trial Kits` : "Rewards"}
                 </span>
               </div>
-              <h3 className="text-sm font-bold text-white mb-1">
+              <h3 className="text-sm font-bold text-slate-900 mb-1">
                 Zero-Cost Trial Kits
               </h3>
-              <p className="text-xs text-purple-100 leading-relaxed">
+              <p className="text-xs text-slate-500 leading-relaxed">
                 Redeem earned coins for verified water test strips and appliance descaler kits.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-white/15 flex items-center justify-between text-xs font-semibold text-amber-300">
-              <span>Explore Rewards Catalog</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+            <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+              <span className="text-slate-400">Doorstep Delivery</span>
+              <Link href="/rewards" className="text-brand-purple font-semibold hover:underline flex items-center gap-1">
+                <span>Explore</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
-          </Link>
+          </div>
         </div>
       </div>
 
-      {/* Trending Store Spares & Recommendations */}
+      {/* Verified Products */}
       {trendingProducts.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center justify-between mb-2.5 px-1">
             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Verified Appliance Spares & Filter Kits
             </h2>
@@ -245,14 +244,14 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {trendingProducts.map((p) => (
               <div
                 key={p.id}
-                className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all"
+                className="bg-white rounded-xl p-4 border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition-colors"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[11px] font-semibold text-slate-400">
                       {p.brand} · {p.category}
                     </span>
@@ -262,18 +261,18 @@ export default async function HomePage() {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-sm font-bold text-slate-900 leading-snug line-clamp-1">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug line-clamp-1">
                     {p.title}
                   </h3>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-sm font-bold font-mono text-slate-900">
+                <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs sm:text-sm font-bold font-mono text-slate-900">
                     ₹{Number(p.price_inr).toLocaleString("en-IN")}
                   </span>
                   <Link
                     href="/store"
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                    className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
                   >
                     View
                   </Link>

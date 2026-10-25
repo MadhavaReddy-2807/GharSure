@@ -6,6 +6,20 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  return handleSave(req, params);
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return handleSave(req, params);
+}
+
+async function handleSave(
+  req: NextRequest,
+  params: Promise<{ id: string }>
+) {
   try {
     const session = await verifyRequestSession(req);
     if (!session) {

@@ -50,14 +50,14 @@ function AdminLoginForm() {
   };
 
   return (
-    <div className="w-full max-w-sm bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 sm:p-8">
+    <div className="w-full max-w-sm bg-white border border-slate-200 rounded-xl shadow-xs p-6 sm:p-8">
       {/* Brand Header */}
       <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-orange-50 text-brand-orange border border-orange-100 mb-3 shadow-xs">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-purple-50 text-brand-purple border border-purple-100 mb-3 shadow-xs">
           <ShieldCheck className="w-6 h-6" />
         </div>
         <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-          Ghar<span className="text-brand-orange">Sure</span> Admin Portal
+          Ghar<span className="text-brand-purple">Sure</span> Admin Portal
         </h1>
         <p className="text-xs text-slate-500 mt-1">
           Authorized personnel access only
@@ -87,7 +87,7 @@ function AdminLoginForm() {
               placeholder="admin@gharsure.com"
               required
               disabled={isLoading}
-              className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange transition-all placeholder:text-slate-400"
+              className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple transition-all placeholder:text-slate-400"
             />
           </div>
         </div>
@@ -107,7 +107,7 @@ function AdminLoginForm() {
               placeholder="••••••••••••"
               required
               disabled={isLoading}
-              className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange transition-all placeholder:text-slate-400"
+              className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple transition-all placeholder:text-slate-400"
             />
           </div>
         </div>
@@ -115,7 +115,7 @@ function AdminLoginForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full h-10 mt-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
+          className="w-full h-10 mt-2 bg-brand-purple hover:bg-brand-purple/90 active:bg-brand-purple-600 text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
         >
           {isLoading ? (
             <>

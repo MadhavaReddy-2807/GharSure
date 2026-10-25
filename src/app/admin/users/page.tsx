@@ -584,12 +584,12 @@ export default function AdminUsersPage() {
                       onChange={(e) => setDetailNotes(e.target.value)}
                       rows={3}
                       placeholder="Add verified customer notes, escalations, or special instructions..."
-                      className="w-full p-2.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange"
+                      className="w-full p-2.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple"
                     />
                     <button
                       onClick={handleSaveNotes}
                       disabled={isSavingNotes}
-                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-lg inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                      className="px-3 py-1.5 bg-brand-purple hover:bg-brand-purple/90 text-white font-medium text-xs rounded-lg inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
                     >
                       {isSavingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
                       <span>Save Notes</span>

@@ -138,7 +138,7 @@ export default function AdminSettingsPage() {
             <button
               onClick={() => handleSaveSetting("reward_rules", rewardRules)}
               disabled={savingKey === "reward_rules"}
-              className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
             >
               {savingKey === "reward_rules" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
               <span>Save Rules</span>
@@ -192,7 +192,7 @@ export default function AdminSettingsPage() {
             <button
               onClick={() => handleSaveSetting("survey_defaults", surveyDefaults)}
               disabled={savingKey === "survey_defaults"}
-              className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
             >
               {savingKey === "survey_defaults" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
               <span>Save Defaults</span>
@@ -249,7 +249,7 @@ export default function AdminSettingsPage() {
             <button
               onClick={() => handleSaveSetting("feature_flags", featureFlags)}
               disabled={savingKey === "feature_flags"}
-              className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
             >
               {savingKey === "feature_flags" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
               <span>Save Flags</span>
@@ -320,7 +320,7 @@ export default function AdminSettingsPage() {
             <button
               onClick={() => handleSaveSetting("content_moderation", moderationPolicies)}
               disabled={savingKey === "content_moderation"}
-              className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
             >
               {savingKey === "content_moderation" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
               <span>Save Policies</span>

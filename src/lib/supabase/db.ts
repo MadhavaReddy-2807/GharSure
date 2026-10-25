@@ -66,7 +66,15 @@ class InMemoryStore {
   }
 
   public getCustomerById(id: string): CustomerRecord | null {
-    return this.customersById.get(id) || null;
+    if (!id) return null;
+    return (
+      this.customersById.get(id) ||
+      this.customers.get(id) ||
+      Array.from(this.customersById.values()).find(
+        (c) => c.customer_id === id || c.id === id || c.phone_e164 === id
+      ) ||
+      null
+    );
   }
 
   public getCustomerByReferralCode(code: string): CustomerRecord | null {
@@ -679,17 +687,18 @@ export async function getOrCreateCustomer(phoneE164: string): Promise<CustomerRe
 }
 
 export async function getCustomerById(id: string): Promise<CustomerRecord | null> {
+  if (!id) return null;
+
   // 1. Direct PostgreSQL connection via connection string
   if (isDirectDatabaseConfigured()) {
     try {
       const sql = getDirectSql();
       const rows = await sql<CustomerRecord[]>`
-        SELECT * FROM customers WHERE id = ${id}
+        SELECT * FROM customers WHERE id = ${id} OR customer_id = ${id}
       `;
       if (rows && rows.length > 0) {
         return rows[0];
       }
-      return null;
     } catch (err) {
       console.warn("[Direct DB] Fallback during getCustomerById:", (err as Error).message);
     }
@@ -714,6 +723,43 @@ export async function getCustomerById(id: string): Promise<CustomerRecord | null
   }
 
   return inMemoryDb.getCustomerById(id);
+}
+
+export async function getCustomerByPhone(phone: string): Promise<CustomerRecord | null> {
+  if (!phone) return null;
+
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const rows = await sql<CustomerRecord[]>`
+        SELECT * FROM customers WHERE phone_e164 = ${phone}
+      `;
+      if (rows && rows.length > 0) {
+        return rows[0];
+      }
+    } catch (err) {
+      console.warn("[Direct DB] Fallback during getCustomerByPhone:", (err as Error).message);
+    }
+  }
+
+  if (isLiveSupabaseAvailable()) {
+    try {
+      const supabase = getSupabaseServerClient();
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("phone_e164", phone)
+        .single();
+
+      if (!error && data) {
+        return data as unknown as CustomerRecord;
+      }
+    } catch (err) {
+      console.warn("[Supabase] Fallback during getCustomerByPhone:", (err as Error).message);
+    }
+  }
+
+  return inMemoryDb.getCustomerById(phone);
 }
 
 export async function updateCustomerProfile(

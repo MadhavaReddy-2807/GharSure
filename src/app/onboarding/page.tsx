@@ -276,7 +276,7 @@ function OnboardingContent() {
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="w-5 h-5 animate-spin text-brand-purple" />
       </div>
     );
@@ -285,7 +285,7 @@ function OnboardingContent() {
   const POPULAR_CITIES = ["Bangalore", "Mumbai", "Delhi NCR", "Pune", "Hyderabad"];
 
   return (
-    <div className="min-h-screen bg-[#FBFBFD] flex flex-col justify-between p-4 sm:p-6 select-none">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-between p-4 sm:p-6 select-none">
       <div className="max-w-sm mx-auto w-full pt-4 sm:pt-8">
         <div className="flex items-center justify-between mb-8">
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
@@ -294,7 +294,7 @@ function OnboardingContent() {
           <span className="text-xs text-slate-400 font-medium">Profile Setup</span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-7">
+        <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-7 shadow-xs">
           <div className="mb-6">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Personalize your home
@@ -488,7 +488,7 @@ export default function OnboardingPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center">
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
           <Loader2 className="w-5 h-5 animate-spin text-brand-purple" />
         </div>
       }

@@ -241,7 +241,7 @@ export default function AdminCommunicationsPage() {
                         <button
                           onClick={() => handleSendCampaign(c.id, c.title)}
                           disabled={isSending}
-                          className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-white font-medium text-[11px] inline-flex items-center gap-1 transition-colors disabled:opacity-50"
+                          className="px-2.5 py-1 rounded bg-brand-purple hover:bg-brand-purple/90 text-white font-medium text-[11px] inline-flex items-center gap-1 transition-colors disabled:opacity-50"
                         >
                           <Send className="w-3 h-3" />
                           <span>Send Broadcast</span>
@@ -349,7 +349,7 @@ export default function AdminCommunicationsPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Save Campaign</span>

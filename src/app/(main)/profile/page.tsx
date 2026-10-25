@@ -8,13 +8,17 @@ export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
   const session = await getCurrentSession();
-  const customer = session ? await getCustomerById(session.customerId) : null;
+  let customer = session ? await getCustomerById(session.customerId) : null;
+  if (!customer && session?.phone) {
+    const { getCustomerByPhone } = await import("@/lib/supabase/db");
+    customer = await getCustomerByPhone(session.phone);
+  }
 
   const fullName = customer?.full_name || customer?.display_name || "Resident";
   const phone = customer?.phone_e164 || session?.phone || "";
   const city = customer?.city || "Location not set";
   const coins = customer?.reward_coins ?? 0;
-  const customerId = customer?.customer_id || "GH000000";
+  const customerId = customer?.customer_id || session?.readableId || "GH000001";
 
   let surveysCompleted = 0;
   let referralsRewarded = 0;

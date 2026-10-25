@@ -1,5 +1,6 @@
 import React from "react";
 import { isDirectDatabaseConfigured, getDirectSql } from "@/lib/supabase/direct-db";
+import { listProductsAdmin } from "@/lib/admin-db";
 import { StoreClientView } from "./store-client";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +17,13 @@ export default async function StorePage() {
         ORDER BY score DESC NULLS LAST, created_at DESC;
       `;
     } catch (err) {
-      console.warn("[Store] Could not load products from DB:", err);
+      console.warn("[Store] Could not load products from DB, using fallback:", err);
       products = [];
     }
+  }
+
+  if (products.length === 0) {
+    products = await listProductsAdmin();
   }
 
   return <StoreClientView initialProducts={products} />;

@@ -642,7 +642,7 @@ export async function getCustomerReferralStats(customerId: string) {
     attributions.push({
       id: a.id,
       refereeName: ref?.full_name || ref?.customer_id || "Neighbor",
-      refereeCustomerId: ref?.customer_id || "GH000000",
+      refereeCustomerId: ref?.customer_id || a.referee_id || "GH000001",
       status: a.status,
       rewardCoins: a.referrer_reward_coins || 100,
       createdAt: a.created_at,
