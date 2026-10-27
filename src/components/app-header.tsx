@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "./logo";
-import { Home, Award, Users, ShoppingBag, LogOut } from "lucide-react";
+import { Home, Award, Users, ShoppingBag, LogOut, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
@@ -78,6 +78,14 @@ export function AppHeader({ fullName }: AppHeaderProps) {
 
           {/* Right Action: User Avatar (links to Profile) & Logout */}
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href="/profile"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-brand-purple text-xs font-bold border border-purple-200 transition-colors shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Ask / Post</span>
+            </Link>
+
             <Link
               href="/profile"
               className={cn(

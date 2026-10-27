@@ -12,7 +12,10 @@ export interface CustomerRecord {
   phone_verified_at?: string | null;
   full_name?: string | null;
   display_name?: string | null;
+  email?: string | null;
+  address?: string | null;
   city?: string | null;
+  pincode?: string | null;
   onboarding_completed: boolean;
   reward_coins?: number;
   referral_code?: string | null;
@@ -139,7 +142,14 @@ class InMemoryStore {
 
   public updateCustomerProfile(
     id: string,
-    updates: { full_name: string; city?: string | null; display_name?: string | null }
+    updates: {
+      full_name: string;
+      city?: string | null;
+      display_name?: string | null;
+      email?: string | null;
+      address?: string | null;
+      pincode?: string | null;
+    }
   ): CustomerRecord | null {
     const customer = this.customersById.get(id);
     if (!customer) return null;
@@ -149,6 +159,9 @@ class InMemoryStore {
       full_name: updates.full_name,
       city: updates.city || null,
       display_name: updates.display_name || null,
+      email: updates.email !== undefined ? updates.email : customer.email,
+      address: updates.address !== undefined ? updates.address : customer.address,
+      pincode: updates.pincode !== undefined ? updates.pincode : customer.pincode,
       onboarding_completed: true,
       updated_at: new Date().toISOString(),
     };
@@ -768,6 +781,9 @@ export async function updateCustomerProfile(
     fullName: string;
     city?: string | null;
     displayName?: string | null;
+    email?: string | null;
+    address?: string | null;
+    pincode?: string | null;
   }
 ): Promise<CustomerRecord> {
   const now = new Date().toISOString();
@@ -781,9 +797,12 @@ export async function updateCustomerProfile(
         SET full_name = ${profile.fullName.trim()},
             city = ${profile.city?.trim() || null},
             display_name = ${profile.displayName?.trim() || null},
+            email = ${profile.email !== undefined ? profile.email?.trim() || null : null},
+            address = ${profile.address !== undefined ? profile.address?.trim() || null : null},
+            pincode = ${profile.pincode !== undefined ? profile.pincode?.trim() || null : null},
             onboarding_completed = true,
             updated_at = NOW()
-        WHERE id = ${id}
+        WHERE id::text = ${id} OR customer_id = ${id}
         RETURNING *
       `;
       if (rows && rows.length > 0) {
@@ -804,9 +823,12 @@ export async function updateCustomerProfile(
           full_name: profile.fullName.trim(),
           city: profile.city?.trim() || null,
           display_name: profile.displayName?.trim() || null,
+          email: profile.email !== undefined ? profile.email?.trim() || null : null,
+          address: profile.address !== undefined ? profile.address?.trim() || null : null,
+          pincode: profile.pincode !== undefined ? profile.pincode?.trim() || null : null,
           onboarding_completed: true,
           updated_at: now,
-        })
+        } as any)
         .eq("id", id)
         .select()
         .single();
@@ -824,6 +846,9 @@ export async function updateCustomerProfile(
     full_name: profile.fullName.trim(),
     city: profile.city?.trim() || null,
     display_name: profile.displayName?.trim() || null,
+    email: profile.email?.trim() || null,
+    address: profile.address?.trim() || null,
+    pincode: profile.pincode?.trim() || null,
   });
 
   if (!updated) {

@@ -181,6 +181,10 @@ export class AdminMemoryStore {
         summary: "7-stage purification with copper-alkaline enrichment and smart TDS retention.",
         specifications: { capacity: "10L", technology: "RO+UV+UF+Alkaline", power: "60W" },
         price_inr: 14999,
+        coin_price: 0,
+        product_type: "GENERAL_PRODUCT",
+        inventory_stock: 45,
+        is_featured: false,
         score: 9.4,
         status: "PUBLISHED",
         created_at: "2026-10-01T00:00:00.000Z",
@@ -191,10 +195,14 @@ export class AdminMemoryStore {
         title: "GharSure Smart Water Hardness (TDS) Tester",
         category: "Testing Kits",
         brand: "GharSure Lab",
-        summary: "Titanium-alloy probe digital meter with instant backlit LCD reading.",
+        summary: "Titanium-alloy probe digital meter with instant backlit LCD reading calibrated for Indian tap & borewell water.",
         specifications: { range: "0-9990 ppm", accuracy: "±2%", battery: "CR2032" },
         price_inr: 699,
-        score: 9.1,
+        coin_price: 0,
+        product_type: "GHARSURE_PRODUCT",
+        inventory_stock: 120,
+        is_featured: true,
+        score: 9.5,
         status: "PUBLISHED",
         created_at: "2026-10-05T00:00:00.000Z",
         updated_at: "2026-10-22T00:00:00.000Z",
@@ -204,13 +212,102 @@ export class AdminMemoryStore {
         title: "Sediment & Carbon Pre-Filter Replacement Kit",
         category: "Spares",
         brand: "FilterMax",
-        summary: "5-micron spun polypropylene sediment filter + active carbon block.",
+        summary: "5-micron spun polypropylene sediment filter + active carbon block compatible with leading RO systems.",
         specifications: { lifespan: "6 months", poreSize: "5 micron" },
         price_inr: 1299,
+        coin_price: 0,
+        product_type: "GENERAL_PRODUCT",
+        inventory_stock: 80,
+        is_featured: false,
         score: 8.8,
         status: "PUBLISHED",
         created_at: "2026-10-10T00:00:00.000Z",
         updated_at: "2026-10-23T00:00:00.000Z",
+      },
+      {
+        id: "prod-4",
+        title: "GharSure Water Intelligence & Purifier Monitor",
+        category: "IoT Monitors",
+        brand: "GharSure Lab",
+        summary: "Real-time inline TDS and flow rate telemetry monitor with Bluetooth & Wi-Fi sync for preventive filter maintenance.",
+        specifications: { connectivity: "Wi-Fi + BLE", sensor: "Dual Titanium Electrodes", battery: "1 Year Rechargeable" },
+        price_inr: 1499,
+        coin_price: 0,
+        product_type: "GHARSURE_PRODUCT",
+        inventory_stock: 50,
+        is_featured: true,
+        score: 9.6,
+        status: "PUBLISHED",
+        created_at: "2026-10-12T00:00:00.000Z",
+        updated_at: "2026-10-24T00:00:00.000Z",
+      },
+      {
+        id: "prod-5",
+        title: "Water Hardness (TDS) Rapid Test Strip Kit",
+        category: "Trial Kits",
+        brand: "GharSure Lab",
+        summary: "5 calibrated litmus test strips for instant tap water hardness and chlorine detection delivered to your doorstep.",
+        specifications: { strips: "5 Tests", parameters: "TDS, Hardness, Free Chlorine, pH", shelfLife: "24 months" },
+        price_inr: 0,
+        coin_price: 0,
+        product_type: "TRIAL",
+        inventory_stock: 200,
+        is_featured: true,
+        score: 9.4,
+        status: "PUBLISHED",
+        created_at: "2026-10-15T00:00:00.000Z",
+        updated_at: "2026-10-25T00:00:00.000Z",
+      },
+      {
+        id: "prod-6",
+        title: "Eco Descaler Pouch for Geysers & Washers",
+        category: "Trial Kits",
+        brand: "CleanFlow",
+        summary: "Organic food-grade citric acid descaler pouch for scale removal in hard water regions.",
+        specifications: { weight: "200g", activeIngredient: "Food Grade Citric Acid", applications: "Washing machines, geysers, kettles" },
+        price_inr: 199,
+        coin_price: 50,
+        product_type: "TRIAL",
+        inventory_stock: 150,
+        is_featured: false,
+        score: 9.1,
+        status: "PUBLISHED",
+        created_at: "2026-10-18T00:00:00.000Z",
+        updated_at: "2026-10-25T00:00:00.000Z",
+      },
+      {
+        id: "prod-7",
+        title: "Mineral Boost Alkaline Inline Cartridge Sample",
+        category: "Trial Kits",
+        brand: "MineralPure",
+        summary: "Sample enrichment cartridge adding essential magnesium, calcium, and alkaline pH balance.",
+        specifications: { pHBoost: "+1.5 to +2.0", minerals: "Ca, Mg, K", flowRate: "2 LPM" },
+        price_inr: 499,
+        coin_price: 100,
+        product_type: "TRIAL",
+        inventory_stock: 90,
+        is_featured: false,
+        score: 9.3,
+        status: "PUBLISHED",
+        created_at: "2026-10-20T00:00:00.000Z",
+        updated_at: "2026-10-26T00:00:00.000Z",
+      },
+      {
+        id: "prod-8",
+        title: "GharSure Anti-Scalant Magnetic Water Conditioner",
+        category: "Water Conditioners",
+        brand: "GharSure Lab",
+        summary: "Neodymium magnetic field water conditioner preventing limescale crystallization on pipes and geysers.",
+        specifications: { pipeSize: "1/2 inch to 1 inch", magneticStrength: "12,000 Gauss", warranty: "5 Years" },
+        price_inr: 2199,
+        coin_price: 0,
+        product_type: "GHARSURE_PRODUCT",
+        inventory_stock: 35,
+        is_featured: false,
+        score: 9.2,
+        status: "PUBLISHED",
+        created_at: "2026-10-22T00:00:00.000Z",
+        updated_at: "2026-10-26T00:00:00.000Z",
       },
     ];
     for (const p of initialProducts) {
@@ -571,8 +668,25 @@ export class AdminMemoryStore {
   }
 
   // Products
-  public listProducts(): any[] {
-    return Array.from(this.products.values());
+  public listProducts(params?: { productType?: string; status?: string; search?: string }): any[] {
+    let list = Array.from(this.products.values());
+    if (params?.productType && params.productType !== "ALL") {
+      list = list.filter((p) => p.product_type === params.productType);
+    }
+    if (params?.status && params.status !== "ALL") {
+      list = list.filter((p) => p.status === params.status);
+    }
+    if (params?.search) {
+      const q = params.search.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.title?.toLowerCase().includes(q) ||
+          p.brand?.toLowerCase().includes(q) ||
+          p.category?.toLowerCase().includes(q) ||
+          p.summary?.toLowerCase().includes(q)
+      );
+    }
+    return list;
   }
 
   public saveProduct(data: any): any {
@@ -591,6 +705,10 @@ export class AdminMemoryStore {
     };
     this.products.set(id, newProd);
     return newProd;
+  }
+
+  public deleteProduct(id: string): boolean {
+    return this.products.delete(id);
   }
 
   // Buildings

@@ -1505,17 +1505,195 @@ export async function executeManualCoinAdjustment(data: {
 // Products and Scorecards
 // -----------------------------------------------------------------------------
 
-export async function listProductsAdmin(): Promise<any[]> {
+async function seedDefaultProductsIfEmpty(sql: any): Promise<void> {
+  try {
+    const existing = await sql`SELECT count(*)::int as cnt FROM products WHERE status = 'PUBLISHED';`;
+    if (existing[0]?.cnt && existing[0].cnt >= 3) return;
+
+    const seedItems = [
+      {
+        title: "GharSure Smart Water Hardness (TDS) Tester",
+        category: "Lab Diagnostics",
+        brand: "GharSure Lab",
+        summary: "Titanium-alloy probe digital meter with instant backlit LCD reading calibrated for Indian tap & borewell water.",
+        specifications: { range: "0-9990 ppm", accuracy: "±2%", battery: "CR2032" },
+        price_inr: 699,
+        coin_price: 0,
+        product_type: "GHARSURE_PRODUCT",
+        inventory_stock: 120,
+        is_featured: true,
+        score: 9.5,
+        status: "PUBLISHED",
+      },
+      {
+        title: "GharSure Water Intelligence & Purifier Monitor",
+        category: "IoT Monitors",
+        brand: "GharSure Lab",
+        summary: "Real-time inline TDS and flow rate telemetry monitor with Bluetooth & Wi-Fi sync for preventive filter maintenance.",
+        specifications: { connectivity: "Wi-Fi + BLE", sensor: "Dual Titanium Electrodes", battery: "1 Year Rechargeable" },
+        price_inr: 1499,
+        coin_price: 0,
+        product_type: "GHARSURE_PRODUCT",
+        inventory_stock: 50,
+        is_featured: true,
+        score: 9.6,
+        status: "PUBLISHED",
+      },
+      {
+        title: "GharSure Anti-Scalant Magnetic Water Conditioner",
+        category: "Water Conditioners",
+        brand: "GharSure Lab",
+        summary: "Neodymium magnetic field water conditioner preventing limescale crystallization on pipes and geysers.",
+        specifications: { pipeSize: "1/2 inch to 1 inch", magneticStrength: "12,000 Gauss", warranty: "5 Years" },
+        price_inr: 2199,
+        coin_price: 0,
+        product_type: "GHARSURE_PRODUCT",
+        inventory_stock: 35,
+        is_featured: false,
+        score: 9.2,
+        status: "PUBLISHED",
+      },
+      {
+        title: "Water Hardness (TDS) Rapid Test Strip Kit",
+        category: "Trial Kits",
+        brand: "GharSure Lab",
+        summary: "5 calibrated litmus test strips for instant tap water hardness and chlorine detection delivered to your doorstep.",
+        specifications: { strips: "5 Tests", parameters: "TDS, Hardness, Free Chlorine, pH", shelfLife: "24 months" },
+        price_inr: 0,
+        coin_price: 0,
+        product_type: "TRIAL",
+        inventory_stock: 200,
+        is_featured: true,
+        score: 9.4,
+        status: "PUBLISHED",
+      },
+      {
+        title: "Eco Descaler Pouch for Geysers & Washers",
+        category: "Trial Kits",
+        brand: "CleanFlow",
+        summary: "Organic food-grade citric acid descaler pouch for scale removal in hard water regions.",
+        specifications: { weight: "200g", activeIngredient: "Food Grade Citric Acid", applications: "Washing machines, geysers, kettles" },
+        price_inr: 199,
+        coin_price: 50,
+        product_type: "TRIAL",
+        inventory_stock: 150,
+        is_featured: false,
+        score: 9.1,
+        status: "PUBLISHED",
+      },
+      {
+        title: "Mineral Boost Alkaline Inline Cartridge Sample",
+        category: "Trial Kits",
+        brand: "MineralPure",
+        summary: "Sample enrichment cartridge adding essential magnesium, calcium, and alkaline pH balance.",
+        specifications: { pHBoost: "+1.5 to +2.0", minerals: "Ca, Mg, K", flowRate: "2 LPM" },
+        price_inr: 499,
+        coin_price: 100,
+        product_type: "TRIAL",
+        inventory_stock: 90,
+        is_featured: false,
+        score: 9.3,
+        status: "PUBLISHED",
+      },
+      {
+        title: "PurePro RO+UV Alkaline Water Purifier",
+        category: "Water Purifiers",
+        brand: "PurePro",
+        summary: "7-stage purification with copper-alkaline enrichment and smart TDS retention.",
+        specifications: { capacity: "10L", technology: "RO+UV+UF+Alkaline", power: "60W" },
+        price_inr: 14999,
+        coin_price: 0,
+        product_type: "GENERAL_PRODUCT",
+        inventory_stock: 45,
+        is_featured: false,
+        score: 9.4,
+        status: "PUBLISHED",
+      },
+      {
+        title: "Sediment & Carbon Pre-Filter Replacement Kit",
+        category: "Spares",
+        brand: "FilterMax",
+        summary: "5-micron spun polypropylene sediment filter + active carbon block compatible with leading RO systems.",
+        specifications: { lifespan: "6 months", poreSize: "5 micron" },
+        price_inr: 1299,
+        coin_price: 0,
+        product_type: "GENERAL_PRODUCT",
+        inventory_stock: 80,
+        is_featured: false,
+        score: 8.8,
+        status: "PUBLISHED",
+      },
+      {
+        title: "Universal Heavy-Duty RO Booster Pump (100 GPD)",
+        category: "Spares",
+        brand: "AquaDrive",
+        summary: "High-pressure diaphragm booster pump with pure copper winding for low-pressure water connections.",
+        specifications: { flowRate: "1.8 LPM", voltage: "24V DC", maxPressure: "125 PSI" },
+        price_inr: 2450,
+        coin_price: 0,
+        product_type: "GENERAL_PRODUCT",
+        inventory_stock: 40,
+        is_featured: false,
+        score: 9.0,
+        status: "PUBLISHED",
+      },
+    ];
+
+    for (const item of seedItems) {
+      await sql`
+        INSERT INTO products (
+          title, category, brand, summary, specifications, price_inr, coin_price, product_type, inventory_stock, is_featured, score, status
+        )
+        VALUES (
+          ${item.title}, ${item.category}, ${item.brand}, ${item.summary},
+          ${JSON.stringify(item.specifications)}::jsonb, ${item.price_inr}, ${item.coin_price},
+          ${item.product_type}, ${item.inventory_stock}, ${item.is_featured}, ${item.score}, ${item.status}
+        );
+      `;
+    }
+  } catch (err) {
+    console.warn("[AdminDB] Seed products notice:", (err as Error).message);
+  }
+}
+
+export async function listProductsAdmin(params?: {
+  productType?: string;
+  status?: string;
+  search?: string;
+}): Promise<any[]> {
   if (isDirectDatabaseConfigured()) {
     try {
       const sql = getDirectSql();
-      const rows = await sql`SELECT * FROM products ORDER BY created_at DESC;`;
-      if (rows && rows.length > 0) return rows;
+      // Ensure seed data exists if catalog is unpopulated
+      await seedDefaultProductsIfEmpty(sql);
+
+      const typeFilter = params?.productType && params.productType !== "ALL" ? params.productType : null;
+      const statusFilter = params?.status && params.status !== "ALL" ? params.status : null;
+      const searchPattern = params?.search ? `%${params.search.trim().toLowerCase()}%` : null;
+
+      const rows = await sql`
+        SELECT 
+          id, title, category, brand, summary, specifications,
+          price_inr, score, scorecard_details, evidence_sources,
+          status, product_type, coin_price, inventory_stock, is_featured,
+          created_at, updated_at
+        FROM products
+        WHERE (${typeFilter}::text IS NULL OR product_type = ${typeFilter})
+          AND (${statusFilter}::text IS NULL OR status = ${statusFilter})
+          AND (${searchPattern}::text IS NULL OR (
+            LOWER(title) LIKE ${searchPattern}
+            OR LOWER(brand) LIKE ${searchPattern}
+            OR LOWER(category) LIKE ${searchPattern}
+            OR LOWER(COALESCE(summary, '')) LIKE ${searchPattern}
+          ))
+        ORDER BY is_featured DESC, score DESC NULLS LAST, created_at DESC;
+      `;
+      if (rows) return rows;
     } catch (err) {
       console.warn("[AdminDB] DB error listing products, using in-memory:", (err as Error).message);
     }
   }
-  return adminInMemoryStore.listProducts();
+  return adminInMemoryStore.listProducts(params);
 }
 
 export async function saveProductAdmin(data: {
@@ -1524,16 +1702,27 @@ export async function saveProductAdmin(data: {
   category: string;
   brand: string;
   summary: string;
-  specifications: Record<string, unknown>;
-  priceInr: number;
+  specifications?: Record<string, unknown>;
+  priceInr?: number;
+  coinPrice?: number;
+  productType?: "GHARSURE_PRODUCT" | "TRIAL" | "GENERAL_PRODUCT";
+  inventoryStock?: number;
+  isFeatured?: boolean;
   score?: number | null;
   scorecardDetails?: Record<string, unknown>;
   evidenceSources?: any[];
-  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 }): Promise<any> {
   if (isDirectDatabaseConfigured()) {
     try {
       const sql = getDirectSql();
+      const productType = data.productType || "GENERAL_PRODUCT";
+      const coinPrice = Number(data.coinPrice) || 0;
+      const priceInr = Number(data.priceInr) || 0;
+      const inventoryStock = Number(data.inventoryStock ?? 100);
+      const isFeatured = Boolean(data.isFeatured);
+      const status = data.status || "PUBLISHED";
+
       if (data.id) {
         const rows = await sql`
           UPDATE products
@@ -1541,27 +1730,34 @@ export async function saveProductAdmin(data: {
             title = ${data.title.trim()},
             category = ${data.category},
             brand = ${data.brand.trim()},
-            summary = ${data.summary},
-            specifications = ${JSON.stringify(data.specifications)}::jsonb,
-            price_inr = ${data.priceInr},
+            summary = ${data.summary || ""},
+            specifications = ${JSON.stringify(data.specifications || {})}::jsonb,
+            price_inr = ${priceInr},
+            coin_price = ${coinPrice},
+            product_type = ${productType},
+            inventory_stock = ${inventoryStock},
+            is_featured = ${isFeatured},
             score = ${data.score !== undefined ? data.score : null},
             scorecard_details = ${JSON.stringify(data.scorecardDetails || {})}::jsonb,
             evidence_sources = ${JSON.stringify(data.evidenceSources || [])}::jsonb,
-            status = ${data.status},
+            status = ${status},
             updated_at = NOW()
-          WHERE id = ${data.id}
+          WHERE id::text = ${data.id}
           RETURNING *;
         `;
         return rows[0];
       } else {
         const rows = await sql`
           INSERT INTO products (
-            title, category, brand, summary, specifications, price_inr, score, scorecard_details, evidence_sources, status
+            title, category, brand, summary, specifications, price_inr, coin_price, product_type,
+            inventory_stock, is_featured, score, scorecard_details, evidence_sources, status
           )
           VALUES (
-            ${data.title.trim()}, ${data.category}, ${data.brand.trim()}, ${data.summary},
-            ${JSON.stringify(data.specifications)}::jsonb, ${data.priceInr}, ${data.score !== undefined ? data.score : null},
-            ${JSON.stringify(data.scorecardDetails || {})}::jsonb, ${JSON.stringify(data.evidenceSources || [])}::jsonb, ${data.status}
+            ${data.title.trim()}, ${data.category}, ${data.brand.trim()}, ${data.summary || ""},
+            ${JSON.stringify(data.specifications || {})}::jsonb, ${priceInr}, ${coinPrice}, ${productType},
+            ${inventoryStock}, ${isFeatured}, ${data.score !== undefined ? data.score : null},
+            ${JSON.stringify(data.scorecardDetails || {})}::jsonb, ${JSON.stringify(data.evidenceSources || [])}::jsonb,
+            ${status}
           )
           RETURNING *;
         `;
@@ -1573,6 +1769,19 @@ export async function saveProductAdmin(data: {
   }
 
   return adminInMemoryStore.saveProduct(data);
+}
+
+export async function deleteProductAdmin(id: string): Promise<boolean> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      await sql`DELETE FROM products WHERE id::text = ${id};`;
+      return true;
+    } catch (err) {
+      console.warn("[AdminDB] DB error deleting product:", (err as Error).message);
+    }
+  }
+  return adminInMemoryStore.deleteProduct(id);
 }
 
 // -----------------------------------------------------------------------------

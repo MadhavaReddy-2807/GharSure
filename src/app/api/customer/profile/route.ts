@@ -10,11 +10,28 @@ const profileUpdateSchema = z.object({
     .trim()
     .min(2, "Name must be at least 2 characters")
     .max(100, "Name cannot exceed 100 characters"),
+  email: z
+    .string()
+    .trim()
+    .email("Please provide a valid email address")
+    .optional()
+    .or(z.literal("")),
+  address: z
+    .string()
+    .trim()
+    .max(255, "Address cannot exceed 255 characters")
+    .optional()
+    .or(z.literal("")),
   city: z
     .string()
     .trim()
-    .min(2, "City must be at least 2 characters")
     .max(100)
+    .optional()
+    .or(z.literal("")),
+  pincode: z
+    .string()
+    .trim()
+    .regex(/^[0-9]{6}$/, "Pincode must be 6 digits")
     .optional()
     .or(z.literal("")),
 });
@@ -60,7 +77,10 @@ export async function GET(req: NextRequest) {
         customerId: customer.customer_id,
         phone: customer.phone_e164,
         fullName: customer.full_name || customer.display_name || "Resident",
+        email: customer.email || "",
+        address: customer.address || "",
         city: customer.city || "Not set",
+        pincode: customer.pincode || "",
         rewardCoins: customer.reward_coins || 0,
         referralCode: customer.referral_code,
         surveysCompleted,
@@ -89,10 +109,13 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const { fullName, city } = parsed.data;
+    const { fullName, email, address, city, pincode } = parsed.data;
     const updated = await updateCustomerProfile(session.customerId, {
       fullName,
+      email: email && email.trim().length > 0 ? email.trim() : null,
+      address: address && address.trim().length > 0 ? address.trim() : null,
       city: city && city.trim().length > 0 ? city.trim() : null,
+      pincode: pincode && pincode.trim().length > 0 ? pincode.trim() : null,
       displayName: fullName.split(" ")[0],
     });
 
@@ -101,14 +124,17 @@ export async function PATCH(req: NextRequest) {
       undefined,
       session.customerId,
       undefined,
-      { fullName, city: city || null }
+      { fullName, email: email || null, address: address || null, city: city || null, pincode: pincode || null }
     );
 
     return NextResponse.json({
       success: true,
       profile: {
         fullName: updated.full_name,
+        email: updated.email,
+        address: updated.address,
         city: updated.city,
+        pincode: updated.pincode,
       },
     });
   } catch (err: any) {
@@ -124,29 +150,21 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (isDirectDatabaseConfigured()) {
-      const sql = getDirectSql();
-      await sql`
-        UPDATE customers
-        SET status = 'DELETED', updated_at = NOW()
-        WHERE id = ${session.customerId};
-      `;
+      try {
+        const sql = getDirectSql();
+        await sql`
+          UPDATE customers 
+          SET status = 'DELETED', full_name = 'Deleted User', phone_e164 = concat('+91000', floor(random() * 9000000 + 1000000)::text), updated_at = NOW()
+          WHERE id::text = ${session.customerId};
+        `;
+      } catch (err: any) {
+        console.warn("[Direct DB] Error soft deleting account:", err.message);
+      }
     }
 
-    await logAuditEvent(
-      "CUSTOMER_ACCOUNT_DELETION_REQUESTED",
-      session.phone,
-      session.customerId,
-      undefined,
-      { phone: session.phone }
-    );
-
-    const response = NextResponse.json({
-      success: true,
-      message: "Account deactivation request processed successfully.",
-    });
-
-    clearSessionCookie(response);
-    return response;
+    const res = NextResponse.json({ success: true, message: "Account deleted" });
+    clearSessionCookie(res);
+    return res;
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

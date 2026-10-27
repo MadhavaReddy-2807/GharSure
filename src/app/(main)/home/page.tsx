@@ -141,12 +141,12 @@ export default async function HomePage() {
       <div>
         <div className="flex items-center justify-between mb-2.5 px-1">
           <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Household Diagnostics
+            Household Diagnostics & Water Telemetry
           </h2>
           <span className="text-[11px] text-slate-400">Readings for {city}</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {/* Tile 1: Water Quality */}
           <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 flex flex-col justify-between">
             <div>
@@ -162,7 +162,7 @@ export default async function HomePage() {
                 Water Hardness Index
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Area municipal water averages 340-420 ppm. Semi-annual membrane descaling recommended.
+                Area municipal water averages 340-420 ppm. Semi-annual membrane descaling recommended for optimal water health.
               </p>
             </div>
             <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
@@ -173,54 +173,28 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Tile 2: Appliance Registry */}
+          {/* Tile 2: Trials & Store Redemptions */}
           <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
-                  <Wrench className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                  Maintenance
-                </span>
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">
-                Appliance Health
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Track filter replacement cycles for your RO purifier, washing machine, and geyser.
-              </p>
-            </div>
-            <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
-              <span className="text-slate-400">3 Appliances</span>
-              <Link href="/profile" className="text-brand-purple font-semibold hover:underline">
-                View Devices
-              </Link>
-            </div>
-          </div>
-
-          {/* Tile 3: Trials & Store Redemptions */}
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 flex flex-col justify-between sm:col-span-2 lg:col-span-1">
             <div>
               <div className="flex items-center justify-between mb-2.5">
                 <div className="w-8 h-8 rounded-lg bg-purple-50 text-brand-purple flex items-center justify-center">
                   <Gift className="w-4 h-4" />
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-50 text-brand-purple">
-                  {activeTrialsCount > 0 ? `${activeTrialsCount} Trial Kits` : "Rewards"}
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                  Coin Redeemable
                 </span>
               </div>
               <h3 className="text-sm font-bold text-slate-900 mb-1">
                 Zero-Cost Trial Kits
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Redeem earned coins for verified water test strips and appliance descaler kits.
+                Redeem your earned GharSure Coins for verified rapid water test strips, organic descalers, and sample kits in the Store.
               </p>
             </div>
             <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
               <span className="text-slate-400">Doorstep Delivery</span>
-              <Link href="/rewards" className="text-brand-purple font-semibold hover:underline flex items-center gap-1">
-                <span>Explore</span>
+              <Link href="/store" className="text-brand-purple font-semibold hover:underline flex items-center gap-1">
+                <span>Explore Store</span>
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
@@ -233,7 +207,7 @@ export default async function HomePage() {
         <div>
           <div className="flex items-center justify-between mb-2.5 px-1">
             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Verified Appliance Spares & Filter Kits
+              Verified Store Products & Trial Kits
             </h2>
             <Link
               href="/store"
