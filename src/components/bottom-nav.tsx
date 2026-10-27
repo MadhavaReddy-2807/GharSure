@@ -7,12 +7,11 @@ import {
   Home,
   Award,
   ShoppingBag,
-  User,
+  Users,
   Plus,
   X,
   Loader2,
   CheckCircle2,
-  MessageSquare,
   HelpCircle,
   Eye,
 } from "lucide-react";
@@ -24,14 +23,18 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
+// 4 navigation destinations per user request:
+// Left: Home, Rewards
+// Center: Raised (+) Button with smooth curve
+// Right: Refer & Earn, Store (Profile not required)
 const leftNavItems: NavItem[] = [
   { name: "Home", href: "/home", icon: Home },
   { name: "Rewards", href: "/rewards", icon: Award },
 ];
 
 const rightNavItems: NavItem[] = [
+  { name: "Refer & Earn", href: "/refer", icon: Users },
   { name: "Store", href: "/store", icon: ShoppingBag },
-  { name: "Profile", href: "/profile", icon: User },
 ];
 
 export function BottomNav() {
@@ -88,16 +91,39 @@ export function BottomNav() {
 
   return (
     <>
-      {/* Floating Bottom Navigation Bar matching curved center dome aesthetic */}
+      {/* Floating Bottom Navigation Bar matching curved center dome aesthetic from reference image */}
       <nav
         aria-label="Mobile Navigation"
         className="fixed bottom-0 left-0 right-0 z-40 pb-[env(safe-area-inset-bottom)] md:hidden pointer-events-none"
       >
-        <div className="max-w-md mx-auto px-3 pb-2 pt-4 pointer-events-auto relative">
-          {/* Main Bar with Center Raised Dome */}
-          <div className="relative bg-white/95 backdrop-blur-md rounded-3xl border border-slate-200/90 shadow-xl shadow-slate-900/10 px-2 h-16 flex items-center justify-between">
-            {/* Left Nav Items */}
-            <div className="flex items-center justify-around flex-1">
+        <div className="max-w-[420px] w-full mx-auto px-4 pb-2 pt-6 pointer-events-auto relative">
+          {/* Main Floating Rounded Bar */}
+          <div className="relative bg-white rounded-[32px] border border-slate-200/90 shadow-[0_12px_36px_-6px_rgba(15,23,42,0.14)] px-3 h-16 flex items-center justify-between">
+            {/* The Seamless Architectural SVG Dome rising above the bar */}
+            <div className="absolute -top-[29px] left-1/2 -translate-x-1/2 w-[96px] h-[31px] pointer-events-none z-10">
+              <svg
+                viewBox="0 0 96 31"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-full h-full drop-shadow-[0_-3px_5px_rgba(15,23,42,0.04)]"
+              >
+                {/* Filled dome body merging seamlessly with white bar */}
+                <path
+                  d="M 0,30 C 14,30 18,24 24,18 C 32,10 38,1 48,1 C 58,1 64,10 72,18 C 78,24 82,30 96,30 L 96,32 L 0,32 Z"
+                  fill="#FFFFFF"
+                />
+                {/* Delicate matching top border contour */}
+                <path
+                  d="M 0,30 C 14,30 18,24 24,18 C 32,10 38,1 48,1 C 58,1 64,10 72,18 C 78,24 82,30 96,30"
+                  stroke="#E2E8F0"
+                  strokeWidth="1"
+                  fill="none"
+                />
+              </svg>
+            </div>
+
+            {/* Left Nav Destinations (Home, Rewards) */}
+            <div className="flex items-center justify-around flex-1 pr-2">
               {leftNavItems.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;
@@ -129,34 +155,31 @@ export function BottomNav() {
                       {item.name}
                     </span>
                     {isActive && (
-                      <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-brand-purple" />
+                      <span className="absolute bottom-0 w-1 h-1 rounded-full bg-brand-purple" />
                     )}
                   </Link>
                 );
               })}
             </div>
 
-            {/* Center Curved Dome Anchor & Raised Glowing (+) Action Button */}
-            <div className="relative flex items-center justify-center w-16 shrink-0">
-              {/* Curved Architectural Arch under button */}
-              <div className="absolute -top-6 w-16 h-12 bg-white/95 backdrop-blur-md rounded-t-full border-t border-x border-slate-200/80 -z-10 shadow-xs" />
-
-              {/* The Raised Curved (+) Button (matching reference image with GharSure brand gradient) */}
+            {/* Center Space for Raised Plus Button */}
+            <div className="relative flex items-center justify-center w-14 shrink-0 z-20">
+              {/* Circular Gradient Plus Button (coral-rose to purple gradient matching reference image) */}
               <button
                 onClick={() => setIsModalOpen(true)}
                 type="button"
-                aria-label="Ask Question or Post Observation"
-                className="absolute -top-5.5 w-13 h-13 rounded-full bg-gradient-to-tr from-brand-purple via-indigo-600 to-purple-500 text-white shadow-lg shadow-purple-600/35 border-3 border-white flex items-center justify-center transition-all transform active:scale-90 hover:scale-105 cursor-pointer group"
+                aria-label="Ask Question or Post"
+                className="absolute -top-[23px] w-[52px] h-[52px] rounded-full bg-gradient-to-tr from-[#FF5722] via-[#E91E63] to-[#4F46E5] text-white shadow-[0_8px_20px_rgba(233,30,99,0.38)] flex items-center justify-center transition-all transform active:scale-90 hover:scale-105 cursor-pointer group"
               >
-                {/* Rounded square container inside matching reference photo */}
-                <div className="w-6 h-6 rounded-md bg-white/20 backdrop-blur-xs flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                {/* White rounded squircle inside matching reference image */}
+                <div className="w-[26px] h-[26px] rounded-[7px] bg-white/20 backdrop-blur-xs flex items-center justify-center group-hover:bg-white/30 transition-colors shadow-2xs">
                   <Plus className="w-4 h-4 stroke-[3] text-white" />
                 </div>
               </button>
             </div>
 
-            {/* Right Nav Items */}
-            <div className="flex items-center justify-around flex-1">
+            {/* Right Nav Destinations (Refer & Earn, Store) */}
+            <div className="flex items-center justify-around flex-1 pl-2">
               {rightNavItems.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;
@@ -188,7 +211,7 @@ export function BottomNav() {
                       {item.name}
                     </span>
                     {isActive && (
-                      <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-brand-purple" />
+                      <span className="absolute bottom-0 w-1 h-1 rounded-full bg-brand-purple" />
                     )}
                   </Link>
                 );
@@ -206,17 +229,14 @@ export function BottomNav() {
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-5 sm:p-6 border border-slate-200 animate-fade-in max-h-[92vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-purple to-indigo-500 text-white flex items-center justify-center shadow-xs">
-                  <Plus className="w-5 h-5 stroke-[2.5]" />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#FF5722] via-[#E91E63] to-[#4F46E5] text-white flex items-center justify-center shadow-xs">
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">
-                    Community Post & Question
+                    Ask a Question or Post
                   </h3>
-                  <p className="text-[10px] text-slate-400">
-                    Connect with neighbors & water specialists
-                  </p>
                 </div>
               </div>
 
@@ -229,77 +249,64 @@ export function BottomNav() {
             </div>
 
             {feedback ? (
-              <div className="py-8 text-center space-y-2">
-                <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
-                <h4 className="text-sm font-bold text-slate-900">Post Published!</h4>
+              <div className="py-6 text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
+                <h4 className="text-sm font-bold text-slate-900">Published</h4>
                 <p className="text-xs text-slate-500">{feedback}</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmitPost} className="space-y-4 text-xs">
+              <form onSubmit={handleSubmitPost} className="space-y-3.5 text-xs">
                 {/* Post Type Selector */}
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1.5">
-                    What would you like to share?
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPostType("QUESTION")}
-                      className={cn(
-                        "p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2",
-                        postType === "QUESTION"
-                          ? "border-brand-purple bg-purple-50 text-brand-purple font-bold shadow-2xs"
-                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                      )}
-                    >
-                      <HelpCircle className="w-4 h-4" />
-                      <div>
-                        <div className="text-xs">Ask a Question</div>
-                        <div className="text-[9px] text-slate-400 font-normal">Get expert advice</div>
-                      </div>
-                    </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPostType("QUESTION")}
+                    className={cn(
+                      "py-2 px-3 rounded-lg border text-center font-semibold transition-all cursor-pointer",
+                      postType === "QUESTION"
+                        ? "border-brand-purple bg-purple-50 text-brand-purple"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    Question
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setPostType("OBSERVATION")}
-                      className={cn(
-                        "p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2",
-                        postType === "OBSERVATION"
-                          ? "border-brand-purple bg-purple-50 text-brand-purple font-bold shadow-2xs"
-                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                      )}
-                    >
-                      <Eye className="w-4 h-4" />
-                      <div>
-                        <div className="text-xs">Water Observation</div>
-                        <div className="text-[9px] text-slate-400 font-normal">TDS or scaling report</div>
-                      </div>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPostType("OBSERVATION")}
+                    className={cn(
+                      "py-2 px-3 rounded-lg border text-center font-semibold transition-all cursor-pointer",
+                      postType === "OBSERVATION"
+                        ? "border-brand-purple bg-purple-50 text-brand-purple"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    Observation
+                  </button>
                 </div>
 
                 {/* Topic Category */}
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">
-                    Topic Category *
+                    Category
                   </label>
                   <select
                     value={postCategory}
                     onChange={(e) => setPostCategory(e.target.value)}
                     className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple bg-white text-slate-800"
                   >
-                    <option value="Water Quality">Water Quality & TDS Hardness</option>
-                    <option value="RO Purifiers">RO Purifiers & Filter Cartridges</option>
-                    <option value="Geysers & Scaling">Geysers & Limescale Removal</option>
-                    <option value="Store Trials">Store Product Trial Feedback</option>
-                    <option value="General Home Care">General Household Care</option>
+                    <option value="Water Quality">Water Quality & Hardness</option>
+                    <option value="RO Purifiers">RO Purifiers & Filters</option>
+                    <option value="Geysers & Scaling">Geysers & Scaling</option>
+                    <option value="Store Trials">Store Trials</option>
+                    <option value="General Home Care">General Home Care</option>
                   </select>
                 </div>
 
                 {/* Title */}
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">
-                    {postType === "QUESTION" ? "Your Question *" : "Observation Headline *"}
+                    {postType === "QUESTION" ? "Question *" : "Title *"}
                   </label>
                   <input
                     type="text"
@@ -308,8 +315,8 @@ export function BottomNav() {
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder={
                       postType === "QUESTION"
-                        ? "e.g. How often to change RO pre-filter with 450 ppm water?"
-                        : "e.g. Noticed high sediment accumulation in Phase 2 pipeline"
+                        ? "e.g. How often to change RO pre-filter with 400 ppm?"
+                        : "e.g. High TDS observation in Phase 2"
                     }
                     className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
                   />
@@ -318,13 +325,13 @@ export function BottomNav() {
                 {/* Description / Content */}
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">
-                    Details & Context
+                    Details
                   </label>
                   <textarea
                     rows={3}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="Provide any helpful context, apartment society name, or observations..."
+                    placeholder="Enter details..."
                     className="w-full p-2.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
                   />
                 </div>
@@ -334,7 +341,7 @@ export function BottomNav() {
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
                   >
                     Cancel
                   </button>
@@ -349,7 +356,7 @@ export function BottomNav() {
                         <span>Publishing...</span>
                       </>
                     ) : (
-                      <span>Publish to Community</span>
+                      <span>Publish</span>
                     )}
                   </button>
                 </div>

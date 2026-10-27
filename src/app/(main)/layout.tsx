@@ -12,7 +12,10 @@ export default async function MainAppLayout({
   const customer = session ? await getCustomerById(session.customerId) : null;
 
   return (
-    <MainAppShell customerName={customer?.display_name || customer?.full_name}>
+    <MainAppShell
+      customerName={customer?.display_name || customer?.full_name}
+      customerCoins={customer?.reward_coins ?? 0}
+    >
       {children}
     </MainAppShell>
   );
