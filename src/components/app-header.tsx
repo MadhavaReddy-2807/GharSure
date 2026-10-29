@@ -23,21 +23,21 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
+    <header className="sticky top-0 z-40 bg-white border-b border-slate-200/90">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-15">
           {/* Brand Logo */}
           <Link
             href="/home"
-            className="flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple rounded-lg"
+            className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple rounded"
           >
             <Logo size="sm" showText />
           </Link>
 
-          {/* Desktop Navigation Links */}
+          {/* Desktop Navigation Links - HexaHome / Smytten style */}
           <nav
             aria-label="Desktop Navigation"
-            className="hidden md:flex items-center gap-1.5"
+            className="hidden md:flex items-center gap-1"
           >
             {desktopNavItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -49,10 +49,10 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all select-none",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors select-none",
                     isActive
-                      ? "bg-brand-purple text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                      ? "bg-slate-900 text-white font-semibold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -63,18 +63,18 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
           </nav>
 
           {/* Right Action: GharSure Coins & Profile */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2.5">
             {/* GharSure Coins Badge */}
             <Link
               href="/rewards"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100/80 border border-amber-200 text-amber-900 transition-colors select-none shadow-2xs"
-              title="GharSure Coins - Earn & Redeem"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 hover:border-slate-300 bg-white text-slate-800 transition-colors text-xs select-none"
+              title="GharSure Coins"
             >
-              <Coins className="w-4 h-4 text-amber-600 shrink-0" />
-              <span className="text-xs font-bold font-mono">
+              <Coins className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="font-semibold font-mono">
                 {coins.toLocaleString()}
               </span>
-              <span className="text-[11px] font-medium text-amber-700 hidden sm:inline">
+              <span className="text-slate-500 hidden sm:inline text-[11px]">
                 Coins
               </span>
             </Link>
@@ -83,18 +83,18 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
             <Link
               href="/profile"
               className={cn(
-                "flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border transition-all select-none shadow-2xs",
+                "flex items-center gap-2 px-2.5 py-1 rounded-md border transition-colors select-none text-xs",
                 pathname === "/profile"
-                  ? "border-brand-purple bg-purple-50 ring-2 ring-brand-purple/20"
-                  : "border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+                  ? "border-slate-900 bg-slate-50 text-slate-900 font-semibold"
+                  : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
               )}
-              title="My Profile"
-              aria-label="My Profile"
+              title="My Account & Profile"
+              aria-label="My Account & Profile"
             >
-              <div className="w-7 h-7 rounded-full bg-brand-purple text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
+              <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[10px]">
                 {fullName ? fullName[0]?.toUpperCase() : "U"}
               </div>
-              <span className="text-xs font-semibold text-slate-800 max-w-[120px] truncate hidden sm:inline">
+              <span className="max-w-[110px] truncate hidden sm:inline">
                 {fullName || "Profile"}
               </span>
             </Link>

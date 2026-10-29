@@ -7,20 +7,12 @@ import { listAvailableSurveysForCustomer } from "@/lib/survey-db";
 import { listProductsAdmin } from "@/lib/admin-db";
 import {
   Droplets,
-  Wrench,
-  Gift,
-  ArrowRight,
-  ShieldCheck,
   Coins,
   ClipboardList,
+  ArrowRight,
+  ShieldCheck,
   ChevronRight,
-  Sparkles,
-  Users,
-  CheckCircle2,
-  Calendar,
-  MessageSquare,
-  Activity,
-  Layers,
+  Package,
 } from "lucide-react";
 
 export default async function HomePage() {
@@ -32,7 +24,6 @@ export default async function HomePage() {
   const balance = customer?.reward_coins ?? 0;
 
   let trendingProducts: any[] = [];
-  let communityPosts: any[] = [];
 
   if (isDirectDatabaseConfigured()) {
     try {
@@ -44,20 +35,11 @@ export default async function HomePage() {
         ORDER BY is_featured DESC, score DESC NULLS LAST
         LIMIT 4;
       `;
-
-      communityPosts = await sql`
-        SELECT id, title, post_type, category, likes_count, replies_count, created_at
-        FROM community_posts
-        ORDER BY created_at DESC
-        LIMIT 2;
-      `;
     } catch {
       trendingProducts = [];
-      communityPosts = [];
     }
   }
 
-  // Fallback products from store
   if (trendingProducts.length === 0) {
     const fallbackProducts = await listProductsAdmin({ status: "PUBLISHED" });
     trendingProducts = fallbackProducts.slice(0, 4);
@@ -74,281 +56,134 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto pb-16">
-      {/* 1. HERO GREETING BANNER */}
-      <div className="bg-white rounded-2xl p-5 sm:p-6 lg:p-7 border border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-5 shadow-2xs">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+    <div className="space-y-8 w-full max-w-7xl mx-auto pb-12">
+      {/* 1. RESIDENT GREETING & BALANCE SUMMARY */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+            <span className="font-medium text-slate-700">{city}</span>
+            <span>·</span>
+            <span className="inline-flex items-center gap-1 text-emerald-700">
+              <ShieldCheck className="w-3.5 h-3.5" />
               <span>Verified Homeowner</span>
             </span>
-            <span className="text-xs text-slate-400 font-medium">·</span>
-            <span className="text-xs text-slate-500 font-medium">{city} Society Node</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Welcome back, {displayName}
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Welcome, {displayName}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-xl">
-            Live household water telemetry, research rewards, and verified doorstep service management.
-          </p>
         </div>
 
-        {/* Quick Balance & Action Card */}
-        <div className="flex items-center gap-3 sm:gap-4 bg-slate-50 border border-slate-200 p-3 sm:px-4 sm:py-3.5 rounded-xl self-start md:self-center shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold shadow-2xs">
-            <Coins className="w-5 h-5 text-amber-600" />
-          </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 leading-tight">
-              Reward Coins
+        {/* Clean Wallet Summary */}
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+              Reward Balance
             </div>
-            <div className="text-lg font-extrabold text-slate-900 font-mono leading-none">
-              {balance.toLocaleString()}
+            <div className="text-base font-bold font-mono text-slate-900">
+              {balance.toLocaleString()} <span className="text-xs font-normal text-slate-500">Coins</span>
             </div>
           </div>
           <Link
             href="/store"
-            className="ml-2 px-3.5 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1"
+            className="px-3.5 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors"
           >
-            <span>Redeem</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            Redeem
           </Link>
         </div>
       </div>
 
-      {/* 2. MAIN 2-COLUMN DESKTOP GRID (lg:grid-cols-12) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT COLUMN: Telemetry, Active Survey, and Community (8 cols on desktop) */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* Active Research Survey Card */}
-          {featuredSurvey && (
-            <div className="bg-gradient-to-r from-purple-50 via-white to-purple-50/30 rounded-2xl p-5 sm:p-6 border border-purple-200 shadow-2xs">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-brand-purple text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <ClipboardList className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-100 text-brand-purple border border-purple-200">
-                        {featuredSurvey.category || "Active Research Survey"}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                        <Coins className="w-3.5 h-3.5 text-amber-600" />
-                        <span>+{featuredSurvey.rewardCoins} Coins</span>
-                      </span>
-                    </div>
-                    <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                      {featuredSurvey.title}
-                    </h2>
-                    <p className="text-xs text-slate-600 mt-1 line-clamp-2 max-w-xl">
-                      {featuredSurvey.description || "Help calibrate neighborhood drinking water standards and earn instant coins for trial kits."}
-                    </p>
-                  </div>
+      {/* 2. PRIORITY ACTION: ACTIVE SURVEY OPPORTUNITY */}
+      {featuredSurvey && (
+        <section aria-labelledby="active-survey-heading">
+          <div className="p-4 sm:p-5 rounded-lg border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-9 h-9 rounded-md bg-slate-100 text-slate-800 flex items-center justify-center shrink-0 mt-0.5">
+                <ClipboardList className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    {featuredSurvey.category || "Research Survey"}
+                  </span>
+                  <span className="text-xs font-mono font-semibold text-amber-700">
+                    +{featuredSurvey.rewardCoins} Coins
+                  </span>
                 </div>
-
-                <Link
-                  href={`/surveys/${featuredSurvey.id}`}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-bold transition-all shadow-xs shrink-0 self-start sm:self-center"
-                >
-                  <span>{featuredSurvey.userStatus === "IN_PROGRESS" ? "Resume Survey" : "Start Survey"}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                <h2 id="active-survey-heading" className="text-sm sm:text-base font-semibold text-slate-900">
+                  {featuredSurvey.title}
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5 max-w-xl">
+                  {featuredSurvey.description || "Share household water details to earn instant reward coins."}
+                </p>
               </div>
             </div>
-          )}
-
-          {/* Household Water Telemetry & Hardness Index Card */}
-          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Droplets className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                    Water Hardness & Municipal Telemetry
-                  </h3>
-                  <p className="text-xs text-slate-400">Calibrated for {city} tap & borewell supplies</p>
-                </div>
-              </div>
-              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                TDS: 340-420 ppm
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Mineral Hardness</div>
-                <div className="text-sm font-bold text-slate-800">Moderate to High</div>
-                <p className="text-[11px] text-slate-500">Requires anti-scalant or inline citric conditioning</p>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Chlorine Level</div>
-                <div className="text-sm font-bold text-emerald-700">0.4 - 0.7 ppm</div>
-                <p className="text-[11px] text-slate-500">Within municipal safe disinfection margins</p>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                <div className="text-[10px] uppercase font-bold text-slate-400">RO Membrane Health</div>
-                <div className="text-sm font-bold text-blue-700">92% Rejection</div>
-                <p className="text-[11px] text-slate-500">Semi-annual flush recommended in 45 days</p>
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Need immediate testing strips at your home?</span>
-              <Link
-                href="/store"
-                className="text-brand-purple font-semibold hover:underline flex items-center gap-1"
-              >
-                <span>Get Free Water Test Strips</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Community Q&A & Resident Insights */}
-          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-brand-purple" />
-                <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                  Apartment Society Water Discussions
-                </h3>
-              </div>
-              <Link href="/profile" className="text-xs font-semibold text-brand-purple hover:underline">
-                Ask Question
-              </Link>
-            </div>
-
-            {communityPosts.length > 0 ? (
-              <div className="divide-y divide-slate-100">
-                {communityPosts.map((post) => (
-                  <div key={post.id} className="py-3 first:pt-0 last:pb-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold uppercase text-brand-purple bg-purple-50 px-2 py-0.5 rounded">
-                        {post.category || "General"}
-                      </span>
-                      <span className="text-[11px] text-slate-400 font-mono">
-                        {new Date(post.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <h4 className="text-xs sm:text-sm font-semibold text-slate-900">
-                      {post.title}
-                    </h4>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500 py-2">
-                Have a question about your building's water quality or water purifier performance? Use the center (+) button or profile to post an inquiry.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Quick Trial Card, Care Checklist, and Refer & Win (4 cols on desktop) */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Zero-Cost Trial Kit Spotlight */}
-          <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-white rounded-2xl p-5 border border-amber-200 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200 uppercase">
-                <Gift className="w-3 h-3 text-amber-700" />
-                <span>Doorstep Trial</span>
-              </span>
-              <span className="text-xs font-mono font-bold text-amber-900">0 Coins</span>
-            </div>
-
-            <h3 className="text-sm sm:text-base font-bold text-slate-900">
-              Rapid Water Hardness & TDS Test Strips
-            </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Order 5 calibrated test strips to measure calcium carbonate hardness and residual chlorine at zero monetary charge.
-            </p>
 
             <Link
-              href="/store"
-              className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs"
+              href={`/surveys/${featuredSurvey.id}`}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold transition-colors shrink-0 self-start sm:self-center"
             >
-              <span>Claim Free in Store</span>
+              <span>{featuredSurvey.userStatus === "IN_PROGRESS" ? "Resume" : "Start Survey"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+        </section>
+      )}
 
-          {/* Household Water Health Checklist */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-              <Activity className="w-4 h-4 text-emerald-600" />
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                Preventive Care Checklist
-              </h3>
-            </div>
+      {/* 3. WATER QUALITY & HOUSEHOLD TELEMETRY */}
+      <section aria-labelledby="telemetry-heading" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 id="telemetry-heading" className="text-sm font-bold uppercase tracking-wider text-slate-600">
+            Water Telemetry & Diagnostics
+          </h2>
+          <span className="text-xs text-slate-500">Calibrated for {city}</span>
+        </div>
 
-            <ul className="space-y-2.5 text-xs">
-              <li className="flex items-start gap-2 text-slate-700">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>RO Pre-Filter Spun Polypropylene replacement due in 30 days</span>
-              </li>
-              <li className="flex items-start gap-2 text-slate-700">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Geyser heating coil citric descaling scheduled</span>
-              </li>
-              <li className="flex items-start gap-2 text-slate-700">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>TDS meter battery check passed</span>
-              </li>
-            </ul>
-
-            <Link
-              href="/store"
-              className="text-xs font-semibold text-brand-purple hover:underline block pt-2 border-t border-slate-100"
-            >
-              Browse Genuine Filters & Spares &rarr;
-            </Link>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-4 rounded-lg border border-slate-200 bg-white">
+            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">TDS Reading</div>
+            <div className="text-lg font-bold font-mono text-slate-900 mt-1">340 - 420 ppm</div>
+            <p className="text-xs text-slate-500 mt-1">Standard municipal tap level. RO purification recommended.</p>
           </div>
 
-          {/* Refer Neighbors Widget */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-              <Users className="w-4 h-4 text-brand-purple" />
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                Invite Society Neighbors
-              </h3>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Earn +100 bonus coins for every resident who verifies their apartment water diagnostics.
-            </p>
-            <Link
-              href="/refer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all w-full justify-center"
-            >
-              <span>Open Refer & Earn</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
+          <div className="p-4 rounded-lg border border-slate-200 bg-white">
+            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Water Hardness</div>
+            <div className="text-lg font-bold text-slate-900 mt-1">Moderate</div>
+            <p className="text-xs text-slate-500 mt-1">Mineral scale on geysers manageable with citric descaling.</p>
+          </div>
+
+          <div className="p-4 rounded-lg border border-slate-200 bg-white">
+            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Purifier Maintenance</div>
+            <div className="text-lg font-bold text-slate-900 mt-1">Filter Flush Due</div>
+            <p className="text-xs text-slate-500 mt-1">Check sediment pre-filter cartridge status every 6 months.</p>
           </div>
         </div>
-      </div>
 
-      {/* 3. VERIFIED HARDWARE & PURIFIERS SHELF */}
+        <div className="pt-1 flex items-center justify-between text-xs">
+          <span className="text-slate-500">Need physical test strips delivered to verify tap water?</span>
+          <Link href="/store" className="font-semibold text-brand-purple hover:underline flex items-center gap-1">
+            <span>Claim Free Test Kit in Store</span>
+            <ChevronRight className="w-3 h-3" />
+          </Link>
+        </div>
+      </section>
+
+      {/* 4. VERIFIED PRODUCTS & DOORSTEP TRIALS (Storefront Style) */}
       {trendingProducts.length > 0 && (
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between px-1">
+        <section aria-labelledby="storefront-heading" className="space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                Recommended Water Diagnostics & Products
+              <h2 id="storefront-heading" className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                Storefront & Doorstep Trials
               </h2>
               <p className="text-xs text-slate-500">
-                Verified hardware and trial kits available directly in the Store
+                Verified water testing kits, IoT monitors, and OEM filter replacements
               </p>
             </div>
             <Link
               href="/store"
               className="text-xs font-semibold text-brand-purple hover:underline flex items-center gap-1"
             >
-              <span>Explore All Products</span>
+              <span>Explore All</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -362,48 +197,72 @@ export default async function HomePage() {
               return (
                 <div
                   key={p.id}
-                  className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between shadow-2xs group"
+                  className="rounded-lg border border-slate-200 bg-white p-4 flex flex-col justify-between hover:border-slate-300 transition-colors"
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        {p.brand} · {p.category}
-                      </span>
-                      {p.score && (
-                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                          {Number(p.score).toFixed(1)}/10
+                    {/* Visual Placeholder container */}
+                    <div className="h-32 rounded bg-slate-50 border border-slate-100 flex items-center justify-center mb-3 text-slate-400">
+                      {isTrial ? (
+                        <span className="text-xs font-semibold text-amber-800 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
+                          Doorstep Trial
                         </span>
+                      ) : (
+                        <Package className="w-8 h-8 text-slate-300" />
                       )}
                     </div>
-                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-brand-purple transition-colors">
+
+                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                      {p.brand} · {p.category}
+                    </div>
+                    <h3 className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug line-clamp-2">
                       {p.title}
                     </h3>
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                     {isTrial ? (
-                      <span className="text-xs sm:text-sm font-bold font-mono text-amber-900">
-                        {cost === 0 ? "Free Trial" : `${cost} Coins`}
+                      <span className="text-xs font-bold font-mono text-amber-900">
+                        {cost === 0 ? "0 Coins (Free)" : `${cost} Coins`}
                       </span>
                     ) : (
-                      <span className="text-xs sm:text-sm font-bold font-mono text-slate-900">
+                      <span className="text-xs font-bold font-mono text-slate-900">
                         ₹{price.toLocaleString("en-IN")}
                       </span>
                     )}
 
                     <Link
                       href="/store"
-                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors"
+                      className="px-2.5 py-1 rounded text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors"
                     >
-                      View
+                      {isTrial ? "Redeem" : "View"}
                     </Link>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
+
+      {/* 5. REFERRAL ENTRY POINT */}
+      <section className="p-4 sm:p-5 rounded-lg border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+            Invite Apartment Society Residents
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Earn +100 reward coins for each verified household in your society node.
+          </p>
+        </div>
+
+        <Link
+          href="/refer"
+          className="inline-flex items-center justify-center gap-1 px-3.5 py-1.5 rounded-md border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-semibold transition-colors shrink-0"
+        >
+          <span>Refer & Win</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Link>
+      </section>
     </div>
   );
 }

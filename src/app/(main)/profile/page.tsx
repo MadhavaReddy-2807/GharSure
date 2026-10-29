@@ -25,7 +25,6 @@ export default async function ProfilePage() {
 
   let surveysCompleted = 0;
   let referralsRewarded = 0;
-  let userPosts: any[] = [];
 
   if (isDirectDatabaseConfigured() && customer) {
     try {
@@ -41,16 +40,8 @@ export default async function ProfilePage() {
         WHERE referrer_id = ${customer.id} AND status = 'REWARDED';
       `;
       referralsRewarded = parseInt(refStat?.count || "0", 10);
-
-      userPosts = await sql`
-        SELECT id, post_type, title, content, category, likes_count, replies_count, created_at, status
-        FROM community_posts
-        WHERE customer_id = ${customer.id}
-        ORDER BY created_at DESC;
-      `;
     } catch {
       // Fallback
-      userPosts = [];
     }
   }
 
@@ -66,7 +57,6 @@ export default async function ProfilePage() {
       customerId={customerId}
       surveysCompleted={surveysCompleted}
       referralsRewarded={referralsRewarded}
-      initialUserPosts={userPosts}
     />
   );
 }

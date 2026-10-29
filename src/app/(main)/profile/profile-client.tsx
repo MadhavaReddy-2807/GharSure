@@ -2,30 +2,26 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ArrowLeft,
-  ChevronRight,
-  Home,
-  MapPin,
-  Bell,
-  HelpCircle,
-  Shield,
-  LogOut,
   ShieldCheck,
   Edit2,
   CheckCircle2,
   AlertCircle,
   Loader2,
   X,
-  FileText,
-  Trash2,
   Lock,
   Mail,
-  Plus,
-  MessageSquare,
-  Sparkles,
+  Home,
+  Bell,
+  Shield,
+  LogOut,
+  Trash2,
   Coins,
+  ChevronRight,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ProfileClientViewProps {
   fullName: string;
@@ -38,7 +34,6 @@ interface ProfileClientViewProps {
   customerId: string;
   surveysCompleted: number;
   referralsRewarded: number;
-  initialUserPosts?: any[];
 }
 
 export function ProfileClientView({
@@ -52,7 +47,6 @@ export function ProfileClientView({
   customerId,
   surveysCompleted,
   referralsRewarded,
-  initialUserPosts = [],
 }: ProfileClientViewProps) {
   const router = useRouter();
 
@@ -62,7 +56,6 @@ export function ProfileClientView({
   const [address, setAddress] = useState(initialAddress);
   const [city, setCity] = useState(initialCity);
   const [pincode, setPincode] = useState(initialPincode);
-  const [userPosts, setUserPosts] = useState<any[]>(initialUserPosts);
 
   // Edit Profile Modal State
   const [isEditing, setIsEditing] = useState(false);
@@ -75,33 +68,15 @@ export function ProfileClientView({
   const [editError, setEditError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
-  // New Post Modal State
-  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const [postTitle, setPostTitle] = useState("");
-  const [postContent, setPostContent] = useState("");
-  const [postCategory, setPostCategory] = useState("Water Quality");
-  const [postType, setPostType] = useState<"QUESTION" | "OBSERVATION">("QUESTION");
-  const [isSubmittingPost, setIsSubmittingPost] = useState(false);
-
   // Preference Toggles
   const [whatsappAlerts, setWhatsappAlerts] = useState(true);
   const [telemetryConsent, setTelemetryConsent] = useState(true);
 
-  // Modals
+  // Sign out / Delete Modals
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  // Generate initials for avatar fallback
-  const initials =
-    fullName
-      .split(" ")
-      .map((n) => n[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "GS";
 
   // Handle Edit Profile Save
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -153,54 +128,13 @@ export function ProfileClientView({
       setPincode(data.profile.pincode || "");
 
       setIsEditing(false);
-      setSaveSuccess("Profile and doorstep address saved successfully.");
-      setTimeout(() => setSaveSuccess(null), 4000);
+      setSaveSuccess("Profile and doorstep address updated successfully.");
+      setTimeout(() => setSaveSuccess(null), 3500);
       router.refresh();
     } catch {
       setEditError("Connection error. Could not update profile.");
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  // Handle Creating a New Community Post / Question
-  const handleCreatePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmittingPost) return;
-
-    if (!postTitle.trim() || postTitle.trim().length < 3) {
-      alert("Title must be at least 3 characters.");
-      return;
-    }
-
-    setIsSubmittingPost(true);
-    try {
-      const res = await fetch("/api/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: postTitle.trim(),
-          content: postContent.trim() || postTitle.trim(),
-          category: postCategory,
-          postType,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to publish post.");
-      }
-
-      setUserPosts((prev) => [data.post, ...prev]);
-      setIsPostModalOpen(false);
-      setPostTitle("");
-      setPostContent("");
-      setSaveSuccess("Your question has been published to the community!");
-      setTimeout(() => setSaveSuccess(null), 4000);
-    } catch (err: any) {
-      alert(err.message || "Could not publish post.");
-    } finally {
-      setIsSubmittingPost(false);
     }
   };
 
@@ -231,22 +165,22 @@ export function ProfileClientView({
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 pb-20 select-none">
-      {/* Top Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-        <div className="flex items-center gap-2.5">
+    <div className="w-full max-w-4xl mx-auto space-y-8 pb-16 select-none">
+      {/* 1. TOP HEADER */}
+      <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="p-1.5 -ml-1.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-1 -ml-1 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+            <ArrowLeft className="w-4 h-4 stroke-[2.2]" />
           </button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-              My Profile & Account
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              Account & Profile
             </h1>
-            <p className="text-[11px] text-slate-400 font-mono">Member ID: {customerId}</p>
+            <p className="text-xs text-slate-400 font-mono">Member ID: {customerId}</p>
           </div>
         </div>
 
@@ -260,16 +194,16 @@ export function ProfileClientView({
             setEditError(null);
             setIsEditing(true);
           }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors cursor-pointer shadow-xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-colors cursor-pointer"
         >
-          <Edit2 className="w-3.5 h-3.5 text-brand-purple" />
-          <span>Edit Profile</span>
+          <Edit2 className="w-3.5 h-3.5" />
+          <span>Edit Details</span>
         </button>
       </div>
 
-      {/* Success Alert */}
+      {/* Success Notification */}
       {saveSuccess && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center justify-between animate-fade-in shadow-xs">
+        <div className="p-3.5 rounded-md bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{saveSuccess}</span>
@@ -280,294 +214,174 @@ export function ProfileClientView({
         </div>
       )}
 
-      {/* 2-Column Responsive Layout for Desktop (5 cols Left, 7 cols Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Account Details, Address & Preferences */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Profile Overview Card */}
-          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-2xs space-y-4">
-            <div className="flex items-start gap-4">
-              {/* Avatar */}
-              <div className="w-14 h-14 rounded-2xl bg-brand-purple text-white flex items-center justify-center font-bold text-lg tracking-tight shrink-0 shadow-xs">
-                {initials}
-              </div>
+      {/* 2. PERSONAL INFORMATION LIST (Clean list layout with subtle separators) */}
+      <section aria-labelledby="personal-details-heading" className="space-y-3">
+        <h2 id="personal-details-heading" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+          Personal Information
+        </h2>
 
-              {/* User Details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug truncate">
-                    {fullName}
-                  </h2>
-                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold shrink-0">
-                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                    <span>Verified</span>
-                  </span>
-                </div>
-
-                {/* Read-only Locked Phone */}
-                <div className="flex items-center gap-1.5 text-xs text-slate-600 font-mono">
-                  <span>{phone}</span>
-                  <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
-                    <Lock className="w-2.5 h-2.5" />
-                    <span>Fixed</span>
-                  </span>
-                </div>
-
-                {/* Email and Location */}
-                <div className="flex flex-col gap-1 text-xs text-slate-500 mt-2">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <Mail className="w-3.5 h-3.5 text-brand-purple shrink-0" />
-                    <span className="truncate">{email || "No email added"}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 truncate">
-                    <MapPin className="w-3.5 h-3.5 text-brand-purple shrink-0" />
-                    <span className="truncate">{city || "City not set"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <div className="text-center px-1">
-                <div className="text-[10px] font-semibold uppercase text-slate-400">Coins</div>
-                <div className="text-sm font-bold font-mono text-amber-700 mt-0.5">
-                  {coins.toLocaleString()}
-                </div>
-              </div>
-              <div className="text-center px-1 border-x border-slate-200">
-                <div className="text-[10px] font-semibold uppercase text-slate-400">Surveys</div>
-                <div className="text-sm font-bold font-mono text-slate-900 mt-0.5">
-                  {surveysCompleted}
-                </div>
-              </div>
-              <div className="text-center px-1">
-                <div className="text-[10px] font-semibold uppercase text-slate-400">Questions</div>
-                <div className="text-sm font-bold font-mono text-brand-purple mt-0.5">
-                  {userPosts.length}
-                </div>
-              </div>
-            </div>
+        <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden text-xs">
+          <div className="p-4 flex items-center justify-between">
+            <span className="text-slate-500 font-medium">Full Name</span>
+            <span className="font-semibold text-slate-900">{fullName}</span>
           </div>
 
-          {/* SECTION: Doorstep Delivery Address */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Home className="w-3.5 h-3.5 text-brand-purple" />
-                <span>Doorstep Delivery Address</span>
-              </h3>
-              <button
-                onClick={() => {
-                  setEditName(fullName);
-                  setEditEmail(email);
-                  setEditAddress(address);
-                  setEditCity(city);
-                  setEditPincode(pincode);
-                  setIsEditing(true);
-                }}
-                className="text-xs font-semibold text-brand-purple hover:underline cursor-pointer"
-              >
-                Edit
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              {address ? (
-                <span>{address}</span>
-              ) : (
-                <span className="text-slate-400 italic">
-                  No street address provided yet. Add your flat/house and locality for trial kit deliveries.
-                </span>
-              )}
-            </p>
-
-            <div className="flex items-center gap-2 pt-1">
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                City: {city}
+          <div className="p-4 flex items-center justify-between">
+            <span className="text-slate-500 font-medium">Verified Mobile</span>
+            <div className="flex items-center gap-1.5 font-mono font-semibold text-slate-900">
+              <span>{phone}</span>
+              <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded font-sans flex items-center gap-0.5">
+                <Lock className="w-2.5 h-2.5" />
+                <span>Locked</span>
               </span>
-              {pincode && (
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono">
-                  PIN: {pincode}
-                </span>
-              )}
             </div>
           </div>
 
-          {/* SECTION: Account Preferences & Security */}
-          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
-                  <Bell className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-semibold text-slate-900 block">WhatsApp Notifications</span>
-                  <p className="text-[11px] text-slate-500">
-                    Dispatch updates and survey invitations to {phone}.
-                  </p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={whatsappAlerts}
-                  onChange={(e) => setWhatsappAlerts(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple" />
-              </label>
-            </div>
-
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
-                  <Shield className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-semibold text-slate-900 block">Community Telemetry Sharing</span>
-                  <p className="text-[11px] text-slate-500">
-                    Contribute anonymized water readings to society benchmarks.
-                  </p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={telemetryConsent}
-                  onChange={(e) => setTelemetryConsent(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple" />
-              </label>
-            </div>
+          <div className="p-4 flex items-center justify-between">
+            <span className="text-slate-500 font-medium">Email Address</span>
+            <span className="font-medium text-slate-900">{email || "Not provided"}</span>
           </div>
 
-          {/* Account Actions (Sign Out & Delete) */}
-          <div className="pt-1 flex items-center gap-3">
-            <button
-              onClick={() => setIsSignOutModalOpen(true)}
-              className="flex-1 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-            >
-              <LogOut className="w-3.5 h-3.5 text-slate-500" />
-              <span>Sign Out</span>
-            </button>
+          <div className="p-4 flex items-center justify-between">
+            <span className="text-slate-500 font-medium">City Node</span>
+            <span className="font-medium text-slate-900">{city}</span>
+          </div>
 
-            <button
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="px-4 py-2 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          <div className="p-4 flex items-center justify-between">
+            <span className="text-slate-500 font-medium">Reward Coins</span>
+            <Link
+              href="/rewards"
+              className="font-bold font-mono text-amber-700 hover:underline flex items-center gap-1"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete</span>
-            </button>
+              <Coins className="w-3.5 h-3.5 text-amber-600" />
+              <span>{coins.toLocaleString()} Coins</span>
+              <ChevronRight className="w-3 h-3 text-slate-400" />
+            </Link>
+          </div>
+
+          <div className="p-4 flex items-center justify-between">
+            <span className="text-slate-500 font-medium">Research Surveys Completed</span>
+            <span className="font-semibold text-slate-900">{surveysCompleted}</span>
+          </div>
+
+          <div className="p-4 flex items-center justify-between">
+            <span className="text-slate-500 font-medium">Verified Neighbor Referrals</span>
+            <span className="font-semibold text-slate-900">{referralsRewarded}</span>
           </div>
         </div>
+      </section>
 
-        {/* Right Column: Community Questions & Activity */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                  <span>My Questions & Posts</span>
-                  <span className="text-[10px] font-bold text-brand-purple bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
-                    {userPosts.length}
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Questions and water observations you have shared with the homeowner community
-                </p>
-              </div>
+      {/* 3. DOORSTEP DELIVERY ADDRESS */}
+      <section aria-labelledby="shipping-address-heading" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 id="shipping-address-heading" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Doorstep Delivery Address
+          </h2>
+          <button
+            onClick={() => {
+              setEditName(fullName);
+              setEditEmail(email);
+              setEditAddress(address);
+              setEditCity(city);
+              setEditPincode(pincode);
+              setIsEditing(true);
+            }}
+            className="text-xs font-semibold text-brand-purple hover:underline cursor-pointer"
+          >
+            Update Address
+          </button>
+        </div>
 
-              <button
-                onClick={() => setIsPostModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Ask Question</span>
-              </button>
-            </div>
-
-            {userPosts.length === 0 ? (
-              <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-100">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-brand-purple flex items-center justify-center mx-auto mb-2">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <h4 className="text-xs font-bold text-slate-800">No Community Questions Yet</h4>
-                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                  Ask about high-rise borewell TDS, geyser descaling tips, or purifier membrane replacement.
-                </p>
-                <button
-                  onClick={() => setIsPostModalOpen(true)}
-                  className="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold cursor-pointer shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Ask a Question</span>
-                </button>
-              </div>
+        <div className="bg-white rounded-lg border border-slate-200 p-4 text-xs space-y-1.5">
+          <div className="font-semibold text-slate-900">Primary Delivery Location</div>
+          <p className="text-slate-600 leading-relaxed">
+            {address ? (
+              address
             ) : (
-              <div className="space-y-3">
-                {userPosts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors space-y-2 bg-slate-50/40"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-brand-purple bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200 uppercase tracking-wider">
-                        {post.category || "Water Quality"}
-                      </span>
-                      <span className="text-[11px] text-slate-400 font-mono">
-                        {new Date(post.created_at).toLocaleDateString("en-IN", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
-                    </div>
-
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
-                      {post.title}
-                    </h4>
-
-                    {post.content && (
-                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                        {post.content}
-                      </p>
-                    )}
-
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                      <span className="flex items-center gap-1 text-slate-600 font-medium">
-                        <MessageSquare className="w-3 h-3 text-slate-400" />
-                        <span>{post.replies_count ?? 0} community responses</span>
-                      </span>
-                      <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px]">
-                        Published
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <span className="text-slate-400 italic">
+                No street address provided yet. Add your flat, building, and locality for trial kit deliveries.
+              </span>
             )}
+          </p>
+          <div className="text-slate-500 pt-1 flex items-center gap-3">
+            <span>City: {city}</span>
+            {pincode && <span>Pincode: {pincode}</span>}
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* 4. PREFERENCES & SECURITY */}
+      <section aria-labelledby="preferences-heading" className="space-y-3">
+        <h2 id="preferences-heading" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+          Preferences & Notifications
+        </h2>
+
+        <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden text-xs">
+          <div className="p-4 flex items-center justify-between">
+            <div>
+              <span className="font-semibold text-slate-900 block">WhatsApp Dispatch Updates</span>
+              <p className="text-slate-500 text-[11px] mt-0.5">
+                Delivery tracking and survey invitations sent to {phone}.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={whatsappAlerts}
+                onChange={(e) => setWhatsappAlerts(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-slate-900" />
+            </label>
+          </div>
+
+          <div className="p-4 flex items-center justify-between">
+            <div>
+              <span className="font-semibold text-slate-900 block">Community Telemetry Sharing</span>
+              <p className="text-slate-500 text-[11px] mt-0.5">
+                Contribute anonymized water readings to apartment benchmarks.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={telemetryConsent}
+                onChange={(e) => setTelemetryConsent(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-slate-900" />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. ACCOUNT ACTIONS */}
+      <section className="pt-2 flex items-center gap-3">
+        <button
+          onClick={() => setIsSignOutModalOpen(true)}
+          className="px-4 py-2 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <LogOut className="w-3.5 h-3.5 text-slate-500" />
+          <span>Sign Out</span>
+        </button>
+
+        <button
+          onClick={() => setIsDeleteModalOpen(true)}
+          className="px-4 py-2 rounded-md text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          <span>Delete Account</span>
+        </button>
+      </section>
 
       {/* ========================================================================= */}
-      {/* EDIT PROFILE MODAL (NAME, EMAIL, ADDRESS, CITY, PINCODE; PHONE LOCKED)   */}
+      {/* EDIT PROFILE MODAL                                                        */}
       {/* ========================================================================= */}
       {isEditing && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-5 sm:p-6 border border-slate-200 animate-fade-in max-h-[92vh] overflow-y-auto">
+          <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-5 border border-slate-200 animate-fade-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-brand-purple/10 text-brand-purple flex items-center justify-center">
-                  <Edit2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Edit Profile & Address</h3>
-                  <span className="text-[10px] text-slate-400">Doorstep delivery information</span>
-                </div>
-              </div>
+              <h3 className="text-sm font-bold text-slate-900">Edit Profile & Address</h3>
               <button
                 onClick={() => setIsEditing(false)}
                 className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
@@ -577,37 +391,29 @@ export function ProfileClientView({
             </div>
 
             {editError && (
-              <div className="mb-3 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+              <div className="mb-3 p-3 rounded bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
                 <span>{editError}</span>
               </div>
             )}
 
             <form onSubmit={handleSaveProfile} className="space-y-3.5 text-xs">
-              {/* Phone Number (Read-Only Locked) */}
               <div>
                 <label className="block text-slate-700 font-semibold mb-1 flex items-center justify-between">
-                  <span>Mobile Phone Number</span>
-                  <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-0.5">
+                  <span>Mobile Phone</span>
+                  <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
                     <Lock className="w-2.5 h-2.5" />
-                    <span>Verified</span>
+                    <span>Permanent</span>
                   </span>
                 </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    disabled
-                    value={phone}
-                    className="w-full h-8 px-3 rounded-lg border border-slate-200 bg-slate-100 text-slate-500 font-mono text-xs cursor-not-allowed select-none"
-                  />
-                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5" />
-                </div>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Primary mobile number is verified with WhatsApp OTP and cannot be changed.
-                </p>
+                <input
+                  type="text"
+                  disabled
+                  value={phone}
+                  className="w-full h-8 px-3 rounded border border-slate-200 bg-slate-100 text-slate-500 font-mono text-xs cursor-not-allowed select-none"
+                />
               </div>
 
-              {/* Full Name */}
               <div>
                 <label className="block text-slate-700 font-semibold mb-1">
                   Full Name *
@@ -617,12 +423,10 @@ export function ProfileClientView({
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  placeholder="e.g. Ramesh Reddy"
-                  className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
+                  className="w-full h-8 px-3 rounded border border-slate-200 text-xs focus:outline-none focus:border-slate-900"
                 />
               </div>
 
-              {/* Email Address */}
               <div>
                 <label className="block text-slate-700 font-semibold mb-1">
                   Email Address
@@ -632,28 +436,23 @@ export function ProfileClientView({
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
+                  className="w-full h-8 px-3 rounded border border-slate-200 text-xs focus:outline-none focus:border-slate-900"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Used for order receipts and lab test scorecards.
-                </p>
               </div>
 
-              {/* Complete Address */}
               <div>
                 <label className="block text-slate-700 font-semibold mb-1">
-                  Complete Address (Flat, Street, Locality)
+                  Complete Address
                 </label>
                 <textarea
                   rows={2}
                   value={editAddress}
                   onChange={(e) => setEditAddress(e.target.value)}
-                  placeholder="e.g. Flat 402, Tower B, Palm Meadows, Whitefield"
-                  className="w-full p-2.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
+                  placeholder="Flat, street, locality"
+                  className="w-full p-2.5 rounded border border-slate-200 text-xs focus:outline-none focus:border-slate-900"
                 />
               </div>
 
-              {/* City and Pincode */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">
@@ -664,8 +463,7 @@ export function ProfileClientView({
                     required
                     value={editCity}
                     onChange={(e) => setEditCity(e.target.value)}
-                    placeholder="Bangalore"
-                    className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
+                    className="w-full h-8 px-3 rounded border border-slate-200 text-xs focus:outline-none focus:border-slate-900"
                   />
                 </div>
 
@@ -678,156 +476,26 @@ export function ProfileClientView({
                     maxLength={6}
                     value={editPincode}
                     onChange={(e) => setEditPincode(e.target.value)}
-                    placeholder="560066"
-                    className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs font-mono focus:outline-none focus:border-brand-purple"
+                    placeholder="6 digits"
+                    className="w-full h-8 px-3 rounded border border-slate-200 text-xs font-mono focus:outline-none focus:border-slate-900"
                   />
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
+                  className="px-3.5 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="px-4 py-1.5 rounded bg-slate-900 hover:bg-slate-800 text-white font-semibold flex items-center gap-1.5 cursor-pointer"
                 >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save Changes</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* ASK QUESTION / CREATE POST MODAL                                          */}
-      {/* ========================================================================= */}
-      {isPostModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-5 sm:p-6 border border-slate-200 animate-fade-in max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-brand-purple/10 text-brand-purple flex items-center justify-center">
-                  <Plus className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Ask a Question / Post</h3>
-                  <p className="text-[10px] text-slate-400">Share with the GharSure homeowner community</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsPostModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreatePost} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPostType("QUESTION")}
-                  className={`p-2 rounded-lg border text-center font-semibold transition-all ${
-                    postType === "QUESTION"
-                      ? "border-brand-purple bg-purple-50 text-brand-purple"
-                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  Ask a Question
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPostType("OBSERVATION")}
-                  className={`p-2 rounded-lg border text-center font-semibold transition-all ${
-                    postType === "OBSERVATION"
-                      ? "border-brand-purple bg-purple-50 text-brand-purple"
-                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  Water Observation
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  Topic Category *
-                </label>
-                <select
-                  value={postCategory}
-                  onChange={(e) => setPostCategory(e.target.value)}
-                  className="w-full h-8 px-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple bg-white"
-                >
-                  <option value="Water Quality">Water Quality & Hardness</option>
-                  <option value="RO Purifiers">RO Purifiers & Filters</option>
-                  <option value="Geysers & Descaling">Geysers & Scaling</option>
-                  <option value="Store Trials">Store Trial Feedback</option>
-                  <option value="General Home Care">General Home Care</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  Question / Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={postTitle}
-                  onChange={(e) => setPostTitle(e.target.value)}
-                  placeholder="e.g. How to reduce TDS in high-rise borewell supply?"
-                  className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  Details / Context
-                </label>
-                <textarea
-                  rows={3}
-                  value={postContent}
-                  onChange={(e) => setPostContent(e.target.value)}
-                  placeholder="Share details about your locality, water taste, or appliance behavior..."
-                  className="w-full p-2.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsPostModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingPost}
-                  className="px-4 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  {isSubmittingPost ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Posting...</span>
-                    </>
-                  ) : (
-                    <span>Publish to Community</span>
-                  )}
+                  {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
                 </button>
               </div>
             </form>
@@ -838,57 +506,51 @@ export function ProfileClientView({
       {/* Sign Out Confirmation Modal */}
       {isSignOutModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-5 border border-slate-200 animate-fade-in text-center">
-            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mx-auto mb-3">
-              <LogOut className="w-5 h-5" />
-            </div>
+          <div className="w-full max-w-sm bg-white rounded-lg shadow-xl p-5 border border-slate-200 animate-fade-in text-center">
             <h3 className="text-sm font-bold text-slate-900">Sign Out of GharSure?</h3>
             <p className="text-xs text-slate-500 mt-1 mb-4">
-              You can sign back in anytime with your mobile number.
+              You can log back in at any time with your phone number.
             </p>
             <div className="flex items-center justify-center gap-2">
               <button
                 onClick={() => setIsSignOutModalOpen(false)}
-                className="px-4 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                className="px-3.5 py-1.5 rounded border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1"
+                className="px-4 py-1.5 rounded bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer"
               >
-                {isLoggingOut ? "Signing out..." : "Yes, Sign Out"}
+                {isLoggingOut ? "Signing out..." : "Sign Out"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete Account Confirmation Modal */}
+      {/* Delete Account Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-5 border border-slate-200 animate-fade-in text-center">
-            <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
-              <Trash2 className="w-5 h-5" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900">Delete Account?</h3>
+          <div className="w-full max-w-sm bg-white rounded-lg shadow-xl p-5 border border-slate-200 animate-fade-in text-center">
+            <h3 className="text-sm font-bold text-rose-600">Delete Account?</h3>
             <p className="text-xs text-slate-500 mt-1 mb-4">
-              This will permanently revoke your session, anonymize your data, and close access.
+              This action is irreversible. All unredeemed coins and records will be deleted.
             </p>
             <div className="flex items-center justify-center gap-2">
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                className="px-3.5 py-1.5 rounded border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAccount}
                 disabled={isDeleting}
-                className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1"
+                className="px-4 py-1.5 rounded bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer"
               >
-                {isDeleting ? "Deleting..." : "Delete Account"}
+                {isDeleting ? "Deleting..." : "Confirm Delete"}
               </button>
             </div>
           </div>
