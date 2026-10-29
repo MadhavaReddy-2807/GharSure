@@ -44,7 +44,7 @@ describe("Live Supabase Admin Queries", () => {
 
     const valid = verifyAdminPassword(adminPass, adminUser!.password_hash);
     expect(valid).toBe(true);
-  });
+  }, 15000);
 
   it("fetches live dashboard metrics from database", async () => {
     const metrics = await getDashboardMetrics();

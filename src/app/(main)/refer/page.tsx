@@ -21,7 +21,7 @@ export default async function ReferPage() {
             Refer & Win
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Invite neighbors to verify their water diagnostics and earn bonus coins.
+            Invite neighbors to join GharSure and earn bonus coins for household essentials.
           </p>
         </div>
       </div>

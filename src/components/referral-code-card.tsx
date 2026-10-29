@@ -29,7 +29,7 @@ export function ReferralCodeCard({ code, bonusCoins = 100 }: ReferralCodeCardPro
   const handleWhatsAppShare = () => {
     const url = getShareUrl();
     const shareText = encodeURIComponent(
-      `Join me on GharSure with my invite code ${code} to get ${bonusCoins} bonus coins for home water & appliance trials: ${url}`
+      `Join me on GharSure with my invite code ${code} to get ${bonusCoins} bonus coins for household essentials & trials: ${url}`
     );
     window.open(`https://api.whatsapp.com/send?text=${shareText}`, "_blank");
   };

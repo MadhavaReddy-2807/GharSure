@@ -63,7 +63,7 @@ export default async function RewardsPage() {
           </div>
           <Link
             href="/store"
-            className="px-3.5 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span>Store</span>
@@ -102,7 +102,7 @@ export default async function RewardsPage() {
             Redeem Coins in the Store for Free Doorstep Trials
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Zero monetary charge. Water test strips, citric descalers, and inline filters are delivered to your door.
+            Zero monetary charge. Household essentials, care products, and lifestyle trials are delivered to your door.
           </p>
         </div>
 
@@ -156,7 +156,7 @@ export default async function RewardsPage() {
                       {survey.title}
                     </h3>
                     <p className="text-xs text-slate-500 line-clamp-2 mt-1">
-                      {survey.description || "Help improve residential water solutions."}
+                      {survey.description || "Help improve household solutions and everyday essentials."}
                     </p>
                   </div>
 
@@ -168,7 +168,7 @@ export default async function RewardsPage() {
 
                     <Link
                       href={`/surveys/${survey.id}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors shadow-sm"
                     >
                       <span>{isInProgress ? "Resume" : "Start"}</span>
                       <ArrowRight className="w-3 h-3" />

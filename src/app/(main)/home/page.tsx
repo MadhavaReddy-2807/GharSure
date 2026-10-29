@@ -6,13 +6,15 @@ import { isDirectDatabaseConfigured, getDirectSql } from "@/lib/supabase/direct-
 import { listAvailableSurveysForCustomer } from "@/lib/survey-db";
 import { listProductsAdmin } from "@/lib/admin-db";
 import {
-  Droplets,
   Coins,
   ClipboardList,
   ArrowRight,
   ShieldCheck,
   ChevronRight,
   Package,
+  Sparkles,
+  Home,
+  CheckCircle2,
 } from "lucide-react";
 
 export default async function HomePage() {
@@ -45,6 +47,14 @@ export default async function HomePage() {
     trendingProducts = fallbackProducts.slice(0, 4);
   }
 
+  // Curated attractive photos matching Smytten / Home4U
+  const dummyImages: Record<number, string> = {
+    0: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500&auto=format&fit=crop&q=80",
+    1: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=80",
+    2: "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=500&auto=format&fit=crop&q=80",
+    3: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500&auto=format&fit=crop&q=80",
+  };
+
   let featuredSurvey: any = null;
   if (session?.customerId) {
     try {
@@ -61,22 +71,22 @@ export default async function HomePage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <span className="font-medium text-slate-700">{city}</span>
+            <span className="font-semibold text-slate-700">{city}</span>
             <span>·</span>
-            <span className="inline-flex items-center gap-1 text-emerald-700">
+            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Verified Homeowner</span>
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Welcome, {displayName}
+            Welcome back, {displayName}
           </h1>
         </div>
 
-        {/* Clean Wallet Summary */}
+        {/* Clean Wallet Summary with Friendly Blue Button */}
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
               Reward Balance
             </div>
             <div className="text-base font-bold font-mono text-slate-900">
@@ -85,144 +95,140 @@ export default async function HomePage() {
           </div>
           <Link
             href="/store"
-            className="px-3.5 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors"
+            className="px-4 py-2 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors shadow-xs"
           >
-            Redeem
+            Explore Store
           </Link>
         </div>
       </div>
 
-      {/* 2. PRIORITY ACTION: ACTIVE SURVEY OPPORTUNITY */}
+      {/* 2. PRIORITY ACTION: ACTIVE RESEARCH SURVEY */}
       {featuredSurvey && (
         <section aria-labelledby="active-survey-heading">
-          <div className="p-4 sm:p-5 rounded-lg border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-2xs">
             <div className="flex items-start gap-3.5">
-              <div className="w-9 h-9 rounded-md bg-slate-100 text-slate-800 flex items-center justify-center shrink-0 mt-0.5">
-                <ClipboardList className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-[#2563EB] flex items-center justify-center shrink-0 mt-0.5 border border-blue-100">
+                <ClipboardList className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <span className="text-[10px] font-bold text-[#2563EB] uppercase tracking-wider bg-blue-50 px-2 py-0.5 rounded">
                     {featuredSurvey.category || "Research Survey"}
                   </span>
-                  <span className="text-xs font-mono font-semibold text-amber-700">
+                  <span className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                     +{featuredSurvey.rewardCoins} Coins
                   </span>
                 </div>
-                <h2 id="active-survey-heading" className="text-sm sm:text-base font-semibold text-slate-900">
+                <h2 id="active-survey-heading" className="text-sm sm:text-base font-bold text-slate-900">
                   {featuredSurvey.title}
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5 max-w-xl">
-                  {featuredSurvey.description || "Share household water details to earn instant reward coins."}
+                  {featuredSurvey.description || "Share household feedback to earn instant reward coins for Trail Kits."}
                 </p>
               </div>
             </div>
 
             <Link
               href={`/surveys/${featuredSurvey.id}`}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold transition-colors shrink-0 self-start sm:self-center"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors shrink-0 self-start sm:self-center shadow-xs"
             >
-              <span>{featuredSurvey.userStatus === "IN_PROGRESS" ? "Resume" : "Start Survey"}</span>
+              <span>{featuredSurvey.userStatus === "IN_PROGRESS" ? "Resume Survey" : "Start Survey"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </section>
       )}
 
-      {/* 3. WATER QUALITY & HOUSEHOLD TELEMETRY */}
-      <section aria-labelledby="telemetry-heading" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 id="telemetry-heading" className="text-sm font-bold uppercase tracking-wider text-slate-600">
-            Water Telemetry & Diagnostics
+      {/* 3. HOUSEHOLD OVERVIEW & PREVENTIVE CARE */}
+      <section aria-labelledby="household-overview-heading" className="space-y-3">
+        <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+          <h2 id="household-overview-heading" className="text-sm font-bold uppercase tracking-wider text-slate-800">
+            Household Care & Service Status
           </h2>
-          <span className="text-xs text-slate-500">Calibrated for {city}</span>
+          <span className="text-xs text-slate-500">{city} Node</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="p-4 rounded-lg border border-slate-200 bg-white">
-            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">TDS Reading</div>
-            <div className="text-lg font-bold font-mono text-slate-900 mt-1">340 - 420 ppm</div>
-            <p className="text-xs text-slate-500 mt-1">Standard municipal tap level. RO purification recommended.</p>
+          <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1 shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Doorstep Trials</div>
+            <div className="text-base font-bold text-slate-900">Free Kits Available</div>
+            <p className="text-xs text-slate-500">Redeem trial packs for home care with 0 coins in the Store.</p>
           </div>
 
-          <div className="p-4 rounded-lg border border-slate-200 bg-white">
-            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Water Hardness</div>
-            <div className="text-lg font-bold text-slate-900 mt-1">Moderate</div>
-            <p className="text-xs text-slate-500 mt-1">Mineral scale on geysers manageable with citric descaling.</p>
+          <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1 shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Preventive Care</div>
+            <div className="text-base font-bold text-emerald-700">All Systems Normal</div>
+            <p className="text-xs text-slate-500">Appliance descaling and periodic inspection on schedule.</p>
           </div>
 
-          <div className="p-4 rounded-lg border border-slate-200 bg-white">
-            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Purifier Maintenance</div>
-            <div className="text-lg font-bold text-slate-900 mt-1">Filter Flush Due</div>
-            <p className="text-xs text-slate-500 mt-1">Check sediment pre-filter cartridge status every 6 months.</p>
+          <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1 shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Community Referrals</div>
+            <div className="text-base font-bold text-blue-700">+100 Coins per Neighbor</div>
+            <p className="text-xs text-slate-500">Invite apartment residents to unlock collective benefits.</p>
           </div>
-        </div>
-
-        <div className="pt-1 flex items-center justify-between text-xs">
-          <span className="text-slate-500">Need physical test strips delivered to verify tap water?</span>
-          <Link href="/store" className="font-semibold text-brand-purple hover:underline flex items-center gap-1">
-            <span>Claim Free Test Kit in Store</span>
-            <ChevronRight className="w-3 h-3" />
-          </Link>
         </div>
       </section>
 
-      {/* 4. VERIFIED PRODUCTS & DOORSTEP TRIALS (Storefront Style) */}
+      {/* 4. FEATURED PRODUCTS & TRAIL KITS (Matching Image 2 Smytten Card Aesthetic) */}
       {trendingProducts.length > 0 && (
-        <section aria-labelledby="storefront-heading" className="space-y-4">
+        <section aria-labelledby="featured-products-heading" className="space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-slate-200">
             <div>
-              <h2 id="storefront-heading" className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                Storefront & Doorstep Trials
+              <h2 id="featured-products-heading" className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                Featured Products & Minis
               </h2>
               <p className="text-xs text-slate-500">
-                Verified water testing kits, IoT monitors, and OEM filter replacements
+                Explore popular household essentials and zero-cost doorstep trial kits
               </p>
             </div>
             <Link
               href="/store"
-              className="text-xs font-semibold text-brand-purple hover:underline flex items-center gap-1"
+              className="text-xs font-semibold text-[#2563EB] hover:underline flex items-center gap-1"
             >
-              <span>Explore All</span>
+              <span>View All</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {trendingProducts.map((p) => {
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            {trendingProducts.map((p, idx) => {
               const isTrial = p.product_type === "TRIAL";
               const cost = p.coin_price ?? 0;
               const price = Number(p.price_inr) || 0;
+              const imgUrl = dummyImages[idx] || dummyImages[0];
 
               return (
                 <div
                   key={p.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4 flex flex-col justify-between hover:border-slate-300 transition-colors"
+                  className="rounded-xl border border-slate-200/90 bg-white overflow-hidden flex flex-col justify-between hover:border-slate-300 transition-colors shadow-2xs"
                 >
                   <div>
-                    {/* Visual Placeholder container */}
-                    <div className="h-32 rounded bg-slate-50 border border-slate-100 flex items-center justify-center mb-3 text-slate-400">
-                      {isTrial ? (
-                        <span className="text-xs font-semibold text-amber-800 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
-                          Doorstep Trial
-                        </span>
-                      ) : (
-                        <Package className="w-8 h-8 text-slate-300" />
-                      )}
+                    {/* Image Container with Badges */}
+                    <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
+                      <img
+                        src={imgUrl}
+                        alt={p.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-2 left-2 z-10 text-[9px] font-bold text-white bg-amber-600 px-2 py-0.5 rounded shadow-2xs uppercase">
+                        {isTrial ? "★ Mini Trial" : "★ Hot Pick"}
+                      </span>
                     </div>
 
-                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                      {p.brand} · {p.category}
+                    <div className="p-3 space-y-0.5">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        {p.brand}
+                      </div>
+                      <h3 className="text-xs font-semibold text-slate-900 leading-snug line-clamp-1">
+                        {p.title}
+                      </h3>
                     </div>
-                    <h3 className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug line-clamp-2">
-                      {p.title}
-                    </h3>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <div className="p-3 pt-2 border-t border-slate-100 flex items-center justify-between">
                     {isTrial ? (
                       <span className="text-xs font-bold font-mono text-amber-900">
-                        {cost === 0 ? "0 Coins (Free)" : `${cost} Coins`}
+                        {cost === 0 ? "0 Coins" : `${cost} Coins`}
                       </span>
                     ) : (
                       <span className="text-xs font-bold font-mono text-slate-900">
@@ -230,11 +236,12 @@ export default async function HomePage() {
                       </span>
                     )}
 
+                    {/* Friendly Blue Button (Image 2 style) */}
                     <Link
                       href="/store"
-                      className="px-2.5 py-1 rounded text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors"
+                      className="px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors shadow-xs"
                     >
-                      {isTrial ? "Redeem" : "View"}
+                      {isTrial ? "Try +" : "Add +"}
                     </Link>
                   </div>
                 </div>
@@ -245,19 +252,19 @@ export default async function HomePage() {
       )}
 
       {/* 5. REFERRAL ENTRY POINT */}
-      <section className="p-4 sm:p-5 rounded-lg border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <section className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs">
         <div>
           <h3 className="text-xs sm:text-sm font-bold text-slate-900">
-            Invite Apartment Society Residents
+            Invite Apartment Society Neighbors
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Earn +100 reward coins for each verified household in your society node.
+            Earn +100 reward coins for each verified household in your apartment network.
           </p>
         </div>
 
         <Link
           href="/refer"
-          className="inline-flex items-center justify-center gap-1 px-3.5 py-1.5 rounded-md border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-semibold transition-colors shrink-0"
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors shrink-0 shadow-xs"
         >
           <span>Refer & Win</span>
           <ChevronRight className="w-3.5 h-3.5" />
