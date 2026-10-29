@@ -231,9 +231,9 @@ export function ProfileClientView({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-5 pb-20 select-none">
+    <div className="w-full max-w-7xl mx-auto space-y-6 pb-20 select-none">
       {/* Top Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200">
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => router.back()}
@@ -243,10 +243,10 @@ export function ProfileClientView({
             <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              My Profile
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              My Profile & Account
             </h1>
-            <p className="text-[11px] text-slate-400 font-mono">Customer ID: {customerId}</p>
+            <p className="text-[11px] text-slate-400 font-mono">Member ID: {customerId}</p>
           </div>
         </div>
 
@@ -260,7 +260,7 @@ export function ProfileClientView({
             setEditError(null);
             setIsEditing(true);
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors cursor-pointer shadow-xs"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors cursor-pointer shadow-xs"
         >
           <Edit2 className="w-3.5 h-3.5 text-brand-purple" />
           <span>Edit Profile</span>
@@ -269,7 +269,7 @@ export function ProfileClientView({
 
       {/* Success Alert */}
       {saveSuccess && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center justify-between animate-fade-in">
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center justify-between animate-fade-in shadow-xs">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{saveSuccess}</span>
@@ -280,277 +280,276 @@ export function ProfileClientView({
         </div>
       )}
 
-      {/* Profile Overview Card */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-2xs">
-        <div className="flex items-center gap-3.5">
-          {/* Avatar */}
-          <div className="w-13 h-13 rounded-2xl bg-brand-purple text-white flex items-center justify-center font-bold text-base tracking-tight shrink-0 shadow-xs">
-            {initials}
-          </div>
-
-          {/* User Details */}
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-slate-900 leading-snug">
-                {fullName}
-              </h2>
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold">
-                <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                <span>Verified</span>
-              </span>
-            </div>
-
-            {/* Read-only Locked Phone */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-600 font-mono mt-0.5">
-              <span>{phone}</span>
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
-                <Lock className="w-2.5 h-2.5" />
-                <span>Cannot be changed</span>
-              </span>
-            </div>
-
-            {/* Email and Location */}
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
-              <div className="flex items-center gap-1">
-                <Mail className="w-3 h-3 text-brand-purple" />
-                <span>{email || "No email added"}</span>
+      {/* 2-Column Responsive Layout for Desktop (5 cols Left, 7 cols Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Account Details, Address & Preferences */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Profile Overview Card */}
+          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-2xs space-y-4">
+            <div className="flex items-start gap-4">
+              {/* Avatar */}
+              <div className="w-14 h-14 rounded-2xl bg-brand-purple text-white flex items-center justify-center font-bold text-lg tracking-tight shrink-0 shadow-xs">
+                {initials}
               </div>
-              <div className="flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-brand-purple" />
-                <span>{city || "City not set"}</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-          <div className="text-center px-2">
-            <div className="text-[10px] font-semibold uppercase text-slate-400">Coins</div>
-            <div className="text-sm font-bold font-mono text-amber-700 mt-0.5">
-              {coins.toLocaleString()}
-            </div>
-          </div>
-          <div className="text-center px-2 border-x border-slate-200">
-            <div className="text-[10px] font-semibold uppercase text-slate-400">Surveys</div>
-            <div className="text-sm font-bold font-mono text-slate-900 mt-0.5">
-              {surveysCompleted}
-            </div>
-          </div>
-          <div className="text-center px-2">
-            <div className="text-[10px] font-semibold uppercase text-slate-400">Posts</div>
-            <div className="text-sm font-bold font-mono text-brand-purple mt-0.5">
-              {userPosts.length}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION: Complete Address & Contact Details */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Doorstep Delivery Address
-          </h3>
-          <button
-            onClick={() => {
-              setEditName(fullName);
-              setEditEmail(email);
-              setEditAddress(address);
-              setEditCity(city);
-              setEditPincode(pincode);
-              setIsEditing(true);
-            }}
-            className="text-xs font-semibold text-brand-purple hover:underline cursor-pointer"
-          >
-            Update Address
-          </button>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-purple-50 text-brand-purple flex items-center justify-center shrink-0">
-              <Home className="w-4 h-4" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs font-bold text-slate-900">
-                Primary Shipping Address
-              </div>
-              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                {address ? (
-                  <span>{address}</span>
-                ) : (
-                  <span className="text-slate-400 italic">
-                    No street address provided yet. Add your flat/house and locality for trial kit deliveries.
+              {/* User Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug truncate">
+                    {fullName}
+                  </h2>
+                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold shrink-0">
+                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                    <span>Verified</span>
                   </span>
-                )}
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                  City: {city}
+                </div>
+
+                {/* Read-only Locked Phone */}
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 font-mono">
+                  <span>{phone}</span>
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
+                    <Lock className="w-2.5 h-2.5" />
+                    <span>Fixed</span>
+                  </span>
+                </div>
+
+                {/* Email and Location */}
+                <div className="flex flex-col gap-1 text-xs text-slate-500 mt-2">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Mail className="w-3.5 h-3.5 text-brand-purple shrink-0" />
+                    <span className="truncate">{email || "No email added"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 truncate">
+                    <MapPin className="w-3.5 h-3.5 text-brand-purple shrink-0" />
+                    <span className="truncate">{city || "City not set"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="text-center px-1">
+                <div className="text-[10px] font-semibold uppercase text-slate-400">Coins</div>
+                <div className="text-sm font-bold font-mono text-amber-700 mt-0.5">
+                  {coins.toLocaleString()}
+                </div>
+              </div>
+              <div className="text-center px-1 border-x border-slate-200">
+                <div className="text-[10px] font-semibold uppercase text-slate-400">Surveys</div>
+                <div className="text-sm font-bold font-mono text-slate-900 mt-0.5">
+                  {surveysCompleted}
+                </div>
+              </div>
+              <div className="text-center px-1">
+                <div className="text-[10px] font-semibold uppercase text-slate-400">Questions</div>
+                <div className="text-sm font-bold font-mono text-brand-purple mt-0.5">
+                  {userPosts.length}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION: Doorstep Delivery Address */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Home className="w-3.5 h-3.5 text-brand-purple" />
+                <span>Doorstep Delivery Address</span>
+              </h3>
+              <button
+                onClick={() => {
+                  setEditName(fullName);
+                  setEditEmail(email);
+                  setEditAddress(address);
+                  setEditCity(city);
+                  setEditPincode(pincode);
+                  setIsEditing(true);
+                }}
+                className="text-xs font-semibold text-brand-purple hover:underline cursor-pointer"
+              >
+                Edit
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {address ? (
+                <span>{address}</span>
+              ) : (
+                <span className="text-slate-400 italic">
+                  No street address provided yet. Add your flat/house and locality for trial kit deliveries.
                 </span>
-                {pincode && (
-                  <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono">
-                    PIN: {pincode}
-                  </span>
-                )}
-              </div>
+              )}
+            </p>
+
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                City: {city}
+              </span>
+              {pincode && (
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono">
+                  PIN: {pincode}
+                </span>
+              )}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* SECTION: My Questions & Community Posts */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-            <span>My Questions & Posts</span>
-            <span className="text-[10px] font-bold text-brand-purple bg-purple-50 px-2 py-0.2 rounded border border-purple-200">
-              {userPosts.length}
-            </span>
-          </h3>
-
-          <button
-            onClick={() => setIsPostModalOpen(true)}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-brand-purple hover:underline cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Ask Question</span>
-          </button>
-        </div>
-
-        {userPosts.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-6 text-center shadow-2xs">
-            <div className="w-10 h-10 rounded-lg bg-purple-50 text-brand-purple flex items-center justify-center mx-auto mb-2">
-              <MessageSquare className="w-5 h-5" />
+          {/* SECTION: Account Preferences & Security */}
+          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
+                  <Bell className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-semibold text-slate-900 block">WhatsApp Notifications</span>
+                  <p className="text-[11px] text-slate-500">
+                    Dispatch updates and survey invitations to {phone}.
+                  </p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={whatsappAlerts}
+                  onChange={(e) => setWhatsappAlerts(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple" />
+              </label>
             </div>
-            <h4 className="text-xs font-bold text-slate-800">No Community Questions Yet</h4>
-            <p className="text-xs text-slate-500 mt-0.5 max-w-sm mx-auto">
-              Ask about water hardness, descaling tips, or purifier issues. Use the (+) button to post!
-            </p>
+
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-semibold text-slate-900 block">Community Telemetry Sharing</span>
+                  <p className="text-[11px] text-slate-500">
+                    Contribute anonymized water readings to society benchmarks.
+                  </p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={telemetryConsent}
+                  onChange={(e) => setTelemetryConsent(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple" />
+              </label>
+            </div>
+          </div>
+
+          {/* Account Actions (Sign Out & Delete) */}
+          <div className="pt-1 flex items-center gap-3">
             <button
-              onClick={() => setIsPostModalOpen(true)}
-              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold cursor-pointer shadow-xs"
+              onClick={() => setIsSignOutModalOpen(true)}
+              className="flex-1 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Ask a Question</span>
+              <LogOut className="w-3.5 h-3.5 text-slate-500" />
+              <span>Sign Out</span>
+            </button>
+
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="px-4 py-2 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete</span>
             </button>
           </div>
-        ) : (
-          <div className="space-y-2.5">
-            {userPosts.map((post) => (
-              <div
-                key={post.id}
-                className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs hover:border-slate-300 transition-colors"
+        </div>
+
+        {/* Right Column: Community Questions & Activity */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <span>My Questions & Posts</span>
+                  <span className="text-[10px] font-bold text-brand-purple bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
+                    {userPosts.length}
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Questions and water observations you have shared with the homeowner community
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsPostModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
               >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-bold text-brand-purple bg-purple-50 px-2 py-0.5 rounded border border-purple-200 uppercase tracking-wider">
-                    {post.category || "Water Quality"}
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    {new Date(post.created_at).toLocaleDateString("en-IN", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
-                </div>
-                <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
-                  {post.title}
-                </h4>
-                {post.content && (
-                  <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">
-                    {post.content}
-                  </p>
-                )}
-                <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <MessageSquare className="w-3 h-3 text-slate-400" />
-                    <span>{post.replies_count ?? 0} community responses</span>
-                  </span>
-                  <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 text-[10px]">
-                    Published
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* SECTION: Account Preferences */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
-          Preferences & Security
-        </h3>
-
-        <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
-          {/* WhatsApp Notifications Toggle */}
-          <div className="p-3.5 sm:p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
-                <Bell className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-slate-900 block">WhatsApp Notifications</span>
-                <p className="text-[11px] text-slate-500">
-                  Doorstep dispatch updates and survey invitations to {phone}.
-                </p>
-              </div>
+                <Plus className="w-3.5 h-3.5" />
+                <span>Ask Question</span>
+              </button>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={whatsappAlerts}
-                onChange={(e) => setWhatsappAlerts(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple" />
-            </label>
-          </div>
 
-          {/* Privacy & Telemetry Consent */}
-          <div className="p-3.5 sm:p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
-                <Shield className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-slate-900 block">Community Telemetry Sharing</span>
-                <p className="text-[11px] text-slate-500">
-                  Contribute anonymized water readings to society benchmarks.
+            {userPosts.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-100">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-brand-purple flex items-center justify-center mx-auto mb-2">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-800">No Community Questions Yet</h4>
+                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                  Ask about high-rise borewell TDS, geyser descaling tips, or purifier membrane replacement.
                 </p>
+                <button
+                  onClick={() => setIsPostModalOpen(true)}
+                  className="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Ask a Question</span>
+                </button>
               </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={telemetryConsent}
-                onChange={(e) => setTelemetryConsent(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple" />
-            </label>
+            ) : (
+              <div className="space-y-3">
+                {userPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors space-y-2 bg-slate-50/40"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-brand-purple bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200 uppercase tracking-wider">
+                        {post.category || "Water Quality"}
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {new Date(post.created_at).toLocaleDateString("en-IN", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+
+                    <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
+                      {post.title}
+                    </h4>
+
+                    {post.content && (
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                        {post.content}
+                      </p>
+                    )}
+
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                      <span className="flex items-center gap-1 text-slate-600 font-medium">
+                        <MessageSquare className="w-3 h-3 text-slate-400" />
+                        <span>{post.replies_count ?? 0} community responses</span>
+                      </span>
+                      <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px]">
+                        Published
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      </div>
-
-      {/* Account Actions (Sign Out & Delete) */}
-      <div className="pt-2 flex flex-col sm:flex-row items-center gap-2">
-        <button
-          onClick={() => setIsSignOutModalOpen(true)}
-          className="w-full sm:w-auto px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-        >
-          <LogOut className="w-3.5 h-3.5 text-slate-500" />
-          <span>Sign Out</span>
-        </button>
-
-        <button
-          onClick={() => setIsDeleteModalOpen(true)}
-          className="w-full sm:w-auto px-4 py-2 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          <span>Delete Account</span>
-        </button>
       </div>
 
       {/* ========================================================================= */}

@@ -40,9 +40,44 @@ export default async function StorePage() {
     products = all;
   }
 
+  // Pre-configured partner vouchers & offers
+  const vouchers = [
+    {
+      id: "vouch-01",
+      title: "50% Off Annual RO Membrane & Filter Service",
+      partner: "PurePro Care",
+      code: "PURE50RO",
+      discount: "50% OFF",
+      validity: "Valid for 30 days",
+      terms: "Applicable on all multi-stage RO filter replacements across certified urban technicians.",
+      category: "Service Voucher",
+    },
+    {
+      id: "vouch-02",
+      title: "Free Doorstep Multi-Parameter Water Diagnostic Pass",
+      partner: "GharSure Lab",
+      code: "FREELABTEST",
+      discount: "100% FREE",
+      validity: "Valid for registered societies",
+      terms: "Includes laboratory analysis of TDS, pH, hardness, and chlorine levels by a certified chemist.",
+      category: "Diagnostic Pass",
+    },
+    {
+      id: "vouch-03",
+      title: "₹300 Off Anti-Scalant Magnetic Conditioner Kit",
+      partner: "GharSure Hardware",
+      code: "GHARSCALE300",
+      discount: "₹300 FLAT",
+      validity: "Instant redemption",
+      terms: "Redeemable against any whole-house or geyser anti-scalant magnetic conditioner installation.",
+      category: "Product Voucher",
+    },
+  ];
+
   return (
     <StoreClientView
       initialProducts={products}
+      vouchers={vouchers}
       userCoins={userCoins}
       isLoggedIn={Boolean(session?.customerId)}
     />
