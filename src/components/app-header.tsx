@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "./logo";
-import { Home, Award, Users, ShoppingBag, Coins, ShoppingCart, Search } from "lucide-react";
+import { Coins, ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { cn } from "@/lib/utils";
 
@@ -31,15 +31,15 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
           {/* Brand Logo (Left) */}
           <Link
             href="/home"
-            className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple rounded"
+            className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
           >
             <Logo size="sm" showText />
           </Link>
 
-          {/* Desktop Navigation Links (Center, HOME4U Style) */}
+          {/* Desktop Navigation Links (Center, Clean Underline Style) */}
           <nav
             aria-label="Desktop Navigation"
-            className="hidden md:flex items-center gap-7"
+            className="hidden md:flex items-center gap-8"
           >
             {desktopNavItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -65,22 +65,12 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
             })}
           </nav>
 
-          {/* Right Action Utilities (HOME4U Style: Search, Coins, Cart & Profile) */}
+          {/* Right Action Utilities (Coins, Shopping Cart & Profile) */}
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Store Search Quick Link */}
-            <Link
-              href="/store"
-              className="text-slate-600 hover:text-slate-900 transition-colors p-1"
-              title="Search Products & Trials"
-              aria-label="Search Store"
-            >
-              <Search className="w-4.5 h-4.5 stroke-[2]" />
-            </Link>
-
             {/* GharSure Coins Badge */}
             <Link
               href="/rewards"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 hover:bg-amber-100/80 border border-amber-200 text-amber-900 transition-colors text-xs select-none"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100/80 border border-amber-200 text-amber-900 transition-colors text-xs select-none"
               title="GharSure Coins"
             >
               <Coins className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -92,7 +82,7 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
               </span>
             </Link>
 
-            {/* Shopping Cart Icon with Live Counter (Matching Image 1) */}
+            {/* Shopping Cart Icon with Live Counter */}
             <button
               onClick={openCart}
               className="relative p-1.5 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
@@ -100,7 +90,7 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
               aria-label={`Shopping cart with ${totalCount} items`}
             >
               <ShoppingCart className="w-5 h-5 stroke-[2]" />
-              <span className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-slate-950 text-white font-bold text-[10px] flex items-center justify-center leading-none shadow-xs">
+              <span className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-[#2563EB] text-white font-bold text-[10px] flex items-center justify-center leading-none shadow-xs">
                 {totalCount}
               </span>
             </button>
@@ -117,7 +107,7 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
               title="My Account"
               aria-label="My Account"
             >
-              <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[10px]">
+              <div className="w-6 h-6 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-[10px]">
                 {fullName ? fullName[0]?.toUpperCase() : "U"}
               </div>
               <span className="max-w-[100px] truncate hidden sm:inline font-medium">

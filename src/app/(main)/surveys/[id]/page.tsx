@@ -15,6 +15,7 @@ import {
   Award,
   AlertCircle,
   ArrowRight,
+  Check,
 } from "lucide-react";
 import { QuestionRenderer } from "@/components/survey/question-renderer";
 import {
@@ -61,7 +62,7 @@ export default function SurveyTakingPage({
   const [completionMessage, setCompletionMessage] = useState("");
   const [earnedCoins, setEarnedCoins] = useState(0);
 
-  // 1. Load user profile for avatar
+  // 1. Load user profile
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => res.json())
@@ -79,7 +80,6 @@ export default function SurveyTakingPage({
     setGeneralError(null);
     setIsAuthRequired(false);
     try {
-      // Step A: Load survey definition & questions (accessible even to guests)
       const surveyRes = await fetch(`/api/surveys/${surveyId}`);
       const surveyData = await surveyRes.json();
 
@@ -90,7 +90,6 @@ export default function SurveyTakingPage({
       setSurvey(surveyData.survey);
       setQuestions(surveyData.questions || []);
 
-      // Step B: Start or resume survey attempt
       const startRes = await fetch(`/api/surveys/${surveyId}/start`, { method: "POST" });
       const startData = await startRes.json();
 
@@ -120,7 +119,6 @@ export default function SurveyTakingPage({
 
       setAttempt(startData.attempt);
 
-      // Check if resuming an existing attempt with answers
       const existingAnswers = startData.attempt?.answers || {};
       if (Object.keys(existingAnswers).length > 0) {
         setIsResumeAttempt(true);
@@ -137,7 +135,7 @@ export default function SurveyTakingPage({
     loadSurvey();
   }, [loadSurvey]);
 
-  // 3. Compute applicable questions given current answers (Decision branching support)
+  // 3. Compute applicable questions given current answers
   const navResult = computeApplicableQuestions(
     questions,
     answers,
@@ -173,9 +171,8 @@ export default function SurveyTakingPage({
     [attempt?.id, surveyId]
   );
 
-  // 5. Handle answer change with dynamic branching recalculation
+  // 5. Handle answer change
   const handleAnswerChange = (questionId: string, val: any) => {
-    // Clear inline error for this field
     if (fieldErrors[questionId]) {
       const updatedErrors = { ...fieldErrors };
       delete updatedErrors[questionId];
@@ -187,7 +184,6 @@ export default function SurveyTakingPage({
       [questionId]: val,
     };
 
-    // Clean downstream answers if branching changes
     const { cleanedAnswers } = invalidateDownstreamAnswers(
       questions,
       updatedAnswers,
@@ -202,7 +198,6 @@ export default function SurveyTakingPage({
   const handleSubmit = async () => {
     if (!attempt?.id || isSubmitting) return;
 
-    // Validate all applicable required questions
     const errors: Record<string, string> = {};
     for (const q of applicableQuestions) {
       const val = answers[q.id];
@@ -215,7 +210,6 @@ export default function SurveyTakingPage({
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       setGeneralError("Please complete all required questions to submit.");
-      // Scroll to the first error smoothly
       const firstErrorId = Object.keys(errors)[0];
       const el = document.getElementById(`q-${firstErrorId}`);
       if (el) {
@@ -257,45 +251,12 @@ export default function SurveyTakingPage({
     }
   };
 
-  // Helper to split title for clean blue accent (e.g., "User Experience Survey" -> "User Experience" & "Survey")
-  const renderStyledTitle = (title: string) => {
-    if (!title) return null;
-    const trimmed = title.trim();
-    const parts = trimmed.split(/\s+/);
-    if (parts.length === 1) {
-      return (
-        <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-800 tracking-tight leading-[1.15]">
-          <span className="text-blue-600">{parts[0]}</span>
-        </h1>
-      );
-    }
-
-    // If last word is "Survey" or similar, accent the last word in bright blue
-    const mainText = parts.slice(0, -1).join(" ");
-    const accentText = parts[parts.length - 1];
-
-    return (
-      <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-800 tracking-tight leading-[1.15]">
-        {mainText} <span className="text-blue-600 block sm:inline">{accentText}</span>
-      </h1>
-    );
-  };
-
-  // User initials for circular avatar
-  const userName = customer?.displayName || customer?.fullName || "User";
-  const userInitials = userName
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#EDF4FE] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-3">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+      <div className="py-24 flex flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-center mb-3">
+          <Loader2 className="w-6 h-6 animate-spin text-[#2563EB]" />
         </div>
         <p className="text-xs font-semibold text-slate-700">Loading survey...</p>
         <p className="text-[11px] text-slate-400 mt-0.5">Connecting to GharSure research engine</p>
@@ -303,32 +264,30 @@ export default function SurveyTakingPage({
     );
   }
 
-  // Survey Not Found / Error State
+  // Error State
   if (generalError && !survey) {
     return (
-      <div className="min-h-screen bg-[#EDF4FE] relative flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
-        <div className="w-full max-w-[420px] bg-white rounded-[32px] sm:rounded-[36px] shadow-[0_20px_50px_rgba(37,99,235,0.07)] border border-white/80 p-7 text-center space-y-4">
-          <div className="w-14 h-14 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto border border-red-100">
-            <AlertCircle className="w-7 h-7" />
-          </div>
-          <h1 className="text-lg font-bold text-slate-800">Survey Not Available</h1>
-          <p className="text-xs text-slate-500 leading-relaxed">{generalError}</p>
-          <div className="pt-2">
-            <Link
-              href="/rewards"
-              className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition-all"
-            >
-              <span>Explore Available Surveys</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+      <div className="w-full max-w-2xl mx-auto py-16 text-center space-y-4">
+        <div className="w-14 h-14 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto border border-red-100">
+          <AlertCircle className="w-7 h-7" />
+        </div>
+        <h1 className="text-xl font-bold text-slate-900">Survey Not Available</h1>
+        <p className="text-xs text-slate-500 max-w-md mx-auto">{generalError}</p>
+        <div className="pt-2">
+          <Link
+            href="/rewards"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs transition-colors shadow-xs"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Explore Available Surveys</span>
+          </Link>
         </div>
       </div>
     );
   }
 
   // ---------------------------------------------------------------------------
-  // A. SURVEY INTRODUCTION SCREEN (Before Questions)
+  // A. INTRO SCREEN (Full-Width Responsive Card)
   // ---------------------------------------------------------------------------
   if (!hasStarted && !isCompleted && !isDisqualified) {
     const isDecisionBased = survey?.surveyType === "DECISION_BASED";
@@ -337,109 +296,82 @@ export default function SurveyTakingPage({
       : `${questions.length} questions`;
 
     return (
-      <div className="min-h-screen bg-[#EDF4FE] relative flex flex-col items-center justify-start p-0 sm:p-6 md:p-8 overflow-x-hidden font-sans">
-        {/* Soft geometric background accents */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-          <div className="absolute -top-20 -left-20 w-96 h-96 bg-blue-200/30 rounded-[64px] rotate-12 blur-2xl" />
-          <div className="absolute top-1/4 -right-20 w-[480px] h-[480px] bg-blue-200/25 rounded-[72px] -rotate-12 blur-3xl" />
-          <div className="absolute -bottom-24 left-1/4 w-[420px] h-[420px] bg-blue-100/40 rounded-[64px] rotate-45 blur-2xl" />
-        </div>
+      <div className="w-full max-w-3xl mx-auto py-6 sm:py-10 space-y-6">
+        {/* Back Link */}
+        <Link
+          href="/rewards"
+          className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>Back to Rewards</span>
+        </Link>
 
-        {/* Centered Mobile Card Panel */}
-        <div className="relative z-10 w-full max-w-[420px] bg-white sm:rounded-[36px] shadow-[0_20px_50px_rgba(37,99,235,0.07),0_4px_20px_rgba(15,23,42,0.03)] border-x sm:border border-white/80 overflow-hidden flex flex-col min-h-screen sm:min-h-[640px] my-auto">
-          {/* Header Area with Subtle Blue Top Gradient */}
-          <div className="bg-gradient-to-b from-[#DCEAFC]/75 via-[#F1F6FE]/70 to-white px-6 pt-5 pb-5 sm:px-7 sm:pt-6">
-            {/* Top Bar: Back Button + Avatar */}
-            <div className="flex items-center justify-between mb-6">
-              <button
-                type="button"
-                onClick={() => router.push("/rewards")}
-                className="w-9 h-9 rounded-full bg-slate-200/60 hover:bg-slate-300/80 active:bg-slate-300 text-slate-700 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
-                aria-label="Back to Rewards"
-              >
-                <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-              </button>
-
-              <div className="flex items-center gap-2">
-                {survey?.rewardCoins ? (
-                  <span className="text-[11px] font-bold text-blue-700 bg-blue-100/80 px-2.5 py-0.5 rounded-full">
-                    +{survey.rewardCoins} Coins
-                  </span>
-                ) : null}
-                <div
-                  className="w-9 h-9 rounded-full ring-2 ring-white shadow-xs overflow-hidden bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xs font-bold"
-                  title={userName}
-                >
-                  {userInitials}
-                </div>
-              </div>
+        {/* Intro Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+          <div className="p-6 sm:p-8 border-b border-slate-100 bg-gradient-to-b from-blue-50/40 via-white to-white space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-[#2563EB] uppercase tracking-wider bg-blue-50 px-2.5 py-0.5 rounded border border-blue-100">
+                {survey?.category || "Research Survey"}
+              </span>
+              {survey?.rewardCoins ? (
+                <span className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-200">
+                  +{survey.rewardCoins} Coins Reward
+                </span>
+              ) : null}
             </div>
 
-            {/* Title & Blue Accent */}
-            {renderStyledTitle(survey?.title || "Community Research Survey")}
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              {survey?.title || "Community Research Survey"}
+            </h1>
 
-            {/* Description */}
-            <p className="text-[13px] text-slate-600 font-normal mt-2 leading-relaxed">
-              {survey?.description || "Help us improve our services by answering a few quick questions!"}
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
+              {survey?.description || "Help us improve household solutions and everyday care by answering a few quick questions."}
             </p>
           </div>
 
-          {/* Intro Content Body */}
-          <div className="px-6 sm:px-7 pt-2 pb-8 flex-1 flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              {/* Quick Info Grid */}
-              <div className="grid grid-cols-2 gap-2.5 pt-2">
-                <div className="p-3 rounded-2xl bg-slate-50/90 border border-slate-100 flex items-center gap-2.5">
-                  <Clock className="w-4 h-4 text-blue-600 shrink-0" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Duration</span>
-                    <span className="text-xs font-bold text-slate-800">~{survey?.estimatedDurationMin || 3} mins</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-slate-50/90 border border-slate-100 flex items-center gap-2.5">
-                  <ClipboardList className="w-4 h-4 text-blue-600 shrink-0" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Questions</span>
-                    <span className="text-xs font-bold text-slate-800">{questionCountText}</span>
-                  </div>
+          <div className="p-6 sm:p-8 space-y-6">
+            {/* Quick Info Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 flex items-center gap-3">
+                <Clock className="w-4 h-4 text-[#2563EB] shrink-0" />
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Estimated Time</div>
+                  <div className="text-xs font-bold text-slate-800">~{survey?.estimatedDurationMin || 3} mins</div>
                 </div>
               </div>
 
-              {/* Dynamic Branching Notice if applicable */}
-              {isDecisionBased && (
-                <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-100/80 flex items-start gap-2.5 text-xs text-blue-900">
-                  <GitBranch className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                  <div className="leading-relaxed">
-                    <strong className="font-semibold">Adaptive Branching:</strong> Questions adapt dynamically based on your previous answers.
-                  </div>
-                </div>
-              )}
-
-              {/* Privacy Reassurance */}
-              <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100 flex items-start gap-2.5 text-xs text-slate-600">
-                <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <div className="leading-relaxed">
-                  <strong className="font-semibold text-slate-800">100% Confidential:</strong> Responses are aggregated for residential care and research.
+              <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 flex items-center gap-3">
+                <ClipboardList className="w-4 h-4 text-[#2563EB] shrink-0" />
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Question Count</div>
+                  <div className="text-xs font-bold text-slate-800">{questionCountText}</div>
                 </div>
               </div>
 
-              {/* In-progress resume alert */}
-              {isResumeAttempt && (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200/80 text-xs text-amber-800 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                  <span>You have an in-progress response saved. Resuming will restore your answers.</span>
+              <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 flex items-center gap-3">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Privacy</div>
+                  <div className="text-xs font-bold text-slate-800">100% Confidential</div>
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* Start / Sign in Button */}
-            <div className="pt-2 flex flex-col gap-2">
+            {/* In-progress notice */}
+            {isResumeAttempt && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <span>You have an in-progress response saved. Resuming will restore your answers.</span>
+              </div>
+            )}
+
+            {/* Action Button */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
               {isAuthRequired ? (
                 <button
                   type="button"
                   onClick={() => router.push(`/auth?from=${encodeURIComponent(`/surveys/${surveyId}`)}`)}
-                  className="w-full h-11 sm:h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm tracking-wide transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Sign In with Mobile to Start</span>
                   <ArrowRight className="w-4 h-4" />
@@ -448,7 +380,7 @@ export default function SurveyTakingPage({
                 <button
                   type="button"
                   onClick={() => setHasStarted(true)}
-                  className="w-full h-11 sm:h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm tracking-wide transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>{isResumeAttempt ? "Resume Survey" : "Start Survey"}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -457,9 +389,9 @@ export default function SurveyTakingPage({
 
               <Link
                 href="/rewards"
-                className="w-full py-2 text-center text-xs font-medium text-slate-400 hover:text-slate-700 transition-colors"
+                className="w-full sm:w-auto px-4 py-3 text-center text-xs text-slate-500 hover:text-slate-800 transition-colors"
               >
-                Cancel and return to rewards
+                Cancel and return
               </Link>
             </div>
           </div>
@@ -469,41 +401,48 @@ export default function SurveyTakingPage({
   }
 
   // ---------------------------------------------------------------------------
-  // B. COMPLETION STATE (Celebratory Simple Card)
+  // B. COMPLETION STATE (Celebratory Full-Width Card)
   // ---------------------------------------------------------------------------
   if (isCompleted) {
     return (
-      <div className="min-h-screen bg-[#EDF4FE] relative flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
-        <div className="w-full max-w-[420px] bg-white rounded-[32px] sm:rounded-[36px] shadow-[0_20px_50px_rgba(37,99,235,0.07)] border border-white/80 p-7 sm:p-8 text-center space-y-5 animate-in zoom-in-95 duration-200">
-          <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-100">
+      <div className="w-full max-w-2xl mx-auto py-12 sm:py-16 text-center space-y-6">
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-8 sm:p-10 space-y-5">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100">
             <CheckCircle className="w-8 h-8 stroke-[2.5]" />
           </div>
 
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Survey Completed!
             </h1>
-            <p className="text-xs sm:text-[13px] text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-500 mt-1.5 max-w-md mx-auto">
               {completionMessage || "Thank you for contributing your localized insights!"}
             </p>
           </div>
 
           {earnedCoins > 0 && (
-            <div className="py-3 px-4 rounded-xl bg-amber-50/80 border border-amber-200/80 inline-flex items-center justify-center gap-2">
-              <Coins className="w-4 h-4 text-amber-600" />
-              <span className="text-sm font-bold text-amber-800 font-mono">
+            <div className="py-3 px-5 rounded-xl bg-amber-50 border border-amber-200 inline-flex items-center justify-center gap-2">
+              <Coins className="w-4.5 h-4.5 text-amber-600" />
+              <span className="text-sm sm:text-base font-bold text-amber-900 font-mono">
                 +{earnedCoins} Reward Coins Credited
               </span>
             </div>
           )}
 
-          <div className="pt-2">
+          <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/store"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs sm:text-sm transition-colors shadow-xs flex items-center justify-center gap-2"
+            >
+              <span>Redeem Coins in Store</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
             <Link
               href="/rewards"
-              className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition-all"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm transition-colors"
             >
-              <span>Return to Rewards</span>
-              <ArrowRight className="w-4 h-4" />
+              Back to Rewards
             </Link>
           </div>
         </div>
@@ -516,16 +455,16 @@ export default function SurveyTakingPage({
   // ---------------------------------------------------------------------------
   if (isDisqualified) {
     return (
-      <div className="min-h-screen bg-[#EDF4FE] relative flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
-        <div className="w-full max-w-[420px] bg-white rounded-[32px] shadow-[0_20px_50px_rgba(37,99,235,0.07)] border border-white/80 p-7 text-center space-y-4">
+      <div className="w-full max-w-xl mx-auto py-16 text-center space-y-5">
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-xs space-y-4">
           <div className="w-14 h-14 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
             <AlertCircle className="w-7 h-7" />
           </div>
-          <h1 className="text-lg font-bold text-slate-800">Survey Concluded</h1>
-          <p className="text-xs text-slate-500 leading-relaxed">{completionMessage}</p>
+          <h1 className="text-lg font-bold text-slate-900">Survey Concluded</h1>
+          <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">{completionMessage}</p>
           <Link
             href="/rewards"
-            className="w-full h-10 rounded-xl bg-blue-600 text-white font-semibold text-xs flex items-center justify-center"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-[#2563EB] text-white font-semibold text-xs"
           >
             Return to Rewards
           </Link>
@@ -535,112 +474,209 @@ export default function SurveyTakingPage({
   }
 
   // ---------------------------------------------------------------------------
-  // D. ACTIVE SURVEY SCREEN (Matching Screenshot 2026-10-25 104546.png Exactly)
+  // D. ACTIVE SURVEY QUESTIONNAIRE (Full Available Desktop Width Layout)
   // ---------------------------------------------------------------------------
   const totalQuestions = applicableQuestions.length;
   const answeredCount = applicableQuestions.filter(
     (q) => answers[q.id] !== undefined && answers[q.id] !== ""
   ).length;
+  const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[#EDF4FE] relative flex flex-col items-center justify-start p-0 sm:p-6 md:p-8 overflow-x-hidden font-sans">
-      {/* Background soft geometric accents */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-20 -left-20 w-96 h-96 bg-blue-200/30 rounded-[64px] rotate-12 blur-2xl" />
-        <div className="absolute top-1/4 -right-20 w-[480px] h-[480px] bg-blue-200/25 rounded-[72px] -rotate-12 blur-3xl" />
-        <div className="absolute -bottom-24 left-1/4 w-[420px] h-[420px] bg-blue-100/40 rounded-[64px] rotate-45 blur-2xl" />
-      </div>
-
-      {/* Main Single Centered Survey Panel (380-420px width) */}
-      <div className="relative z-10 w-full max-w-[420px] bg-white sm:rounded-[36px] shadow-[0_20px_50px_rgba(37,99,235,0.07),0_4px_20px_rgba(15,23,42,0.03)] border-x sm:border border-white/80 overflow-hidden flex flex-col min-h-screen sm:min-h-[640px] my-auto">
-        {/* Top Header with Subtle Blue Gradient */}
-        <div className="bg-gradient-to-b from-[#DCEAFC]/75 via-[#F1F6FE]/70 to-white px-6 pt-5 pb-4 sm:px-7 sm:pt-6">
-          {/* Top Bar: Back Button + Avatar */}
-          <div className="flex items-center justify-between mb-5">
-            <button
-              type="button"
-              onClick={() => router.push("/rewards")}
-              className="w-9 h-9 rounded-full bg-slate-200/60 hover:bg-slate-300/80 active:bg-slate-300 text-slate-700 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
-              aria-label="Back to Rewards"
+    <div className="w-full space-y-6">
+      {/* Top Bar with Back Link, Title, Coins, Progress */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/rewards"
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+              title="Return to rewards"
             >
-              <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-            </button>
-
-            <div className="flex items-center gap-2">
-              {survey?.rewardCoins ? (
-                <span className="text-[11px] font-bold text-blue-700 bg-blue-100/80 px-2.5 py-0.5 rounded-full">
-                  +{survey.rewardCoins} Coins
+              <ChevronLeft className="w-4 h-4" />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-[#2563EB] uppercase tracking-wider bg-blue-50 px-2 py-0.5 rounded">
+                  {survey?.category || "Survey"}
                 </span>
-              ) : null}
-              <div
-                className="w-9 h-9 rounded-full ring-2 ring-white shadow-xs overflow-hidden bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xs font-bold"
-                title={userName}
-              >
-                {userInitials}
+                {survey?.rewardCoins ? (
+                  <span className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    +{survey.rewardCoins} Coins
+                  </span>
+                ) : null}
               </div>
+              <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight mt-1">
+                {survey?.title}
+              </h1>
             </div>
           </div>
 
-          {/* Survey Title with Blue Accent */}
-          {renderStyledTitle(survey?.title || "User Experience Survey")}
-
-          {/* Description */}
-          <p className="text-[13px] text-slate-600 font-normal mt-2 leading-relaxed">
-            {survey?.description || "Help us improve our services by answering a few questions!"}
-          </p>
-
-          {/* Subtle Progress Strip */}
-          <div className="mt-4 pt-3 border-t border-slate-100/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span>
-              {answeredCount} of {totalQuestions} answered
-            </span>
-            <span>
-              {saveStatus === "SAVING" ? (
-                <span className="flex items-center gap-1 text-slate-400">
-                  <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                  Saving
-                </span>
-              ) : saveStatus === "SAVED" ? (
-                <span className="text-blue-600 font-medium">Autosaved</span>
-              ) : (
-                <span className="text-amber-500">Offline</span>
-              )}
-            </span>
+          <div className="flex items-center gap-3 text-xs self-start sm:self-center">
+            {saveStatus === "SAVING" ? (
+              <span className="flex items-center gap-1.5 text-slate-400 font-medium">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2563EB]" />
+                <span>Autosaving...</span>
+              </span>
+            ) : saveStatus === "SAVED" ? (
+              <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                <Check className="w-3.5 h-3.5" />
+                <span>Autosaved</span>
+              </span>
+            ) : (
+              <span className="text-amber-600 font-medium">Offline</span>
+            )}
           </div>
         </div>
 
-        {/* Vertically Scrollable Questions Container */}
-        <div className="px-6 sm:px-7 pt-2 pb-8 flex-1 flex flex-col justify-between space-y-6">
-          {/* Stacked Questions */}
-          <div className="space-y-6 sm:space-y-7">
-            {applicableQuestions.map((q, idx) => (
-              <div key={q.id} id={`q-${q.id}`}>
+        {/* Progress Bar */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span>
+              Question progress: {answeredCount} of {totalQuestions} answered
+            </span>
+            <span className="font-mono font-bold text-slate-700">{progressPercent}%</span>
+          </div>
+          <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div
+              className="h-full bg-[#2563EB] rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Main Responsive Grid Layout (Desktop 12-cols, Mobile 1-col) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column (Desktop Sticky Sidebar, 4 Cols) */}
+        <aside className="hidden lg:block lg:col-span-4 space-y-4 sticky top-24">
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Survey Checklist
+            </div>
+
+            {/* Questions Jump / Completion Tracker */}
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {applicableQuestions.map((q, idx) => {
+                const isAnswered = answers[q.id] !== undefined && answers[q.id] !== "";
+                const hasError = Boolean(fieldErrors[q.id]);
+
+                return (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById(`q-${q.id}`);
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                    className={`w-full text-left p-2.5 rounded-xl border text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                      hasError
+                        ? "border-red-200 bg-red-50/50 text-red-700"
+                        : isAnswered
+                        ? "border-emerald-200 bg-emerald-50/40 text-emerald-900"
+                        : "border-slate-100 hover:border-slate-200 bg-slate-50/40 text-slate-700"
+                    }`}
+                  >
+                    <span className="truncate pr-2 font-medium">
+                      {idx + 1}. {q.questionText}
+                    </span>
+                    {isAnswered ? (
+                      <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                      </span>
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-400">
+              <ShieldCheck className="w-4 h-4 text-[#2563EB] shrink-0" />
+              <span>Responses are encrypted and strictly confidential.</span>
+            </div>
+          </div>
+        </aside>
+
+        {/* Right Column (Questionnaire Content, 8 Cols on Desktop, Full on Mobile) */}
+        <section className="lg:col-span-8 space-y-5">
+          {applicableQuestions.map((q, idx) => (
+            <div
+              key={q.id}
+              id={`q-${q.id}`}
+              className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-7 shadow-xs hover:border-slate-300 transition-colors"
+            >
+              {/* Question Header */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[11px] font-bold text-[#2563EB] uppercase tracking-wider">
+                    Question {idx + 1} of {totalQuestions}
+                  </span>
+                  {q.isRequired && (
+                    <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded font-semibold">
+                      Required
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+                  {q.questionText}
+                </h3>
+
+                {q.description && (
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed max-w-xl">
+                    {q.description}
+                  </p>
+                )}
+              </div>
+
+              {/* Ergonomically Aligned Question Options Container */}
+              <div className="max-w-xl">
                 <QuestionRenderer
                   index={idx}
                   question={q}
                   value={answers[q.id]}
                   onChange={(val) => handleAnswerChange(q.id, val)}
                   error={fieldErrors[q.id]}
+                  hideHeader={true}
                 />
               </div>
-            ))}
-          </div>
+
+              {/* Error Message */}
+              {fieldErrors[q.id] && (
+                <div className="mt-3 p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600 font-medium flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{fieldErrors[q.id]}</span>
+                </div>
+              )}
+            </div>
+          ))}
 
           {/* General Error notice */}
           {generalError && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium flex items-center gap-2 animate-in fade-in">
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium flex items-center gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
               <span>{generalError}</span>
             </div>
           )}
 
-          {/* Bottom Action Button (Submit) */}
-          <div className="pt-4 border-t border-slate-100/90 space-y-2">
+          {/* Bottom Action Card (Submit) */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <div className="text-xs font-bold text-slate-900">
+                Ready to submit your feedback?
+              </div>
+              <div className="text-xs text-slate-500">
+                +{survey?.rewardCoins || 0} reward coins will be credited to your account immediately.
+              </div>
+            </div>
+
             <button
               type="button"
               disabled={isSubmitting}
               onClick={handleSubmit}
-              className="w-full h-11 sm:h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-blue-800 text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
             >
               {isSubmitting ? (
                 <>
@@ -648,17 +684,14 @@ export default function SurveyTakingPage({
                   <span>Submitting...</span>
                 </>
               ) : (
-                <span>Submit Survey & Claim +{survey?.rewardCoins || 0} Coins</span>
+                <>
+                  <span>Submit & Claim +{survey?.rewardCoins || 0} Coins</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
             </button>
-
-            <div className="text-center">
-              <span className="text-[10px] text-slate-400">
-                Responses are private and automatically encrypted
-              </span>
-            </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

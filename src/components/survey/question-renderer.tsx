@@ -28,14 +28,14 @@ export function QuestionRenderer({
   const renderControl = () => {
     switch (questionType) {
       // -----------------------------------------------------------------------
-      // 1. SINGLE CHOICE (Clean Radio Row with Blue Accent)
+      // 1. SINGLE CHOICE (Touch-Friendly Radio Tiles with Blue Accent)
       // -----------------------------------------------------------------------
       case "SINGLE_CHOICE": {
         const selected = value ?? "";
         const optionsList = Array.isArray(options) ? options : [];
 
         return (
-          <div className="space-y-2" role="radiogroup" aria-label={questionText}>
+          <div className="space-y-2.5" role="radiogroup" aria-label={questionText}>
             {optionsList.map((opt: any, idx: number) => {
               const label = typeof opt === "object" ? opt.label || opt.value : opt;
               const val = typeof opt === "object" ? opt.value : opt;
@@ -45,15 +45,19 @@ export function QuestionRenderer({
                 <label
                   key={idx}
                   onClick={() => !disabled && onChange(val)}
-                  className="flex items-center gap-3 py-1 cursor-pointer select-none group"
+                  className={`flex items-center gap-3.5 px-3.5 py-2.5 min-h-[44px] rounded-xl border transition-all cursor-pointer select-none ${
+                    isChecked
+                      ? "border-blue-500 bg-blue-50/60 shadow-2xs"
+                      : "border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+                  } ${disabled ? "opacity-50 cursor-not-allowed" : "active:scale-[0.99]"}`}
                 >
                   {/* Radio Indicator */}
                   <div
-                    className={`w-4.5 h-4.5 rounded-full border transition-all flex items-center justify-center shrink-0 ${
+                    className={`w-5 h-5 rounded-full border transition-all flex items-center justify-center shrink-0 ${
                       isChecked
                         ? "border-blue-600 bg-white"
-                        : "border-slate-300 bg-white group-hover:border-slate-400"
-                    } ${disabled ? "opacity-50" : ""}`}
+                        : "border-slate-300 bg-white"
+                    }`}
                   >
                     {isChecked && (
                       <div className="w-2.5 h-2.5 rounded-full bg-blue-600 transition-transform scale-100" />
@@ -62,10 +66,10 @@ export function QuestionRenderer({
 
                   {/* Option Label Text */}
                   <span
-                    className={`text-[13px] leading-tight transition-colors ${
+                    className={`text-xs sm:text-[13px] leading-snug transition-colors ${
                       isChecked
-                        ? "text-blue-600 font-bold"
-                        : "text-slate-600 font-medium group-hover:text-slate-800"
+                        ? "text-blue-900 font-bold"
+                        : "text-slate-700 font-medium"
                     }`}
                   >
                     {label}
@@ -78,7 +82,7 @@ export function QuestionRenderer({
       }
 
       // -----------------------------------------------------------------------
-      // 2. MULTIPLE CHOICE (Square Checkbox with Blue Selected State)
+      // 2. MULTIPLE CHOICE (Touch-Friendly Square Checkbox Tiles)
       // -----------------------------------------------------------------------
       case "MULTIPLE_CHOICE": {
         const selectedArray: string[] = Array.isArray(value) ? value : [];
@@ -94,7 +98,7 @@ export function QuestionRenderer({
         };
 
         return (
-          <div className="space-y-2" role="group" aria-label={questionText}>
+          <div className="space-y-2.5" role="group" aria-label={questionText}>
             {optionsList.map((opt: any, idx: number) => {
               const label = typeof opt === "object" ? opt.label || opt.value : opt;
               const val = typeof opt === "object" ? opt.value : opt;
@@ -104,25 +108,29 @@ export function QuestionRenderer({
                 <label
                   key={idx}
                   onClick={() => toggleOption(val)}
-                  className="flex items-center gap-3 py-1 cursor-pointer select-none group"
+                  className={`flex items-center gap-3.5 px-3.5 py-2.5 min-h-[44px] rounded-xl border transition-all cursor-pointer select-none ${
+                    isChecked
+                      ? "border-blue-500 bg-blue-50/60 shadow-2xs"
+                      : "border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+                  } ${disabled ? "opacity-50 cursor-not-allowed" : "active:scale-[0.99]"}`}
                 >
-                  {/* Square Checkbox (Exact Match to Reference Screenshot) */}
+                  {/* Square Checkbox */}
                   <div
-                    className={`w-4.5 h-4.5 rounded-[5px] border transition-all flex items-center justify-center shrink-0 ${
+                    className={`w-5 h-5 rounded-[6px] border transition-all flex items-center justify-center shrink-0 ${
                       isChecked
                         ? "border-blue-600 bg-blue-600 text-white shadow-2xs"
-                        : "border-slate-300 bg-white group-hover:border-slate-400"
-                    } ${disabled ? "opacity-50" : ""}`}
+                        : "border-slate-300 bg-white"
+                    }`}
                   >
                     {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                   </div>
 
-                  {/* Option Label Text: Bold Blue when selected */}
+                  {/* Option Label Text */}
                   <span
-                    className={`text-[13px] leading-tight transition-colors ${
+                    className={`text-xs sm:text-[13px] leading-snug transition-colors ${
                       isChecked
-                        ? "text-blue-600 font-bold"
-                        : "text-slate-600 font-medium group-hover:text-slate-800"
+                        ? "text-blue-900 font-bold"
+                        : "text-slate-700 font-medium"
                     }`}
                   >
                     {label}
@@ -135,14 +143,14 @@ export function QuestionRenderer({
       }
 
       // -----------------------------------------------------------------------
-      // 3. YES / NO (Compact Radio Rows)
+      // 3. YES / NO (Touch-Friendly Radio Tiles)
       // -----------------------------------------------------------------------
       case "YES_NO": {
         const isYes = value === true || value === "true" || value === "YES";
         const isNo = value === false || value === "false" || value === "NO";
 
         return (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {[
               { label: "Yes", val: true, isChecked: isYes },
               { label: "No", val: false, isChecked: isNo },
@@ -150,24 +158,28 @@ export function QuestionRenderer({
               <label
                 key={item.label}
                 onClick={() => !disabled && onChange(item.val)}
-                className="flex items-center gap-3 py-1 cursor-pointer select-none group"
+                className={`flex items-center gap-3.5 px-3.5 py-2.5 min-h-[44px] rounded-xl border transition-all cursor-pointer select-none ${
+                  item.isChecked
+                    ? "border-blue-500 bg-blue-50/60 shadow-2xs"
+                    : "border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+                } ${disabled ? "opacity-50 cursor-not-allowed" : "active:scale-[0.99]"}`}
               >
                 <div
-                  className={`w-4.5 h-4.5 rounded-full border transition-all flex items-center justify-center shrink-0 ${
+                  className={`w-5 h-5 rounded-full border transition-all flex items-center justify-center shrink-0 ${
                     item.isChecked
                       ? "border-blue-600 bg-white"
-                      : "border-slate-300 bg-white group-hover:border-slate-400"
-                  } ${disabled ? "opacity-50" : ""}`}
+                      : "border-slate-300 bg-white"
+                  }`}
                 >
                   {item.isChecked && (
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
                   )}
                 </div>
                 <span
-                  className={`text-[13px] leading-tight transition-colors ${
+                  className={`text-xs sm:text-[13px] leading-snug transition-colors ${
                     item.isChecked
-                      ? "text-blue-600 font-bold"
-                      : "text-slate-600 font-medium group-hover:text-slate-800"
+                      ? "text-blue-900 font-bold"
+                      : "text-slate-700 font-medium"
                   }`}
                 >
                   {item.label}

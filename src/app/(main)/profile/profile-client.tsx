@@ -34,6 +34,7 @@ interface ProfileClientViewProps {
   customerId: string;
   surveysCompleted: number;
   referralsRewarded: number;
+  orders?: any[];
 }
 
 export function ProfileClientView({
@@ -47,6 +48,7 @@ export function ProfileClientView({
   customerId,
   surveysCompleted,
   referralsRewarded,
+  orders = [],
 }: ProfileClientViewProps) {
   const router = useRouter();
 
@@ -310,7 +312,99 @@ export function ProfileClientView({
         </div>
       </section>
 
-      {/* 4. PREFERENCES & SECURITY */}
+      {/* 4. ORDER HISTORY */}
+      <section aria-labelledby="order-history-heading" className="space-y-3">
+        <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+          <h2 id="order-history-heading" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Order History ({orders.length})
+          </h2>
+          <Link href="/store" className="text-xs font-semibold text-[#2563EB] hover:underline">
+            Visit Store
+          </Link>
+        </div>
+
+        {orders.length === 0 ? (
+          <div className="p-6 rounded-xl border border-slate-200 bg-white text-center text-xs text-slate-500 space-y-2">
+            <p>No orders placed yet. Household products and coin-redeemed trial kits will appear here.</p>
+            <Link
+              href="/store"
+              className="inline-flex items-center gap-1 text-[#2563EB] font-semibold hover:underline"
+            >
+              Explore Products & Trials →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {orders.map((ord: any) => (
+              <div
+                key={ord.id}
+                className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 text-xs space-y-3 shadow-2xs"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2.5 border-b border-slate-100">
+                  <div>
+                    <span className="font-mono font-bold text-slate-900 text-sm">
+                      {ord.orderNumber}
+                    </span>
+                    <span className="text-slate-400 block text-[11px] mt-0.5">
+                      Placed on {new Date(ord.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "px-2.5 py-0.5 rounded text-[11px] font-bold",
+                        ord.paymentStatus === "PAID"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : ord.paymentStatus === "PENDING_PAYMENT"
+                          ? "bg-amber-50 text-amber-700 border border-amber-200"
+                          : "bg-slate-100 text-slate-700"
+                      )}
+                    >
+                      {ord.paymentStatus}
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                      {ord.orderStatus}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Items */}
+                {ord.items && ord.items.length > 0 && (
+                  <div className="space-y-1.5">
+                    {ord.items.map((it: any) => (
+                      <div key={it.id || it.productId} className="flex items-center justify-between text-slate-700">
+                        <div className="truncate pr-2">
+                          <span className="font-semibold text-slate-900">{it.title}</span>
+                          {it.variantName && <span className="text-slate-400 ml-1">({it.variantName})</span>}
+                          <span className="text-slate-400 ml-2">× {it.quantity}</span>
+                        </div>
+                        <div className="font-mono shrink-0 font-semibold text-slate-900">
+                          {it.totalCoins > 0 ? `${it.totalCoins} C` : `₹${it.totalPriceInr}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between font-bold text-slate-900">
+                  <span>Total Amount:</span>
+                  <span className="font-mono">
+                    {ord.totalInr > 0 ? `₹${Number(ord.totalInr).toLocaleString("en-IN")}` : "₹0 (0 INR)"}
+                    {ord.totalCoins > 0 && ` + ${ord.totalCoins} Coins`}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 5. PREFERENCES & SECURITY */}
       <section aria-labelledby="preferences-heading" className="space-y-3">
         <h2 id="preferences-heading" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
           Preferences & Notifications

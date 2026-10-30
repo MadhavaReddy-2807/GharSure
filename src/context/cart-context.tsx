@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 
 export interface ProductItem {
   id: string;
@@ -18,17 +18,29 @@ export interface ProductItem {
   specifications?: Record<string, any>;
 }
 
+export interface ProductVariant {
+  id: string;
+  name: string;
+  price_inr?: number;
+  coin_price?: number;
+  inventory_stock?: number;
+}
+
 export interface CartItem {
+  lineId: string;
   product: ProductItem;
+  variantId?: string;
+  variantName?: string;
   quantity: number;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: ProductItem) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (product: ProductItem, variant?: ProductVariant, quantity?: number) => void;
+  removeFromCart: (lineId: string) => void;
+  updateQuantity: (lineId: string, quantity: number) => void;
   clearCart: () => void;
+  clearPurchasedItems: (purchasedLineIds: string[]) => void;
   totalCount: number;
   totalInr: number;
   totalCoins: number;
@@ -39,7 +51,7 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = "gharsure_cart_v1";
+const CART_STORAGE_KEY = "gharsure_cart_v2";
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -51,51 +63,83 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const saved = localStorage.getItem(CART_STORAGE_KEY);
       if (saved) {
-        setItems(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Normalize lineId if migrating from v1
+          const normalized = parsed.map((item: any) => ({
+            lineId: item.lineId || `${item.product.id}_${item.variantId || "default"}`,
+            product: item.product,
+            variantId: item.variantId,
+            variantName: item.variantName,
+            quantity: item.quantity || 1,
+          }));
+          setItems(normalized);
+        }
       }
     } catch {
-      // Ignore storage errors
+      // Ignore parse errors
     } finally {
       setIsLoaded(true);
     }
   }, []);
 
-  // Sync to localStorage
+  // Save to localStorage on change
   useEffect(() => {
     if (!isLoaded) return;
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
     } catch {
-      // Ignore storage errors
+      // Ignore write errors
     }
   }, [items, isLoaded]);
 
-  const addToCart = (product: ProductItem) => {
+  const addToCart = (product: ProductItem, variant?: ProductVariant, qty: number = 1) => {
+    const lineId = variant ? `${product.id}_${variant.id}` : `${product.id}_default`;
+
     setItems((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id);
+      const existing = prev.find((i) => i.lineId === lineId);
       if (existing) {
+        // Enforce inventory stock limit if provided
+        const maxStock = variant?.inventory_stock ?? product.inventory_stock ?? 99;
+        const newQty = Math.min(existing.quantity + qty, maxStock);
         return prev.map((i) =>
-          i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.lineId === lineId ? { ...i, quantity: newQty } : i
         );
       }
-      return [...prev, { product, quantity: 1 }];
+
+      return [
+        ...prev,
+        {
+          lineId,
+          product,
+          variantId: variant?.id,
+          variantName: variant?.name,
+          quantity: qty,
+        },
+      ];
     });
+
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (productId: string) => {
-    setItems((prev) => prev.filter((i) => i.product.id !== productId));
+  const removeFromCart = (lineId: string) => {
+    setItems((prev) => prev.filter((i) => i.lineId !== lineId && i.product.id !== lineId));
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (lineId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(lineId);
       return;
     }
+
     setItems((prev) =>
-      prev.map((i) =>
-        i.product.id === productId ? { ...i, quantity } : i
-      )
+      prev.map((i) => {
+        if (i.lineId === lineId || i.product.id === lineId) {
+          const maxStock = i.product.inventory_stock ?? 99;
+          return { ...i, quantity: Math.min(quantity, maxStock) };
+        }
+        return i;
+      })
     );
   };
 
@@ -103,21 +147,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems([]);
   };
 
-  const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const clearPurchasedItems = (purchasedLineIds: string[]) => {
+    setItems((prev) => prev.filter((i) => !purchasedLineIds.includes(i.lineId) && !purchasedLineIds.includes(i.product.id)));
+  };
 
-  const totalInr = items.reduce((sum, item) => {
-    const isTrial = item.product.product_type === "TRIAL";
-    if (isTrial) return sum;
-    const price = Number(item.product.price_inr) || 0;
-    return sum + price * item.quantity;
-  }, 0);
+  const totalCount = useMemo(() => {
+    return items.reduce((sum, item) => sum + item.quantity, 0);
+  }, [items]);
 
-  const totalCoins = items.reduce((sum, item) => {
-    const isTrial = item.product.product_type === "TRIAL";
-    if (!isTrial) return sum;
-    const coins = item.product.coin_price ?? 0;
-    return sum + coins * item.quantity;
-  }, 0);
+  const totalInr = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const price = Number(item.product.price_inr) || 0;
+      return sum + price * item.quantity;
+    }, 0);
+  }, [items]);
+
+  const totalCoins = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const coins = Number(item.product.coin_price) || 0;
+      return sum + coins * item.quantity;
+    }, 0);
+  }, [items]);
 
   return (
     <CartContext.Provider
@@ -127,6 +177,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         updateQuantity,
         clearCart,
+        clearPurchasedItems,
         totalCount,
         totalInr,
         totalCoins,

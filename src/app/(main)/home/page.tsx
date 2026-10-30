@@ -219,7 +219,7 @@ export default async function HomePage() {
                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         {p.brand}
                       </div>
-                      <h3 className="text-xs font-semibold text-slate-900 leading-snug line-clamp-1">
+                      <h3 className="text-xs font-semibold text-slate-900 leading-snug line-clamp-2">
                         {p.title}
                       </h3>
                     </div>

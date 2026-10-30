@@ -2,6 +2,7 @@ import React from "react";
 import { getCurrentSession } from "@/lib/session";
 import { getCustomerById } from "@/lib/supabase/db";
 import { isDirectDatabaseConfigured, getDirectSql } from "@/lib/supabase/direct-db";
+import { listCustomerOrders } from "@/lib/order-db";
 import { ProfileClientView } from "./profile-client";
 
 export const dynamic = "force-dynamic";
@@ -25,23 +26,32 @@ export default async function ProfilePage() {
 
   let surveysCompleted = 0;
   let referralsRewarded = 0;
+  let orders: any[] = [];
 
-  if (isDirectDatabaseConfigured() && customer) {
+  if (customer) {
+    if (isDirectDatabaseConfigured()) {
+      try {
+        const sql = getDirectSql();
+        const [surveyStat] = await sql`
+          SELECT count(*)::text as count FROM survey_responses 
+          WHERE customer_id = ${customer.id} AND status = 'COMPLETED';
+        `;
+        surveysCompleted = parseInt(surveyStat?.count || "0", 10);
+
+        const [refStat] = await sql`
+          SELECT count(*)::text as count FROM referral_attributions
+          WHERE referrer_id = ${customer.id} AND status = 'REWARDED';
+        `;
+        referralsRewarded = parseInt(refStat?.count || "0", 10);
+      } catch {
+        // Fallback
+      }
+    }
+
     try {
-      const sql = getDirectSql();
-      const [surveyStat] = await sql`
-        SELECT count(*)::text as count FROM survey_responses 
-        WHERE customer_id = ${customer.id} AND status = 'COMPLETED';
-      `;
-      surveysCompleted = parseInt(surveyStat?.count || "0", 10);
-
-      const [refStat] = await sql`
-        SELECT count(*)::text as count FROM referral_attributions
-        WHERE referrer_id = ${customer.id} AND status = 'REWARDED';
-      `;
-      referralsRewarded = parseInt(refStat?.count || "0", 10);
+      orders = await listCustomerOrders(customer.id);
     } catch {
-      // Fallback
+      orders = [];
     }
   }
 
@@ -57,6 +67,7 @@ export default async function ProfilePage() {
       customerId={customerId}
       surveysCompleted={surveysCompleted}
       referralsRewarded={referralsRewarded}
+      orders={orders}
     />
   );
 }
