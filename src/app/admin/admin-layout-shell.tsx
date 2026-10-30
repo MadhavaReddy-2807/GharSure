@@ -23,6 +23,7 @@ import {
   X,
   ExternalLink,
   ShieldCheck,
+  Vote,
 } from "lucide-react";
 import { AdminRole, AdminPermission } from "@/lib/admin-auth";
 
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Users", href: "/admin/users", icon: Users, permission: "users:read" },
   { label: "Access & Roles", href: "/admin/access", icon: ShieldAlert, permission: "access:manage" },
   { label: "Surveys", href: "/admin/surveys", icon: ClipboardList, permission: "surveys:read" },
+  { label: "Quick Polls", href: "/admin/rewards?tab=POLLS", icon: Vote, permission: "polls:read" },
   { label: "Rewards & Coins", href: "/admin/rewards", icon: Coins, permission: "rewards:read" },
   { label: "Content & Products", href: "/admin/content", icon: PackageOpen, permission: "content:read" },
   { label: "Store & Trials", href: "/admin/store", icon: ShoppingBag, permission: "store:read" },

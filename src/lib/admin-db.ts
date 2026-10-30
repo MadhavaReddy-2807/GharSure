@@ -687,6 +687,7 @@ export async function createSurveyAdmin(data: {
   surveyId: string;
   title: string;
   description?: string;
+  imageUrl?: string | null;
   surveyType?: "STATIC" | "DECISION_BASED";
   category: string;
   language?: string;
@@ -707,13 +708,13 @@ export async function createSurveyAdmin(data: {
       const sql = getDirectSql();
       const rows = await sql`
         INSERT INTO surveys (
-          survey_id, title, description, survey_type, category, language, 
+          survey_id, title, description, image_url, survey_type, category, language, 
           estimated_duration_min, internal_objective, sponsor_details,
           reward_coins, response_quota, allow_resume, allow_review,
           start_date, end_date, eligibility_rules, status, version, created_by
         )
         VALUES (
-          ${data.surveyId.trim()}, ${data.title.trim()}, ${data.description || null},
+          ${data.surveyId.trim()}, ${data.title.trim()}, ${data.description || null}, ${data.imageUrl || null},
           ${data.surveyType || "STATIC"}, ${data.category}, ${data.language || "en"},
           ${data.estimatedDurationMin || 5}, ${data.internalObjective || null}, ${data.sponsorDetails || null},
           ${data.rewardCoins ?? 50}, ${data.responseQuota || 500},
@@ -738,6 +739,7 @@ export async function updateSurveyDetailsAdmin(
   data: {
     title?: string;
     description?: string;
+    imageUrl?: string | null;
     surveyType?: "STATIC" | "DECISION_BASED";
     category?: string;
     estimatedDurationMin?: number;
@@ -755,6 +757,7 @@ export async function updateSurveyDetailsAdmin(
         SET 
           title = COALESCE(${data.title?.trim() || null}, title),
           description = COALESCE(${data.description || null}, description),
+          image_url = COALESCE(${data.imageUrl !== undefined ? data.imageUrl : null}, image_url),
           survey_type = COALESCE(${data.surveyType || null}, survey_type),
           category = COALESCE(${data.category || null}, category),
           estimated_duration_min = COALESCE(${data.estimatedDurationMin || null}, estimated_duration_min),

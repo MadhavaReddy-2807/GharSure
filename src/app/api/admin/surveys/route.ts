@@ -7,6 +7,7 @@ const createSurveySchema = z.object({
   surveyId: z.string().min(3).max(50),
   title: z.string().min(3).max(255),
   description: z.string().optional(),
+  imageUrl: z.string().optional().nullable(),
   surveyType: z.enum(["STATIC", "DECISION_BASED"]).default("STATIC"),
   category: z.string().default("Water Quality"),
   estimatedDurationMin: z.number().int().min(1).max(60).default(5),

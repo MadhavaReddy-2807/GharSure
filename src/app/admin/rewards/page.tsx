@@ -173,6 +173,21 @@ export default function AdminRewardsPage() {
 
   useEffect(() => {
     refreshAll();
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab")?.toUpperCase();
+      if (tab === "POLLS" || tab === "ACTIVITIES" || tab === "SUBMISSIONS" || tab === "LEDGER") {
+        setActiveTab(tab as any);
+      }
+      if (params.get("create") === "poll" || params.get("poll") === "new") {
+        setActiveTab("POLLS");
+        setIsPollModalOpen(true);
+      } else if (params.get("create") === "activity") {
+        setActiveTab("ACTIVITIES");
+        setIsActivityModalOpen(true);
+      }
+    }
   }, [refreshAll]);
 
   // Handle Approve Submission
@@ -323,7 +338,37 @@ export default function AdminRewardsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setActiveTab("POLLS");
+              setIsPollModalOpen(true);
+            }}
+            className="px-3.5 py-1.5 rounded-lg bg-brand-purple hover:bg-purple-700 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+          >
+            <Vote className="w-3.5 h-3.5" />
+            <span>Create Quick Poll</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab("ACTIVITIES");
+              setIsActivityModalOpen(true);
+            }}
+            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+          >
+            <UploadCloud className="w-3.5 h-3.5" />
+            <span>Create File Activity</span>
+          </button>
+
+          <button
+            onClick={() => setIsAdjustmentOpen(true)}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-500" />
+            <span>Adjust Coins</span>
+          </button>
+
           <button
             onClick={() => refreshAll()}
             disabled={isLoading}

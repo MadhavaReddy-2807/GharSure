@@ -35,6 +35,8 @@ import {
   Smartphone,
   Monitor,
   RotateCcw,
+  Image as ImageIcon,
+  UploadCloud,
 } from "lucide-react";
 import {
   validateSurveyDefinition,
@@ -54,6 +56,7 @@ interface Survey {
   survey_id: string;
   title: string;
   description: string | null;
+  image_url?: string | null;
   category: string;
   survey_type: SurveyType;
   estimated_duration_min: number;
@@ -188,6 +191,7 @@ export default function AdminSurveysPage() {
   // New Survey Form State
   const [newSurveyId, setNewSurveyId] = useState("");
   const [newTitle, setNewTitle] = useState("");
+  const [newImageUrl, setNewImageUrl] = useState("");
   const [newCategory, setNewCategory] = useState("Water Quality");
   const [newType, setNewType] = useState<SurveyType>("STATIC");
   const [newDuration, setNewDuration] = useState(5);
@@ -259,6 +263,7 @@ export default function AdminSurveysPage() {
         body: JSON.stringify({
           surveyId: newSurveyId.trim().toUpperCase(),
           title: newTitle.trim(),
+          imageUrl: newImageUrl.trim() || null,
           category: newCategory,
           surveyType: newType,
           estimatedDurationMin: Number(newDuration),
@@ -276,6 +281,7 @@ export default function AdminSurveysPage() {
       setIsCreateOpen(false);
       setNewSurveyId("");
       setNewTitle("");
+      setNewImageUrl("");
       await fetchSurveys();
 
       // Automatically open builder for newly created survey
@@ -295,6 +301,7 @@ export default function AdminSurveysPage() {
     setSurveyDetails({
       title: survey.title,
       description: survey.description || "",
+      image_url: survey.image_url || "",
       category: survey.category,
       survey_type: survey.survey_type,
       estimated_duration_min: survey.estimated_duration_min,
@@ -427,6 +434,7 @@ export default function AdminSurveysPage() {
           details: {
             title: surveyDetails.title,
             description: surveyDetails.description,
+            imageUrl: surveyDetails.image_url || null,
             category: surveyDetails.category,
             surveyType: surveyDetails.survey_type,
             estimatedDurationMin: surveyDetails.estimated_duration_min,
@@ -1228,6 +1236,98 @@ export default function AdminSurveysPage() {
                 />
               </div>
 
+              {/* Survey Cover Image */}
+              <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-800 font-bold text-xs flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-brand-orange" />
+                    <span>Survey Cover Image</span>
+                  </label>
+                  {newImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setNewImageUrl("")}
+                      className="text-[11px] text-rose-600 hover:underline cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  {newImageUrl ? (
+                    <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0 shadow-2xs">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={newImageUrl}
+                        alt="Survey Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as any).src = "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=200&q=80";
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-14 h-14 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 shrink-0 bg-white">
+                      <ImageIcon className="w-4 h-4 text-slate-300" />
+                      <span className="text-[9px] mt-0.5">No image</span>
+                    </div>
+                  )}
+
+                  <div className="flex-1 space-y-1.5">
+                    <input
+                      type="url"
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                      placeholder="Image URL (https://...)"
+                      className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-orange bg-white"
+                    />
+
+                    <div className="flex items-center gap-2">
+                      <label className="px-2 py-0.5 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-semibold text-slate-700 cursor-pointer inline-flex items-center gap-1 transition-colors">
+                        <UploadCloud className="w-3 h-3 text-slate-500" />
+                        <span>Upload File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                if (event.target?.result) {
+                                  setNewImageUrl(event.target.result as string);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      <span className="text-[10px] text-slate-400">or presets:</span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1">
+                      {[
+                        { name: "Water Quality", url: "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=600&q=80" },
+                        { name: "Appliances", url: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80" },
+                        { name: "Home Health", url: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=600&q=80" },
+                      ].map((preset) => (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          onClick={() => setNewImageUrl(preset.url)}
+                          className="px-1.5 py-0.5 rounded text-[10px] bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 cursor-pointer"
+                        >
+                          {preset.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1992,6 +2092,98 @@ export default function AdminSurveysPage() {
                       rows={2}
                       className="w-full p-3 rounded-lg border border-slate-200 text-xs"
                     />
+                  </div>
+
+                  {/* Survey Cover Image in Settings */}
+                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-slate-800 font-bold text-xs flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-brand-orange" />
+                        <span>Survey Cover Image</span>
+                      </label>
+                      {surveyDetails.image_url && (
+                        <button
+                          type="button"
+                          onClick={() => setSurveyDetails({ ...surveyDetails, image_url: "" })}
+                          className="text-[11px] text-rose-600 hover:underline cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex gap-3 items-start">
+                      {surveyDetails.image_url ? (
+                        <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0 shadow-2xs">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={surveyDetails.image_url}
+                            alt="Survey Preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as any).src = "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=200&q=80";
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-14 h-14 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 shrink-0 bg-white">
+                          <ImageIcon className="w-4 h-4 text-slate-300" />
+                          <span className="text-[9px] mt-0.5">No image</span>
+                        </div>
+                      )}
+
+                      <div className="flex-1 space-y-1.5">
+                        <input
+                          type="url"
+                          value={surveyDetails.image_url || ""}
+                          onChange={(e) => setSurveyDetails({ ...surveyDetails, image_url: e.target.value })}
+                          placeholder="Image URL (https://...)"
+                          className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-orange bg-white"
+                        />
+
+                        <div className="flex items-center gap-2">
+                          <label className="px-2 py-0.5 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-semibold text-slate-700 cursor-pointer inline-flex items-center gap-1 transition-colors">
+                            <UploadCloud className="w-3 h-3 text-slate-500" />
+                            <span>Upload File</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (event) => {
+                                    if (event.target?.result) {
+                                      setSurveyDetails({ ...surveyDetails, image_url: event.target.result as string });
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </label>
+                          <span className="text-[10px] text-slate-400">or presets:</span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1">
+                          {[
+                            { name: "Water Quality", url: "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=600&q=80" },
+                            { name: "Appliances", url: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80" },
+                            { name: "Home Health", url: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=600&q=80" },
+                          ].map((preset) => (
+                            <button
+                              key={preset.name}
+                              type="button"
+                              onClick={() => setSurveyDetails({ ...surveyDetails, image_url: preset.url })}
+                              className="px-1.5 py-0.5 rounded text-[10px] bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 cursor-pointer"
+                            >
+                              {preset.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
