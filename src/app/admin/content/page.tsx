@@ -2,60 +2,72 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  PackageOpen,
+  Layers,
+  Image as ImageIcon,
   Plus,
   RefreshCw,
   Loader2,
   CheckCircle,
   AlertCircle,
-  ShieldCheck,
   Edit2,
+  Trash2,
   X,
+  Eye,
+  EyeOff,
+  ArrowUpDown,
   ExternalLink,
 } from "lucide-react";
 
-interface Product {
+interface HomeBanner {
   id: string;
   title: string;
-  category: string;
-  brand: string;
-  summary: string;
-  specifications: Record<string, any>;
-  price_inr: string | number;
-  score: number | null;
-  scorecard_details: Record<string, any>;
-  evidence_sources: Array<{ source: string; type: string }>;
+  subtitle?: string;
+  desktop_image_url: string;
+  mobile_image_url?: string;
+  link_url?: string;
+  display_order: number;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   created_at: string;
 }
 
+interface HomeSection {
+  id: string;
+  section_key: string;
+  title: string;
+  subtitle?: string;
+  is_visible: boolean;
+  display_order: number;
+}
+
 export default function AdminContentPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [activeTab, setActiveTab] = useState<"BANNERS" | "SECTIONS">("BANNERS");
+  const [banners, setBanners] = useState<HomeBanner[]>([]);
+  const [sections, setSections] = useState<HomeSection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Edit / Create Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Water Purifiers");
-  const [brand, setBrand] = useState("");
-  const [summary, setSummary] = useState("");
-  const [priceInr, setPriceInr] = useState<number>(0);
-  const [score, setScore] = useState<number>(8.5);
-  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | "ARCHIVED">("PUBLISHED");
-  const [evidenceSource, setEvidenceSource] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+  // Banner Modal State
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+  const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
+  const [bannerTitle, setBannerTitle] = useState("");
+  const [bannerSubtitle, setBannerSubtitle] = useState("");
+  const [desktopImageUrl, setDesktopImageUrl] = useState("");
+  const [mobileImageUrl, setMobileImageUrl] = useState("");
+  const [linkUrl, setLinkUrl] = useState("/store");
+  const [displayOrder, setDisplayOrder] = useState<number>(1);
+  const [bannerStatus, setBannerStatus] = useState<"DRAFT" | "PUBLISHED" | "ARCHIVED">("PUBLISHED");
+  const [isSavingBanner, setIsSavingBanner] = useState(false);
 
-  const fetchProducts = useCallback(async () => {
+  const fetchContent = useCallback(async () => {
     setIsLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/content");
+      const res = await fetch("/api/admin/content/home");
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to load products");
-      setProducts(data.products);
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to load home content");
+      setBanners(data.banners || []);
+      setSections(data.sections || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -64,358 +76,404 @@ export default function AdminContentPage() {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchContent();
+  }, [fetchContent]);
 
-  const handleOpenCreate = () => {
-    setEditingId(null);
-    setTitle("");
-    setCategory("Water Purifiers");
-    setBrand("");
-    setSummary("");
-    setPriceInr(0);
-    setScore(0);
-    setStatus("DRAFT");
-    setEvidenceSource("");
-    setIsModalOpen(true);
+  const handleOpenCreateBanner = () => {
+    setEditingBannerId(null);
+    setBannerTitle("");
+    setBannerSubtitle("");
+    setDesktopImageUrl("");
+    setMobileImageUrl("");
+    setLinkUrl("/store");
+    setDisplayOrder(banners.length + 1);
+    setBannerStatus("PUBLISHED");
+    setIsBannerModalOpen(true);
   };
 
-  const handleOpenEdit = (p: Product) => {
-    setEditingId(p.id);
-    setTitle(p.title);
-    setCategory(p.category);
-    setBrand(p.brand);
-    setSummary(p.summary || "");
-    setPriceInr(Number(p.price_inr));
-    setScore(p.score !== null ? Number(p.score) : 8.0);
-    setStatus(p.status);
-    setEvidenceSource(p.evidence_sources?.[0]?.source || "Lab Testing");
-    setIsModalOpen(true);
+  const handleOpenEditBanner = (b: HomeBanner) => {
+    setEditingBannerId(b.id);
+    setBannerTitle(b.title);
+    setBannerSubtitle(b.subtitle || "");
+    setDesktopImageUrl(b.desktop_image_url);
+    setMobileImageUrl(b.mobile_image_url || "");
+    setLinkUrl(b.link_url || "/store");
+    setDisplayOrder(b.display_order || 1);
+    setBannerStatus(b.status || "PUBLISHED");
+    setIsBannerModalOpen(true);
   };
 
-  const handleSaveProduct = async (e: React.FormEvent) => {
+  const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
+    setIsSavingBanner(true);
     setError("");
-
     try {
-      const evidence = evidenceSource ? [{ source: evidenceSource, type: "LAB_VERIFIED" }] : [];
-      const res = await fetch("/api/admin/content", {
+      const res = await fetch("/api/admin/content/home", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: editingId || undefined,
-          title,
-          category,
-          brand,
-          summary,
-          priceInr: Number(priceInr),
-          score: Number(score),
-          status,
-          evidenceSources: evidence,
-          specifications: { verified: true },
+          type: "banner",
+          id: editingBannerId || undefined,
+          title: bannerTitle.trim(),
+          subtitle: bannerSubtitle.trim() || undefined,
+          desktopImageUrl: desktopImageUrl.trim(),
+          mobileImageUrl: mobileImageUrl.trim() || undefined,
+          linkUrl: linkUrl.trim() || "/store",
+          displayOrder: Number(displayOrder),
+          status: bannerStatus,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to save product");
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to save banner");
 
-      setSuccess(`Product "${title}" saved successfully.`);
-      setIsModalOpen(false);
-      fetchProducts();
+      setSuccess("Home banner updated successfully!");
+      setIsBannerModalOpen(false);
+      fetchContent();
+      setTimeout(() => setSuccess(""), 4000);
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setIsSaving(false);
+      setIsSavingBanner(false);
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this promotional banner?")) return;
+    try {
+      const res = await fetch(`/api/admin/content/home?bannerId=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete banner");
+
+      setSuccess("Banner deleted.");
+      fetchContent();
+      setTimeout(() => setSuccess(""), 4000);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleToggleSectionVisibility = async (sec: HomeSection) => {
+    const nextVal = !sec.is_visible;
+    try {
+      const res = await fetch("/api/admin/content/home", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "section",
+          sectionKey: sec.section_key,
+          isVisible: nextVal,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to update section");
+
+      setSections((prev) =>
+        prev.map((s) => (s.section_key === sec.section_key ? { ...s, is_visible: nextVal } : s))
+      );
+    } catch (err: any) {
+      setError(err.message);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Content & GharSure Scorecards
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Home Page & Content Management
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Authoritative appliance scorecards, verified laboratory testing evidence, and consumer guides.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage promotional hero banners, campaign announcements, and home page section visibility dynamically.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handleOpenCreate}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-brand-orange hover:bg-brand-orange-600 text-white shadow-xs transition-colors"
+            onClick={() => fetchContent()}
+            disabled={isLoading}
+            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+            title="Refresh"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Verified Product</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
           </button>
-          <button
-            onClick={() => fetchProducts()}
-            className="p-2 rounded-lg text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 shadow-xs transition-colors"
-            title="Refresh list"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-          </button>
+          {activeTab === "BANNERS" && (
+            <button
+              onClick={handleOpenCreateBanner}
+              className="px-3.5 py-2 rounded-lg bg-brand-purple hover:bg-purple-700 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Banner</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Alerts */}
-      {success && (
-        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{success}</span>
-          </div>
-          <button onClick={() => setSuccess("")} className="text-emerald-500 hover:text-emerald-700">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       {error && (
-        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-            <span>{error}</span>
-          </div>
-          <button onClick={() => setError("")} className="text-red-500 hover:text-red-700">
-            <X className="w-4 h-4" />
-          </button>
+        <div className="p-3 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+      {success && (
+        <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          <span>{success}</span>
         </div>
       )}
 
-      {/* Products Table */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              <tr>
-                <th className="px-5 py-3.5">Score</th>
-                <th className="px-5 py-3.5">Product Title</th>
-                <th className="px-5 py-3.5">Category & Brand</th>
-                <th className="px-5 py-3.5">Price (INR)</th>
-                <th className="px-5 py-3.5">Evidence Sources</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-slate-400" />
-                    <span>Loading products and scorecards...</span>
-                  </td>
+      {/* Tabs */}
+      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2">
+        <button
+          onClick={() => setActiveTab("BANNERS")}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+            activeTab === "BANNERS" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+          }`}
+        >
+          <ImageIcon className="w-3.5 h-3.5" />
+          <span>Hero Banners ({banners.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("SECTIONS")}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+            activeTab === "SECTIONS" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Home Sections ({sections.length})</span>
+        </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* TAB 1: HERO BANNERS MANAGEMENT                                           */}
+      {/* ========================================================================= */}
+      {activeTab === "BANNERS" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {banners.map((banner) => (
+              <div
+                key={banner.id}
+                className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs space-y-3"
+              >
+                <div className="relative h-44 w-full bg-slate-900 overflow-hidden">
+                  <img
+                    src={banner.desktop_image_url}
+                    alt={banner.title}
+                    className="w-full h-full object-cover opacity-85"
+                  />
+                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded shadow-xs uppercase tracking-wider ${
+                        banner.status === "PUBLISHED" ? "bg-emerald-600 text-white" : "bg-slate-600 text-white"
+                      }`}
+                    >
+                      {banner.status}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-black/60 text-white backdrop-blur-xs">
+                      #{banner.display_order}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4 pt-1 space-y-2">
+                  <h3 className="text-sm font-bold text-slate-900 leading-snug">{banner.title}</h3>
+                  {banner.subtitle && <p className="text-xs text-slate-500">{banner.subtitle}</p>}
+                  <div className="text-[11px] text-slate-400 font-mono truncate">
+                    Destination: {banner.link_url || "/store"}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-1.5">
+                    <button
+                      onClick={() => handleOpenEditBanner(banner)}
+                      className="p-1.5 rounded-lg text-slate-600 hover:text-brand-purple hover:bg-slate-100 transition-colors cursor-pointer"
+                      title="Edit Banner"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBanner(banner.id)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="Delete Banner"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2: HOME SECTIONS CONFIGURATION                                       */}
+      {/* ========================================================================= */}
+      {activeTab === "SECTIONS" && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                  <th className="py-3 px-4">Section Identifier</th>
+                  <th className="py-3 px-3">Display Heading</th>
+                  <th className="py-3 px-3">Order</th>
+                  <th className="py-3 px-4 text-right">Visibility Action</th>
                 </tr>
-              ) : products.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    No verified products in database.
-                  </td>
-                </tr>
-              ) : (
-                products.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-5 py-3">
-                      {p.score ? (
-                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-mono font-bold text-xs border border-emerald-200">
-                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>{Number(p.score).toFixed(1)}</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 italic">Unrated</span>
-                      )}
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sections.map((sec) => (
+                  <tr key={sec.section_key} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                      {sec.section_key}
                     </td>
-                    <td className="px-5 py-3">
-                      <div className="font-semibold text-slate-900 max-w-sm">{p.title}</div>
-                      <div className="text-[11px] text-slate-400 line-clamp-1">{p.summary}</div>
+                    <td className="py-3.5 px-3">
+                      <span className="font-semibold text-slate-900 block">{sec.title}</span>
+                      {sec.subtitle && <span className="text-[11px] text-slate-400">{sec.subtitle}</span>}
                     </td>
-                    <td className="px-5 py-3">
-                      <div className="font-medium text-slate-800">{p.brand}</div>
-                      <div className="text-[11px] text-slate-400">{p.category}</div>
+                    <td className="py-3.5 px-3 font-mono font-bold text-slate-700">
+                      {sec.display_order}
                     </td>
-                    <td className="px-5 py-3 font-mono font-medium text-slate-800">
-                      ₹{Number(p.price_inr).toLocaleString("en-IN")}
-                    </td>
-                    <td className="px-5 py-3 text-[11px] text-slate-500 max-w-xs truncate">
-                      {p.evidence_sources?.[0]?.source || "Field Verified"}
-                    </td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                          p.status === "PUBLISHED"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-slate-100 text-slate-700 border-slate-200"
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        onClick={() => handleToggleSectionVisibility(sec)}
+                        className={`px-3 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                          sec.is_visible
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                            : "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200"
                         }`}
                       >
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={() => handleOpenEdit(p)}
-                        className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px] inline-flex items-center gap-1 transition-colors"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        <span>Edit</span>
+                        {sec.is_visible ? (
+                          <>
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Visible</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-3.5 h-3.5" />
+                            <span>Hidden</span>
+                          </>
+                        )}
                       </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Edit / Create Modal */}
-      {isModalOpen && (
+      {/* ========================================================================= */}
+      {/* ADD / EDIT BANNER MODAL                                                   */}
+      {/* ========================================================================= */}
+      {isBannerModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-6 border border-slate-200 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div className="flex items-center gap-2">
-                <PackageOpen className="w-5 h-5 text-brand-orange" />
-                <h3 className="text-sm font-bold text-slate-900">
-                  {editingId ? "Edit Verified Product" : "Add New Verified Product"}
-                </h3>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl p-6 border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900">
+                {editingBannerId ? "Edit Hero Banner" : "Create Hero Promotional Banner"}
+              </h3>
+              <button
+                onClick={() => setIsBannerModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-3.5">
+            <form onSubmit={handleSaveBanner} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Product Title & Model
-                </label>
+                <label className="block text-slate-700 font-semibold mb-1">Banner Headline *</label>
                 <input
                   type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Eureka Forbes Aquaguard Ritz RO+UV"
                   required
-                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange"
+                  value={bannerTitle}
+                  onChange={(e) => setBannerTitle(e.target.value)}
+                  placeholder="e.g. Pure Water & Clean Living for Indian Homes"
+                  className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Subtitle / Supporting Text</label>
+                <input
+                  type="text"
+                  value={bannerSubtitle}
+                  onChange={(e) => setBannerSubtitle(e.target.value)}
+                  placeholder="e.g. Discover lab-verified purifiers and free doorstep trials..."
+                  className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Desktop Image URL *</label>
+                <input
+                  type="url"
+                  required
+                  value={desktopImageUrl}
+                  onChange={(e) => setDesktopImageUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/photo-..."
+                  className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs bg-white"
-                  >
-                    <option value="Water Purifiers">Water Purifiers</option>
-                    <option value="Testing Equipment">Testing Equipment</option>
-                    <option value="Appliances">Appliances</option>
-                    <option value="Home Maintenance">Home Maintenance</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Manufacturer / Brand
-                  </label>
+                  <label className="block text-slate-700 font-semibold mb-1">Destination Link</label>
                   <input
                     type="text"
-                    value={brand}
-                    onChange={(e) => setBrand(e.target.value)}
-                    placeholder="e.g. Eureka Forbes, Bosch"
-                    required
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    placeholder="/store or /rewards"
+                    className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Price (INR)
-                  </label>
+                  <label className="block text-slate-700 font-semibold mb-1">Display Order</label>
                   <input
                     type="number"
-                    value={priceInr}
-                    onChange={(e) => setPriceInr(Number(e.target.value))}
-                    min={0}
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs font-mono"
+                    min="1"
+                    value={displayOrder}
+                    onChange={(e) => setDisplayOrder(parseInt(e.target.value, 10) || 1)}
+                    className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple font-mono"
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    GharSure Score (0-10)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="10"
-                    value={score}
-                    onChange={(e) => setScore(Number(e.target.value))}
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Publication Status
-                  </label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as any)}
-                    className="w-full h-9 px-2 rounded-lg border border-slate-200 text-xs bg-white"
-                  >
-                    <option value="PUBLISHED">PUBLISHED</option>
-                    <option value="DRAFT">DRAFT</option>
-                    <option value="ARCHIVED">ARCHIVED</option>
-                  </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Testing Evidence Source
-                </label>
-                <input
-                  type="text"
-                  value={evidenceSource}
-                  onChange={(e) => setEvidenceSource(e.target.value)}
-                  placeholder="e.g. BIS IS 10500 Compliant Lab Testing Batch #2026"
-                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Summary & Assessment
-                </label>
-                <textarea
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  rows={2}
-                  placeholder="Summary of performance under Cauvery & Borewell water conditions..."
-                  className="w-full p-2.5 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange"
-                />
+                <label className="block text-slate-700 font-semibold mb-1">Status *</label>
+                <select
+                  value={bannerStatus}
+                  onChange={(e: any) => setBannerStatus(e.target.value)}
+                  className="w-full h-8 px-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple bg-white"
+                >
+                  <option value="PUBLISHED">Published (Visible on Home)</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="ARCHIVED">Archived</option>
+                </select>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  onClick={() => setIsBannerModalOpen(false)}
+                  className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSaving}
-                  className="px-4 py-2 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  disabled={isSavingBanner}
+                  className="px-4 py-1.5 rounded-lg bg-brand-purple hover:bg-purple-700 disabled:opacity-50 text-white font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
-                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Save Product</span>
+                  {isSavingBanner && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Save Banner</span>
                 </button>
               </div>
             </form>

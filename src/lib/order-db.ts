@@ -314,10 +314,10 @@ export async function createOrder(input: CreateOrderInput): Promise<{
               VALUES (
                 ${customer.id},
                 ${-calculatedTotalCoins},
-                'ORDER_PURCHASE',
+                'STORE_REDEMPTION',
                 ${`Redeemed for order ${orderNumber}`},
                 ${`order_coins_${newOrder.id}`},
-                ${JSON.stringify({ orderId: newOrder.id, orderNumber })}::jsonb
+                ${JSON.stringify({ action: "ORDER_PURCHASE", orderId: newOrder.id, orderNumber })}::jsonb
               );
             `;
           }

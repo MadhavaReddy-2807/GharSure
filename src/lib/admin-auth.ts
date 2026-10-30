@@ -9,6 +9,9 @@ const ADMIN_SESSION_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days
 export type AdminRole =
   | "SUPER_ADMIN"
   | "OPERATIONS_ADMIN"
+  | "PRODUCT_MANAGER"
+  | "REWARDS_MANAGER"
+  | "REVIEWER"
   | "CONTENT_MANAGER"
   | "SUPPORT_ADMIN"
   | "ANALYST";
@@ -28,6 +31,13 @@ export type AdminPermission =
   | "content:publish"
   | "store:read"
   | "store:write"
+  | "store:strike_off"
+  | "files:read"
+  | "files:review"
+  | "polls:read"
+  | "polls:write"
+  | "vouchers:read"
+  | "vouchers:write"
   | "referrals:read"
   | "referrals:write"
   | "buildings:read"
@@ -59,6 +69,13 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermission[]> = {
     "content:publish",
     "store:read",
     "store:write",
+    "store:strike_off",
+    "files:read",
+    "files:review",
+    "polls:read",
+    "polls:write",
+    "vouchers:read",
+    "vouchers:write",
     "referrals:read",
     "referrals:write",
     "buildings:read",
@@ -87,6 +104,13 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermission[]> = {
     "content:publish",
     "store:read",
     "store:write",
+    "store:strike_off",
+    "files:read",
+    "files:review",
+    "polls:read",
+    "polls:write",
+    "vouchers:read",
+    "vouchers:write",
     "referrals:read",
     "referrals:write",
     "buildings:read",
@@ -98,6 +122,38 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermission[]> = {
     "support:write",
     "analytics:read",
     "audit:read",
+  ],
+  PRODUCT_MANAGER: [
+    "store:read",
+    "store:write",
+    "store:strike_off",
+    "content:read",
+    "content:write",
+    "content:publish",
+    "vouchers:read",
+    "analytics:read",
+  ],
+  REWARDS_MANAGER: [
+    "surveys:read",
+    "surveys:write",
+    "surveys:publish",
+    "rewards:read",
+    "rewards:write",
+    "files:read",
+    "files:review",
+    "polls:read",
+    "polls:write",
+    "vouchers:read",
+    "vouchers:write",
+    "referrals:read",
+    "referrals:write",
+    "analytics:read",
+  ],
+  REVIEWER: [
+    "files:read",
+    "files:review",
+    "surveys:read",
+    "polls:read",
   ],
   CONTENT_MANAGER: [
     "content:read",

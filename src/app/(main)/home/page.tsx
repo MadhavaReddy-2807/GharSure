@@ -1,44 +1,62 @@
 import React from "react";
 import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
-import { getCustomerById } from "@/lib/supabase/db";
+import { getCustomerById, getCustomerByPhone } from "@/lib/supabase/db";
 import { isDirectDatabaseConfigured, getDirectSql } from "@/lib/supabase/direct-db";
 import { listAvailableSurveysForCustomer } from "@/lib/survey-db";
-import { listProductsAdmin } from "@/lib/admin-db";
+import { listProductsAdmin, listHomeBannersAdmin, listHomeSectionsAdmin } from "@/lib/admin-db";
+import { listAvailableQuickPolls } from "@/lib/rewards-activities-db";
 import {
   Coins,
   ClipboardList,
   ArrowRight,
   ShieldCheck,
   ChevronRight,
-  Package,
   Sparkles,
-  Home,
-  CheckCircle2,
+  Vote,
 } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const session = await getCurrentSession();
-  const customer = session ? await getCustomerById(session.customerId) : null;
+  let customer = session ? await getCustomerById(session.customerId) : null;
+  if (!customer && session?.phone) {
+    customer = await getCustomerByPhone(session.phone);
+  }
 
   const displayName = customer?.display_name || customer?.full_name?.split(" ")[0] || "Homeowner";
   const city = customer?.city || "India";
   const balance = customer?.reward_coins ?? 0;
 
   let trendingProducts: any[] = [];
+  let banners: any[] = [];
+  let sections: any[] = [];
+  let quickPolls: any[] = [];
 
   if (isDirectDatabaseConfigured()) {
     try {
       const sql = getDirectSql();
-      trendingProducts = await sql`
-        SELECT id, title, price_inr, brand, category, score, product_type, coin_price
-        FROM products
-        WHERE status = 'PUBLISHED'
-        ORDER BY is_featured DESC, score DESC NULLS LAST
-        LIMIT 4;
-      `;
-    } catch {
-      trendingProducts = [];
+      [trendingProducts, banners, sections, quickPolls] = await Promise.all([
+        sql`
+          SELECT id, title, price_inr, brand, category, score, product_type, coin_price, image_url, is_hot_pick, is_featured
+          FROM products
+          WHERE status = 'PUBLISHED'
+          ORDER BY is_hot_pick DESC, is_featured DESC, score DESC NULLS LAST
+          LIMIT 4;
+        `,
+        sql`
+          SELECT * FROM home_banners 
+          WHERE status = 'PUBLISHED' 
+            AND (start_date IS NULL OR start_date <= NOW())
+            AND (end_date IS NULL OR end_date >= NOW())
+          ORDER BY display_order ASC;
+        `,
+        sql`SELECT * FROM home_sections ORDER BY display_order ASC;`,
+        listAvailableQuickPolls(customer?.id),
+      ]);
+    } catch (err) {
+      console.warn("[Home] Error loading dynamic home content:", err);
     }
   }
 
@@ -46,36 +64,38 @@ export default async function HomePage() {
     const fallbackProducts = await listProductsAdmin({ status: "PUBLISHED" });
     trendingProducts = fallbackProducts.slice(0, 4);
   }
+  if (banners.length === 0) {
+    banners = await listHomeBannersAdmin();
+  }
+  if (sections.length === 0) {
+    sections = await listHomeSectionsAdmin();
+  }
 
-  // Curated attractive photos matching Smytten / Home4U
-  const dummyImages: Record<number, string> = {
-    0: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500&auto=format&fit=crop&q=80",
-    1: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=80",
-    2: "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=500&auto=format&fit=crop&q=80",
-    3: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500&auto=format&fit=crop&q=80",
-  };
-
+  // Active survey if user logged in
   let featuredSurvey: any = null;
-  if (session?.customerId) {
+  if (customer?.id) {
     try {
-      const surveys = await listAvailableSurveysForCustomer(session.customerId);
+      const surveys = await listAvailableSurveysForCustomer(customer.id);
       featuredSurvey = surveys.find((s) => s.userStatus === "IN_PROGRESS" || s.userStatus === "AVAILABLE");
     } catch {
       featuredSurvey = null;
     }
   }
 
+  const activePoll = quickPolls.find((p) => !p.hasVoted) || quickPolls[0];
+  const primaryBanner = banners[0] || null;
+
   return (
-    <div className="space-y-8 w-full max-w-7xl mx-auto pb-12">
+    <div className="space-y-8 w-full max-w-7xl mx-auto pb-16">
       {/* 1. RESIDENT GREETING & BALANCE SUMMARY */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
             <span className="font-semibold text-slate-700">{city}</span>
-            <span>·</span>
+            <span>•</span>
             <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Verified Homeowner</span>
+              <span>Verified Household</span>
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
@@ -83,14 +103,15 @@ export default async function HomePage() {
           </h1>
         </div>
 
-        {/* Clean Wallet Summary with Friendly Blue Button */}
+        {/* Clean Wallet Summary with Blue Button */}
         <div className="flex items-center gap-3">
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
               Reward Balance
             </div>
-            <div className="text-base font-bold font-mono text-slate-900">
-              {balance.toLocaleString()} <span className="text-xs font-normal text-slate-500">Coins</span>
+            <div className="text-base font-bold font-mono text-slate-900 flex items-center justify-end gap-1">
+              <Coins className="w-4 h-4 text-amber-500" />
+              <span>{balance.toLocaleString()} Coins</span>
             </div>
           </div>
           <Link
@@ -102,7 +123,42 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* 2. PRIORITY ACTION: ACTIVE RESEARCH SURVEY */}
+      {/* 2. ADMIN-CONTROLLED HERO PROMOTIONAL BANNER */}
+      {primaryBanner && (
+        <section aria-labelledby="hero-banner-heading" className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-xs bg-slate-900">
+          <div className="relative h-48 sm:h-64 w-full">
+            <img
+              src={primaryBanner.desktop_image_url}
+              alt={primaryBanner.title}
+              className="w-full h-full object-cover opacity-80"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent p-6 sm:p-8 flex flex-col justify-end">
+              <span className="text-[10px] font-bold tracking-wider text-blue-400 uppercase bg-blue-950/80 px-2.5 py-1 rounded w-fit mb-2 border border-blue-800/60">
+                GharSure Household Highlight
+              </span>
+              <h2 id="hero-banner-heading" className="text-lg sm:text-2xl font-bold text-white max-w-xl leading-tight">
+                {primaryBanner.title}
+              </h2>
+              {primaryBanner.subtitle && (
+                <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-lg line-clamp-2">
+                  {primaryBanner.subtitle}
+                </p>
+              )}
+              <div className="mt-4">
+                <Link
+                  href={primaryBanner.link_url || "/store"}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors shadow-sm"
+                >
+                  <span>Explore Now</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 3. PRIORITY ACTION: ACTIVE RESEARCH SURVEY */}
       {featuredSurvey && (
         <section aria-labelledby="active-survey-heading">
           <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-2xs">
@@ -139,136 +195,97 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* 3. HOUSEHOLD OVERVIEW & PREVENTIVE CARE */}
-      <section aria-labelledby="household-overview-heading" className="space-y-3">
-        <div className="flex items-center justify-between pb-1 border-b border-slate-200">
-          <h2 id="household-overview-heading" className="text-sm font-bold uppercase tracking-wider text-slate-800">
-            Household Care & Service Status
-          </h2>
-          <span className="text-xs text-slate-500">{city} Node</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1 shadow-2xs">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Doorstep Trials</div>
-            <div className="text-base font-bold text-slate-900">Free Kits Available</div>
-            <p className="text-xs text-slate-500">Redeem trial packs for home care with 0 coins in the Store.</p>
-          </div>
-
-          <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1 shadow-2xs">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Preventive Care</div>
-            <div className="text-base font-bold text-emerald-700">All Systems Normal</div>
-            <p className="text-xs text-slate-500">Appliance descaling and periodic inspection on schedule.</p>
-          </div>
-
-          <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1 shadow-2xs">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Community Referrals</div>
-            <div className="text-base font-bold text-blue-700">+100 Coins per Neighbor</div>
-            <p className="text-xs text-slate-500">Invite apartment residents to unlock collective benefits.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. FEATURED PRODUCTS & TRAIL KITS (Matching Image 2 Smytten Card Aesthetic) */}
-      {trendingProducts.length > 0 && (
-        <section aria-labelledby="featured-products-heading" className="space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-            <div>
-              <h2 id="featured-products-heading" className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                Featured Products & Minis
-              </h2>
-              <p className="text-xs text-slate-500">
-                Explore popular household essentials and zero-cost doorstep trial kits
-              </p>
+      {/* 4. QUICK POLL PREVIEW IF OPEN */}
+      {activePoll && !activePoll.hasVoted && (
+        <section aria-labelledby="home-poll-heading">
+          <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-2xs">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5 border border-indigo-100">
+                <Vote className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider bg-indigo-50 px-2 py-0.5 rounded">
+                    Community Quick Poll
+                  </span>
+                  <span className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    +{activePoll.coin_reward} Coins
+                  </span>
+                </div>
+                <h2 id="home-poll-heading" className="text-sm sm:text-base font-bold text-slate-900">
+                  {activePoll.question}
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Share your voice and earn instant reward coins in our Rewards hub.
+                </p>
+              </div>
             </div>
+
             <Link
-              href="/store"
-              className="text-xs font-semibold text-[#2563EB] hover:underline flex items-center gap-1"
+              href="/rewards"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold transition-colors shrink-0 self-start sm:self-center"
             >
-              <span>View All</span>
+              <span>Answer Poll</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-            {trendingProducts.map((p, idx) => {
-              const isTrial = p.product_type === "TRIAL";
-              const cost = p.coin_price ?? 0;
-              const price = Number(p.price_inr) || 0;
-              const imgUrl = dummyImages[idx] || dummyImages[0];
-
-              return (
-                <div
-                  key={p.id}
-                  className="rounded-xl border border-slate-200/90 bg-white overflow-hidden flex flex-col justify-between hover:border-slate-300 transition-colors shadow-2xs"
-                >
-                  <div>
-                    {/* Image Container with Badges */}
-                    <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
-                      <img
-                        src={imgUrl}
-                        alt={p.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute top-2 left-2 z-10 text-[9px] font-bold text-white bg-amber-600 px-2 py-0.5 rounded shadow-2xs uppercase">
-                        {isTrial ? "★ Mini Trial" : "★ Hot Pick"}
-                      </span>
-                    </div>
-
-                    <div className="p-3 space-y-0.5">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        {p.brand}
-                      </div>
-                      <h3 className="text-xs font-semibold text-slate-900 leading-snug line-clamp-2">
-                        {p.title}
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="p-3 pt-2 border-t border-slate-100 flex items-center justify-between">
-                    {isTrial ? (
-                      <span className="text-xs font-bold font-mono text-amber-900">
-                        {cost === 0 ? "0 Coins" : `${cost} Coins`}
-                      </span>
-                    ) : (
-                      <span className="text-xs font-bold font-mono text-slate-900">
-                        ₹{price.toLocaleString("en-IN")}
-                      </span>
-                    )}
-
-                    {/* Friendly Blue Button (Image 2 style) */}
-                    <Link
-                      href="/store"
-                      className="px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors shadow-xs"
-                    >
-                      {isTrial ? "Try +" : "Add +"}
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </section>
       )}
 
-      {/* 5. REFERRAL ENTRY POINT */}
-      <section className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs">
-        <div>
-          <h3 className="text-xs sm:text-sm font-bold text-slate-900">
-            Invite Apartment Society Neighbors
-          </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Earn +100 reward coins for each verified household in your apartment network.
-          </p>
+      {/* 5. CURATED STORE HIGHLIGHTS */}
+      <section aria-labelledby="store-highlights-heading" className="space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <h2 id="store-highlights-heading" className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+              Verified Household Solutions
+            </h2>
+            <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              Lab Calibrated
+            </span>
+          </div>
+
+          <Link
+            href="/store"
+            className="text-xs font-semibold text-[#2563EB] hover:underline flex items-center gap-0.5"
+          >
+            <span>View All</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
-        <Link
-          href="/refer"
-          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors shrink-0 shadow-xs"
-        >
-          <span>Refer & Win</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </Link>
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {trendingProducts.map((p, idx) => (
+            <Link
+              key={p.id}
+              href="/store"
+              className="group block p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all hover:shadow-xs"
+            >
+              <div className="aspect-square rounded-lg bg-slate-100 overflow-hidden mb-2.5 relative border border-slate-100">
+                <img
+                  src={
+                    p.image_url ||
+                    "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500&auto=format&fit=crop&q=80"
+                  }
+                  alt={p.title}
+                  className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                />
+                {p.is_hot_pick && (
+                  <span className="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white uppercase tracking-wider shadow-xs">
+                    Hot Pick
+                  </span>
+                )}
+              </div>
+
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{p.brand}</div>
+              <h3 className="text-xs font-semibold text-slate-900 line-clamp-1 group-hover:text-[#2563EB] transition-colors mt-0.5">
+                {p.title}
+              </h3>
+              <div className="mt-2 text-xs font-bold text-slate-900">
+                {p.product_type === "TRIAL" ? "Doorstep Free Trial" : `₹${Number(p.price_inr).toLocaleString()}`}
+              </div>
+            </Link>
+          ))}
+        </div>
       </section>
     </div>
   );

@@ -60,6 +60,12 @@ export default function AdminUsersPage() {
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [actionSuccessMessage, setActionSuccessMessage] = useState("");
 
+  // Audited Coin Adjustment State
+  const [adjustAmount, setAdjustAmount] = useState<number>(50);
+  const [adjustReason, setAdjustReason] = useState("");
+  const [isAdjustingCoins, setIsAdjustingCoins] = useState(false);
+  const [adjustError, setAdjustError] = useState("");
+
   // Confirmation dialog state
   const [confirmAction, setConfirmAction] = useState<{
     type: "SUSPEND" | "REACTIVATE";
@@ -103,17 +109,62 @@ export default function AdminUsersPage() {
     setSelectedCustomerId(id);
     setIsLoadingDetail(true);
     setActionSuccessMessage("");
+    setAdjustError("");
+    setAdjustReason("");
     try {
-      const res = await fetch(`/api/admin/users/${id}`);
+      const res = await fetch(`/api/admin/users/${id}/details`);
       const data = await res.json();
       if (res.ok && data.success) {
-        setCustomerDetail(data.customer);
-        setDetailNotes(data.customer.support_notes || "");
+        setCustomerDetail(data);
+        setDetailNotes(data.customer?.support_notes || "");
+      } else {
+        // Fallback to basic
+        const basicRes = await fetch(`/api/admin/users/${id}`);
+        const basicData = await basicRes.json();
+        if (basicRes.ok && basicData.success) {
+          setCustomerDetail({ customer: basicData.customer, ledger: [], surveys: [], submissions: [], vouchers: [], orders: [] });
+          setDetailNotes(basicData.customer?.support_notes || "");
+        }
       }
     } catch {
       // Handled
     } finally {
       setIsLoadingDetail(false);
+    }
+  };
+
+  const handleAdjustCoins = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomerId || !adjustAmount || !adjustReason.trim()) {
+      setAdjustError("Please specify an adjustment amount and reason.");
+      return;
+    }
+
+    setIsAdjustingCoins(true);
+    setAdjustError("");
+    try {
+      const res = await fetch(`/api/admin/users/${selectedCustomerId}/adjust-coins`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: Number(adjustAmount),
+          reason: adjustReason.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to adjust coins");
+      }
+
+      setActionSuccessMessage(data.message || "Balance adjusted successfully");
+      setAdjustReason("");
+      handleOpenDetail(selectedCustomerId);
+      fetchCustomers();
+    } catch (err: any) {
+      setAdjustError(err.message);
+    } finally {
+      setIsAdjustingCoins(false);
     }
   };
 
@@ -460,32 +511,32 @@ export default function AdminUsersPage() {
                       <span className="text-xs font-bold text-slate-700">Account Identity</span>
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                          customerDetail.status === "ACTIVE"
-                            ? "bg-blue-50 text-blue-700 border-blue-200"
-                            : "bg-red-50 text-red-700 border-red-200"
+                          (customerDetail.customer?.onboarding_status === "SUSPENDED" || customerDetail.customer?.status === "SUSPENDED" || customerDetail.status === "SUSPENDED")
+                            ? "bg-red-50 text-red-700 border-red-200"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
                         }`}
                       >
-                        {customerDetail.status}
+                        {(customerDetail.customer?.onboarding_status === "SUSPENDED" || customerDetail.status === "SUSPENDED") ? "SUSPENDED" : "ACTIVE"}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <span className="text-[10px] text-slate-400 uppercase font-semibold block">Full Name</span>
-                        <span className="font-medium text-slate-800">{customerDetail.full_name || "Unspecified"}</span>
+                        <span className="font-medium text-slate-800">{customerDetail.customer?.full_name || customerDetail.full_name || "Unspecified"}</span>
                       </div>
                       <div>
                         <span className="text-[10px] text-slate-400 uppercase font-semibold block">Verified Phone</span>
-                        <span className="font-mono text-slate-800">{customerDetail.phone_e164}</span>
+                        <span className="font-mono text-slate-800">{customerDetail.customer?.phone_e164 || customerDetail.phone_e164}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-semibold block">Location</span>
-                        <span className="text-slate-800">{customerDetail.city || "Not provided"}</span>
+                        <span className="text-[10px] text-slate-400 uppercase font-semibold block">Customer ID</span>
+                        <span className="font-mono text-slate-800">{customerDetail.customer?.customer_id || customerDetail.customer_id}</span>
                       </div>
                       <div>
                         <span className="text-[10px] text-slate-400 uppercase font-semibold block">Registration Date</span>
                         <span className="text-slate-800">
-                          {new Date(customerDetail.created_at).toLocaleDateString("en-IN", {
+                          {new Date(customerDetail.customer?.created_at || customerDetail.created_at || Date.now()).toLocaleDateString("en-IN", {
                             day: "numeric",
                             month: "short",
                             year: "numeric",
@@ -495,7 +546,7 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
 
-                  {/* Coin Ledger Summary */}
+                  {/* Coin Balance & Audited Adjustment */}
                   <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -503,27 +554,51 @@ export default function AdminUsersPage() {
                         <span className="text-xs font-bold text-slate-800">Reward Coin Balance</span>
                       </div>
                       <span className="text-base font-bold text-slate-900 font-mono">
-                        {customerDetail.reward_coins || 0} Coins
+                        {(customerDetail.customer?.reward_coins ?? customerDetail.reward_coins ?? 0).toLocaleString()} Coins
                       </span>
                     </div>
 
-                    <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
-                      Authoritative balance reconciled from transaction ledger.
-                    </div>
+                    {/* Audited Adjustment Form */}
+                    <form onSubmit={handleAdjustCoins} className="pt-2 border-t border-slate-100 space-y-2">
+                      <span className="text-[11px] font-bold text-slate-700 block">Audited Coin Adjustment</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={adjustAmount}
+                          onChange={(e) => setAdjustAmount(parseInt(e.target.value, 10) || 0)}
+                          placeholder="+/- Coins"
+                          className="w-24 h-7 px-2 rounded border border-slate-200 text-xs font-mono"
+                        />
+                        <input
+                          type="text"
+                          required
+                          value={adjustReason}
+                          onChange={(e) => setAdjustReason(e.target.value)}
+                          placeholder="Audited reason (e.g. Goodwill credit, survey re-adjustment)..."
+                          className="flex-1 h-7 px-2 rounded border border-slate-200 text-xs"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isAdjustingCoins || !adjustReason.trim()}
+                          className="px-2.5 py-1 bg-brand-purple hover:bg-purple-700 disabled:opacity-50 text-white text-[11px] font-semibold rounded cursor-pointer"
+                        >
+                          {isAdjustingCoins ? <Loader2 className="w-3 h-3 animate-spin" /> : "Apply"}
+                        </button>
+                      </div>
+                      {adjustError && <p className="text-[11px] text-rose-600">{adjustError}</p>}
+                    </form>
 
-                    {customerDetail.transactions?.length > 0 ? (
-                      <div className="space-y-1.5 pt-1">
+                    {/* Transaction Ledger */}
+                    {(customerDetail.ledger?.length > 0 || customerDetail.transactions?.length > 0) ? (
+                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
                         <span className="text-[10px] uppercase font-semibold text-slate-400">Recent Transactions</span>
-                        <div className="space-y-1">
-                          {customerDetail.transactions.map((tx: any) => (
-                            <div
-                              key={tx.id}
-                              className="p-2 rounded bg-slate-50 flex items-center justify-between text-xs"
-                            >
+                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                          {(customerDetail.ledger || customerDetail.transactions || []).map((tx: any) => (
+                            <div key={tx.id} className="p-2 rounded bg-slate-50 flex items-center justify-between text-xs">
                               <div>
                                 <p className="font-medium text-slate-800 text-[11px]">{tx.description}</p>
                                 <p className="text-[10px] text-slate-400 font-mono">
-                                  {new Date(tx.created_at).toLocaleDateString()} · {tx.type}
+                                  {new Date(tx.created_at).toLocaleDateString()} • {tx.type}
                                 </p>
                               </div>
                               <span
@@ -540,6 +615,63 @@ export default function AdminUsersPage() {
                     ) : (
                       <p className="text-[11px] text-slate-400 italic">No coin transactions recorded yet.</p>
                     )}
+                  </div>
+
+                  {/* Document Submissions */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+                    <span className="text-xs font-bold text-slate-800 block">Uploaded File Submissions</span>
+                    {customerDetail.submissions?.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {customerDetail.submissions.map((sub: any) => (
+                          <div key={sub.id} className="p-2 rounded bg-slate-50 flex items-center justify-between text-xs">
+                            <div>
+                              <p className="font-medium text-slate-800 text-[11px]">{sub.activity_title || sub.file_name}</p>
+                              <p className="text-[10px] text-slate-400">{new Date(sub.created_at).toLocaleDateString()}</p>
+                            </div>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                              {sub.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-400 italic">No documents submitted yet.</p>
+                    )}
+                  </div>
+
+                  {/* Vouchers & Orders */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+                      <span className="text-xs font-bold text-slate-800 block">Vouchers ({customerDetail.vouchers?.length || 0})</span>
+                      {customerDetail.vouchers?.length > 0 ? (
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {customerDetail.vouchers.map((v: any) => (
+                            <div key={v.id} className="p-1.5 rounded bg-slate-50 text-[11px] flex items-center justify-between">
+                              <span className="font-mono font-bold text-slate-800">{v.voucher_code}</span>
+                              <span className="text-[10px] text-slate-500">{v.status}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 italic">None unlocked</p>
+                      )}
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+                      <span className="text-xs font-bold text-slate-800 block">Orders ({customerDetail.orders?.length || 0})</span>
+                      {customerDetail.orders?.length > 0 ? (
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {customerDetail.orders.map((o: any) => (
+                            <div key={o.id} className="p-1.5 rounded bg-slate-50 text-[11px] flex items-center justify-between">
+                              <span className="font-mono font-bold text-slate-800">{o.order_number}</span>
+                              <span className="text-[10px] text-emerald-700 font-bold">{o.status}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 italic">No orders yet</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Survey History */}

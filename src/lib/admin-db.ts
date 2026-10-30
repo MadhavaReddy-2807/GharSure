@@ -31,6 +31,10 @@ export interface DashboardMetrics {
   activeTrials: number;
   totalBuildings: number;
   openTickets: number;
+  pendingSubmissions?: number;
+  pollResponses?: number;
+  ordersPlaced?: number;
+  vouchersUnlocked?: number;
   recentAuditEvents: Array<{
     id: string;
     event_type: string;
@@ -333,11 +337,20 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
           (SELECT count(*)::text FROM trial_campaigns WHERE status = 'ACTIVE') as trials;
       `;
 
-      // 5. Support tickets & Buildings
-      const ticketStats = await sql<{ open_tickets: string }[]>`
-        SELECT count(*)::text as open_tickets
-        FROM support_tickets
-        WHERE status IN ('OPEN', 'IN_PROGRESS');
+      // 5. Support tickets, Submissions, Orders & Polls
+      const activityStats = await sql<{
+        open_tickets: string;
+        pending_submissions: string;
+        poll_responses: string;
+        orders_placed: string;
+        vouchers_unlocked: string;
+      }[]>`
+        SELECT 
+          (SELECT count(*)::text FROM support_tickets WHERE status IN ('OPEN', 'IN_PROGRESS')) as open_tickets,
+          (SELECT count(*)::text FROM file_submissions WHERE status = 'SUBMITTED') as pending_submissions,
+          (SELECT count(*)::text FROM quick_poll_responses) as poll_responses,
+          (SELECT count(*)::text FROM orders) as orders_placed,
+          (SELECT count(*)::text FROM customer_vouchers WHERE status = 'UNLOCKED') as vouchers_unlocked;
       `;
 
       const buildingStats = await sql<{ count: string }[]>`
@@ -363,7 +376,11 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         totalProducts: parseInt(catalogStats[0]?.products || "0", 10),
         activeTrials: parseInt(catalogStats[0]?.trials || "0", 10),
         totalBuildings: parseInt(buildingStats[0]?.count || "0", 10),
-        openTickets: parseInt(ticketStats[0]?.open_tickets || "0", 10),
+        openTickets: parseInt(activityStats[0]?.open_tickets || "0", 10),
+        pendingSubmissions: parseInt(activityStats[0]?.pending_submissions || "0", 10),
+        pollResponses: parseInt(activityStats[0]?.poll_responses || "0", 10),
+        ordersPlaced: parseInt(activityStats[0]?.orders_placed || "0", 10),
+        vouchersUnlocked: parseInt(activityStats[0]?.vouchers_unlocked || "0", 10),
         recentAuditEvents: recentEvents.map((r) => ({
           id: r.id,
           event_type: r.event_type,
@@ -1512,11 +1529,11 @@ async function seedDefaultProductsIfEmpty(sql: any): Promise<void> {
 
     const seedItems = [
       {
-        title: "GharSure Smart Water Hardness (TDS) Tester",
-        category: "Lab Diagnostics",
+        title: "GharSure Smart Indoor Climate & Humidity Monitor",
+        category: "Smart Home",
         brand: "GharSure Lab",
-        summary: "Titanium-alloy probe digital meter with instant backlit LCD reading calibrated for Indian tap & borewell water.",
-        specifications: { range: "0-9990 ppm", accuracy: "±2%", battery: "CR2032" },
+        summary: "Real-time room temperature and humidity sensor with Bluetooth sync for household climate tracking.",
+        specifications: { connectivity: "Bluetooth 5.0", accuracy: "±0.3°C", battery: "CR2450 (Included)", display: "E-Ink" },
         price_inr: 699,
         coin_price: 0,
         product_type: "GHARSURE_PRODUCT",
@@ -1526,11 +1543,11 @@ async function seedDefaultProductsIfEmpty(sql: any): Promise<void> {
         status: "PUBLISHED",
       },
       {
-        title: "GharSure Water Intelligence & Purifier Monitor",
-        category: "IoT Monitors",
+        title: "GharSure Smart Appliance Energy & Power Monitor",
+        category: "Smart Home",
         brand: "GharSure Lab",
-        summary: "Real-time inline TDS and flow rate telemetry monitor with Bluetooth & Wi-Fi sync for preventive filter maintenance.",
-        specifications: { connectivity: "Wi-Fi + BLE", sensor: "Dual Titanium Electrodes", battery: "1 Year Rechargeable" },
+        summary: "Plug-and-play energy monitor for home appliances with real-time wattage and voltage alerts.",
+        specifications: { maxLoad: "16A (3600W)", connectivity: "Wi-Fi 2.4GHz", surgeProtection: "Integrated 4000V" },
         price_inr: 1499,
         coin_price: 0,
         product_type: "GHARSURE_PRODUCT",
@@ -1540,8 +1557,8 @@ async function seedDefaultProductsIfEmpty(sql: any): Promise<void> {
         status: "PUBLISHED",
       },
       {
-        title: "GharSure Anti-Scalant Magnetic Water Conditioner",
-        category: "Water Conditioners",
+        title: "GharSure Anti-Scalant Magnetic Appliance Conditioner",
+        category: "Appliance Care",
         brand: "GharSure Lab",
         summary: "Neodymium magnetic field water conditioner preventing limescale crystallization on pipes and geysers.",
         specifications: { pipeSize: "1/2 inch to 1 inch", magneticStrength: "12,000 Gauss", warranty: "5 Years" },
@@ -1554,11 +1571,11 @@ async function seedDefaultProductsIfEmpty(sql: any): Promise<void> {
         status: "PUBLISHED",
       },
       {
-        title: "Water Hardness (TDS) Rapid Test Strip Kit",
+        title: "Eco Surface & Glass Deep Clean Concentrate (Trial Mini)",
         category: "Trial Kits",
-        brand: "GharSure Lab",
-        summary: "5 calibrated litmus test strips for instant tap water hardness and chlorine detection delivered to your doorstep.",
-        specifications: { strips: "5 Tests", parameters: "TDS, Hardness, Free Chlorine, pH", shelfLife: "24 months" },
+        brand: "CleanFlow",
+        summary: "Plant-based multi-surface cleaning concentrate for kitchen counters, glass, and bathroom tiles.",
+        specifications: { packSize: "100 ml", dilution: "1:10 with water", fragrance: "Eucalyptus & Mint", shelfLife: "24 months" },
         price_inr: 0,
         coin_price: 0,
         product_type: "TRIAL",
@@ -1599,7 +1616,7 @@ async function seedDefaultProductsIfEmpty(sql: any): Promise<void> {
         title: "PurePro RO+UV Alkaline Water Purifier",
         category: "Water Purifiers",
         brand: "PurePro",
-        summary: "7-stage purification with copper-alkaline enrichment and smart TDS retention.",
+        summary: "7-stage purification with copper-alkaline enrichment and smart mineral retention.",
         specifications: { capacity: "10L", technology: "RO+UV+UF+Alkaline", power: "60W" },
         price_inr: 14999,
         coin_price: 0,
@@ -1702,16 +1719,26 @@ export async function saveProductAdmin(data: {
   category: string;
   brand: string;
   summary: string;
+  imageUrl?: string;
   specifications?: Record<string, unknown>;
   priceInr?: number;
   coinPrice?: number;
   productType?: "GHARSURE_PRODUCT" | "TRIAL" | "GENERAL_PRODUCT";
   inventoryStock?: number;
   isFeatured?: boolean;
+  isHotPick?: boolean;
+  isRecommended?: boolean;
+  isNewArrival?: boolean;
+  isBestSeller?: boolean;
+  discountPercent?: number;
+  displayOrder?: number;
+  highlightStartDate?: string | null;
+  highlightEndDate?: string | null;
   score?: number | null;
   scorecardDetails?: Record<string, unknown>;
   evidenceSources?: any[];
-  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED" | "STRUCK_OFF";
+  strikeOffReason?: string;
 }): Promise<any> {
   if (isDirectDatabaseConfigured()) {
     try {
@@ -1721,7 +1748,14 @@ export async function saveProductAdmin(data: {
       const priceInr = Number(data.priceInr) || 0;
       const inventoryStock = Number(data.inventoryStock ?? 100);
       const isFeatured = Boolean(data.isFeatured);
+      const isHotPick = Boolean(data.isHotPick);
+      const isRecommended = Boolean(data.isRecommended);
+      const isNewArrival = Boolean(data.isNewArrival);
+      const isBestSeller = Boolean(data.isBestSeller);
+      const discountPercent = Number(data.discountPercent) || 0;
+      const displayOrder = Number(data.displayOrder) || 0;
       const status = data.status || "PUBLISHED";
+      const imageUrl = data.imageUrl || null;
 
       if (data.id) {
         const rows = await sql`
@@ -1731,16 +1765,26 @@ export async function saveProductAdmin(data: {
             category = ${data.category},
             brand = ${data.brand.trim()},
             summary = ${data.summary || ""},
+            image_url = ${imageUrl},
             specifications = ${JSON.stringify(data.specifications || {})}::jsonb,
             price_inr = ${priceInr},
             coin_price = ${coinPrice},
             product_type = ${productType},
             inventory_stock = ${inventoryStock},
             is_featured = ${isFeatured},
+            is_hot_pick = ${isHotPick},
+            is_recommended = ${isRecommended},
+            is_new_arrival = ${isNewArrival},
+            is_best_seller = ${isBestSeller},
+            discount_percent = ${discountPercent},
+            display_order = ${displayOrder},
+            highlight_start_date = ${data.highlightStartDate || null},
+            highlight_end_date = ${data.highlightEndDate || null},
             score = ${data.score !== undefined ? data.score : null},
             scorecard_details = ${JSON.stringify(data.scorecardDetails || {})}::jsonb,
             evidence_sources = ${JSON.stringify(data.evidenceSources || [])}::jsonb,
             status = ${status},
+            strike_off_reason = ${data.strikeOffReason || null},
             updated_at = NOW()
           WHERE id::text = ${data.id}
           RETURNING *;
@@ -1749,15 +1793,19 @@ export async function saveProductAdmin(data: {
       } else {
         const rows = await sql`
           INSERT INTO products (
-            title, category, brand, summary, specifications, price_inr, coin_price, product_type,
-            inventory_stock, is_featured, score, scorecard_details, evidence_sources, status
+            title, category, brand, summary, image_url, specifications, price_inr, coin_price, product_type,
+            inventory_stock, is_featured, is_hot_pick, is_recommended, is_new_arrival, is_best_seller,
+            discount_percent, display_order, highlight_start_date, highlight_end_date, score,
+            scorecard_details, evidence_sources, status, strike_off_reason
           )
           VALUES (
-            ${data.title.trim()}, ${data.category}, ${data.brand.trim()}, ${data.summary || ""},
+            ${data.title.trim()}, ${data.category}, ${data.brand.trim()}, ${data.summary || ""}, ${imageUrl},
             ${JSON.stringify(data.specifications || {})}::jsonb, ${priceInr}, ${coinPrice}, ${productType},
-            ${inventoryStock}, ${isFeatured}, ${data.score !== undefined ? data.score : null},
+            ${inventoryStock}, ${isFeatured}, ${isHotPick}, ${isRecommended}, ${isNewArrival}, ${isBestSeller},
+            ${discountPercent}, ${displayOrder}, ${data.highlightStartDate || null}, ${data.highlightEndDate || null},
+            ${data.score !== undefined ? data.score : null},
             ${JSON.stringify(data.scorecardDetails || {})}::jsonb, ${JSON.stringify(data.evidenceSources || [])}::jsonb,
-            ${status}
+            ${status}, ${data.strikeOffReason || null}
           )
           RETURNING *;
         `;
@@ -1769,6 +1817,107 @@ export async function saveProductAdmin(data: {
   }
 
   return adminInMemoryStore.saveProduct(data);
+}
+
+export const upsertProductAdmin = saveProductAdmin;
+
+/**
+ * Strike off / Remove listing action
+ * Safely deactivates listing, preserves historical records & orders, prevents further purchases
+ */
+export async function strikeOffProductAdmin(id: string, reason: string, adminId?: string): Promise<any> {
+  const cleanReason = reason?.trim() || "Listing struck off by administrator";
+
+  await logAdminAuditEvent({
+    eventType: "PRODUCT_STRUCK_OFF",
+    adminId,
+    metadata: { productId: id, reason: cleanReason },
+  });
+
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const rows = await sql`
+        UPDATE products
+        SET 
+          status = 'STRUCK_OFF',
+          strike_off_reason = ${cleanReason},
+          struck_off_at = NOW(),
+          is_featured = false,
+          is_hot_pick = false,
+          is_recommended = false,
+          updated_at = NOW()
+        WHERE id::text = ${id}
+        RETURNING *;
+      `;
+      if (rows && rows.length > 0) return rows[0];
+    } catch (err) {
+      console.warn("[AdminDB] DB error striking off product:", (err as Error).message);
+    }
+  }
+
+  return adminInMemoryStore.saveProduct({
+    id,
+    status: "STRUCK_OFF",
+    strike_off_reason: cleanReason,
+    is_featured: false,
+    is_hot_pick: false,
+    is_recommended: false,
+  });
+}
+
+/**
+ * Update merchandising controls (Hot Pick, Recommended, Featured, New Arrival, Best Seller, Display Order)
+ */
+export async function updateProductMerchandisingAdmin(
+  id: string,
+  data: {
+    isHotPick?: boolean;
+    isRecommended?: boolean;
+    isFeatured?: boolean;
+    isNewArrival?: boolean;
+    isBestSeller?: boolean;
+    discountPercent?: number;
+    displayOrder?: number;
+    status?: "DRAFT" | "PUBLISHED" | "ARCHIVED" | "STRUCK_OFF";
+    highlightStartDate?: string | null;
+    highlightEndDate?: string | null;
+  },
+  adminId?: string
+): Promise<any> {
+  await logAdminAuditEvent({
+    eventType: "PRODUCT_MERCHANDISING_UPDATED",
+    adminId,
+    metadata: { productId: id, merchandising: data },
+  });
+
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const rows = await sql`
+        UPDATE products
+        SET 
+          is_hot_pick = COALESCE(${data.isHotPick !== undefined ? data.isHotPick : null}, is_hot_pick),
+          is_recommended = COALESCE(${data.isRecommended !== undefined ? data.isRecommended : null}, is_recommended),
+          is_featured = COALESCE(${data.isFeatured !== undefined ? data.isFeatured : null}, is_featured),
+          is_new_arrival = COALESCE(${data.isNewArrival !== undefined ? data.isNewArrival : null}, is_new_arrival),
+          is_best_seller = COALESCE(${data.isBestSeller !== undefined ? data.isBestSeller : null}, is_best_seller),
+          discount_percent = COALESCE(${data.discountPercent !== undefined ? data.discountPercent : null}, discount_percent),
+          display_order = COALESCE(${data.displayOrder !== undefined ? data.displayOrder : null}, display_order),
+          status = COALESCE(${data.status || null}, status),
+          highlight_start_date = COALESCE(${data.highlightStartDate !== undefined ? data.highlightStartDate : null}, highlight_start_date),
+          highlight_end_date = COALESCE(${data.highlightEndDate !== undefined ? data.highlightEndDate : null}, highlight_end_date),
+          updated_at = NOW()
+        WHERE id::text = ${id}
+        RETURNING *;
+      `;
+      if (rows && rows.length > 0) return rows[0];
+    } catch (err) {
+      console.warn("[AdminDB] DB error updating merchandising:", (err as Error).message);
+    }
+  }
+
+  return adminInMemoryStore.saveProduct({ id, ...data });
 }
 
 export async function deleteProductAdmin(id: string): Promise<boolean> {
@@ -2250,3 +2399,684 @@ export async function updateSystemSettingAdmin(
     }
   }
 }
+
+// -----------------------------------------------------------------------------
+// Admin File Activities & Submissions Management (Upload Image/File activities)
+// -----------------------------------------------------------------------------
+
+export async function listFileActivitiesAdmin(): Promise<any[]> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const rows = await sql`
+        SELECT fa.*,
+          (SELECT count(*)::int FROM file_submissions WHERE activity_id = fa.id) as total_submissions,
+          (SELECT count(*)::int FROM file_submissions WHERE activity_id = fa.id AND status = 'SUBMITTED') as pending_submissions,
+          (SELECT count(*)::int FROM file_submissions WHERE activity_id = fa.id AND status = 'APPROVED') as approved_submissions
+        FROM file_activities fa
+        ORDER BY fa.created_at DESC;
+      `;
+      return rows;
+    } catch (err) {
+      console.warn("[AdminDB] Error listing file activities:", (err as Error).message);
+    }
+  }
+  return [];
+}
+
+export async function upsertFileActivityAdmin(data: {
+  id?: string;
+  title: string;
+  description: string;
+  instructions?: string;
+  documentType: string;
+  acceptedFormats?: string[];
+  maxFileSizeBytes?: number;
+  coinReward: number;
+  approvalRequired?: boolean;
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  adminId?: string;
+}): Promise<any> {
+  const approvalRequired = data.approvalRequired !== undefined ? Boolean(data.approvalRequired) : true;
+  const status = data.status || "PUBLISHED";
+  const acceptedFormats = data.acceptedFormats || ["image/jpeg", "image/png", "application/pdf"];
+
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      if (data.id) {
+        const rows = await sql`
+          UPDATE file_activities
+          SET 
+            title = ${data.title.trim()},
+            description = ${data.description.trim()},
+            instructions = ${data.instructions || null},
+            document_type = ${data.documentType},
+            accepted_formats = ${acceptedFormats},
+            max_file_size_bytes = ${data.maxFileSizeBytes || 10485760},
+            coin_reward = ${data.coinReward},
+            approval_required = ${approvalRequired},
+            status = ${status},
+            updated_at = NOW()
+          WHERE id::text = ${data.id}
+          RETURNING *;
+        `;
+        await logAdminAuditEvent({
+          eventType: "FILE_ACTIVITY_UPDATED",
+          adminId: data.adminId,
+          metadata: { activityId: data.id, title: data.title },
+        });
+        return rows[0];
+      } else {
+        const rows = await sql`
+          INSERT INTO file_activities (
+            title, description, instructions, document_type, accepted_formats,
+            max_file_size_bytes, coin_reward, approval_required, status
+          )
+          VALUES (
+            ${data.title.trim()}, ${data.description.trim()}, ${data.instructions || null},
+            ${data.documentType}, ${acceptedFormats}, ${data.maxFileSizeBytes || 10485760},
+            ${data.coinReward}, ${approvalRequired}, ${status}
+          )
+          RETURNING *;
+        `;
+        await logAdminAuditEvent({
+          eventType: "FILE_ACTIVITY_CREATED",
+          adminId: data.adminId,
+          metadata: { activityId: rows[0]?.id, title: data.title },
+        });
+        return rows[0];
+      }
+    } catch (err) {
+      console.warn("[AdminDB] Error saving file activity:", (err as Error).message);
+    }
+  }
+
+  return { ...data, id: data.id || `fa-${Date.now()}` };
+}
+
+export async function listFileSubmissionsAdmin(filter?: {
+  activityId?: string;
+  status?: string;
+  search?: string;
+}): Promise<any[]> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const statusFilter = filter?.status && filter.status !== "ALL" ? filter.status : null;
+      const activityFilter = filter?.activityId && filter.activityId !== "ALL" ? filter.activityId : null;
+      const searchPattern = filter?.search ? `%${filter.search.trim().toLowerCase()}%` : null;
+
+      const rows = await sql`
+        SELECT 
+          fs.*,
+          fa.title as activity_title,
+          fa.document_type,
+          fa.coin_reward as activity_coin_reward,
+          c.full_name as customer_name,
+          c.phone_e164 as customer_phone,
+          c.customer_id as readable_customer_id,
+          adm.full_name as reviewer_name
+        FROM file_submissions fs
+        JOIN file_activities fa ON fs.activity_id = fa.id
+        JOIN customers c ON fs.customer_id = c.id
+        LEFT JOIN admin_users adm ON fs.reviewed_by = adm.id
+        WHERE (${statusFilter}::text IS NULL OR fs.status = ${statusFilter})
+          AND (${activityFilter}::uuid IS NULL OR fs.activity_id = ${activityFilter})
+          AND (${searchPattern}::text IS NULL OR (
+            LOWER(c.full_name) LIKE ${searchPattern}
+            OR c.phone_e164 LIKE ${searchPattern}
+            OR LOWER(c.customer_id) LIKE ${searchPattern}
+            OR LOWER(fs.file_name) LIKE ${searchPattern}
+          ))
+        ORDER BY fs.created_at DESC;
+      `;
+      return rows;
+    } catch (err) {
+      console.warn("[AdminDB] Error listing file submissions:", (err as Error).message);
+    }
+  }
+  return [];
+}
+
+/**
+ * Review file submission (Approve / Reject) with atomic reward crediting & audit logging
+ */
+export async function reviewFileSubmissionAdmin(data: {
+  submissionId: string;
+  adminId: string;
+  decision: "APPROVE" | "REJECT";
+  rejectionReason?: string;
+  reviewerNotes?: string;
+}): Promise<{ success: boolean; error?: string; coinsAwarded?: number }> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      return await sql.begin(async (tx: any) => {
+        // 1. Fetch submission with lock
+        const subs = await tx`
+          SELECT fs.*, fa.title as activity_title, fa.coin_reward
+          FROM file_submissions fs
+          JOIN file_activities fa ON fs.activity_id = fa.id
+          WHERE fs.id::text = ${data.submissionId}
+          FOR UPDATE;
+        `;
+
+        if (!subs || subs.length === 0) {
+          return { success: false, error: "Submission not found" };
+        }
+        const submission = subs[0];
+
+        if (submission.status === "APPROVED" || submission.status === "REWARD_CREDITED") {
+          return { success: false, error: "This submission has already been approved and rewarded." };
+        }
+
+        if (data.decision === "APPROVE") {
+          const coinReward = Number(submission.coin_reward) || 50;
+
+          // Update customer coins
+          await tx`
+            UPDATE customers
+            SET reward_coins = reward_coins + ${coinReward}, updated_at = NOW()
+            WHERE id = ${submission.customer_id};
+          `;
+
+          // Record in coin_transactions
+          const idempotencyKey = `review_file_${submission.id}`;
+          const txRows = await tx`
+            INSERT INTO coin_transactions (
+              customer_id, amount, type, description, idempotency_key, admin_id, metadata
+            )
+            VALUES (
+              ${submission.customer_id},
+              ${coinReward},
+              'STORE_REDEMPTION',
+              ${`Approved submission for ${submission.activity_title}`},
+              ${idempotencyKey},
+              ${data.adminId},
+              ${JSON.stringify({
+                action: "FILE_ACTIVITY_REWARD",
+                submissionId: submission.id,
+                activityId: submission.activity_id,
+                coinReward,
+              })}::jsonb
+            )
+            RETURNING id;
+          `;
+
+          // Update submission
+          await tx`
+            UPDATE file_submissions
+            SET 
+              status = 'APPROVED',
+              reviewed_by = ${data.adminId},
+              reviewed_at = NOW(),
+              reviewer_notes = ${data.reviewerNotes || null},
+              reward_coins_awarded = ${coinReward},
+              reward_transaction_id = ${txRows[0]?.id || null},
+              updated_at = NOW()
+            WHERE id = ${submission.id};
+          `;
+
+          await logAdminAuditEvent({
+            eventType: "FILE_SUBMISSION_APPROVED",
+            adminId: data.adminId,
+            customerId: submission.customer_id,
+            metadata: { submissionId: submission.id, coinReward },
+          });
+
+          return { success: true, coinsAwarded: coinReward };
+        } else {
+          // REJECT
+          await tx`
+            UPDATE file_submissions
+            SET 
+              status = 'REJECTED',
+              rejection_reason = ${data.rejectionReason || "Document does not satisfy requirements"},
+              reviewer_notes = ${data.reviewerNotes || null},
+              reviewed_by = ${data.adminId},
+              reviewed_at = NOW(),
+              updated_at = NOW()
+            WHERE id = ${submission.id};
+          `;
+
+          await logAdminAuditEvent({
+            eventType: "FILE_SUBMISSION_REJECTED",
+            adminId: data.adminId,
+            customerId: submission.customer_id,
+            metadata: { submissionId: submission.id, reason: data.rejectionReason },
+          });
+
+          return { success: true };
+        }
+      });
+    } catch (err: any) {
+      console.warn("[AdminDB] Error reviewing submission:", err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  return { success: true, coinsAwarded: 50 };
+}
+
+// -----------------------------------------------------------------------------
+// Admin Quick Polls Management
+// -----------------------------------------------------------------------------
+
+export async function listQuickPollsAdmin(): Promise<any[]> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const polls = await sql`
+        SELECT qp.*,
+          (SELECT count(*)::int FROM quick_poll_responses WHERE poll_id = qp.id) as total_responses
+        FROM quick_polls qp
+        ORDER BY qp.created_at DESC;
+      `;
+
+      if (polls.length === 0) return [];
+      const pollIds = polls.map((p: any) => p.id);
+      const options = await sql`
+        SELECT * FROM quick_poll_options WHERE poll_id = ANY(${pollIds}) ORDER BY display_order ASC;
+      `;
+
+      return polls.map((p: any) => ({
+        ...p,
+        options: options.filter((o: any) => o.poll_id === p.id),
+      }));
+    } catch (err) {
+      console.warn("[AdminDB] Error listing quick polls:", (err as Error).message);
+    }
+  }
+  return [];
+}
+
+export async function upsertQuickPollAdmin(data: {
+  id?: string;
+  title: string;
+  question: string;
+  pollType?: "SINGLE_CHOICE" | "MULTIPLE_CHOICE";
+  coinReward?: number;
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  options: string[];
+  adminId?: string;
+}): Promise<any> {
+  const pollType = data.pollType || "SINGLE_CHOICE";
+  const coinReward = Number(data.coinReward) || 15;
+  const status = data.status || "PUBLISHED";
+
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      return await sql.begin(async (tx: any) => {
+        let pollId = data.id;
+
+        if (pollId) {
+          await tx`
+            UPDATE quick_polls
+            SET 
+              title = ${data.title.trim()},
+              question = ${data.question.trim()},
+              poll_type = ${pollType},
+              coin_reward = ${coinReward},
+              status = ${status},
+              updated_at = NOW()
+            WHERE id::text = ${pollId};
+          `;
+        } else {
+          const rows = await tx`
+            INSERT INTO quick_polls (title, question, poll_type, coin_reward, status)
+            VALUES (${data.title.trim()}, ${data.question.trim()}, ${pollType}, ${coinReward}, ${status})
+            RETURNING id;
+          `;
+          pollId = rows[0]?.id;
+        }
+
+        // Replace options if provided
+        if (data.options && data.options.length > 0) {
+          // If editing existing, keep existing options and append or replace
+          await tx`DELETE FROM quick_poll_options WHERE poll_id = ${pollId};`;
+          for (let i = 0; i < data.options.length; i++) {
+            await tx`
+              INSERT INTO quick_poll_options (poll_id, option_text, display_order)
+              VALUES (${pollId}, ${data.options[i].trim()}, ${i + 1});
+            `;
+          }
+        }
+
+        await logAdminAuditEvent({
+          eventType: pollId === data.id ? "QUICK_POLL_UPDATED" : "QUICK_POLL_CREATED",
+          adminId: data.adminId,
+          metadata: { pollId, title: data.title },
+        });
+
+        return { id: pollId, ...data };
+      });
+    } catch (err) {
+      console.warn("[AdminDB] Error saving quick poll:", (err as Error).message);
+    }
+  }
+
+  return { ...data, id: data.id || `qp-${Date.now()}` };
+}
+
+export async function deleteQuickPollAdmin(id: string, adminId?: string): Promise<boolean> {
+  await logAdminAuditEvent({
+    eventType: "QUICK_POLL_DELETED",
+    adminId,
+    metadata: { pollId: id },
+  });
+
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      await sql`DELETE FROM quick_polls WHERE id::text = ${id};`;
+      return true;
+    } catch (err) {
+      console.warn("[AdminDB] Error deleting quick poll:", (err as Error).message);
+    }
+  }
+  return true;
+}
+
+// -----------------------------------------------------------------------------
+// Admin Home Page Content Management (Banners & Sections)
+// -----------------------------------------------------------------------------
+
+export async function listHomeBannersAdmin(): Promise<any[]> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      return await sql`
+        SELECT * FROM home_banners ORDER BY display_order ASC, created_at DESC;
+      `;
+    } catch (err) {
+      console.warn("[AdminDB] Error listing home banners:", (err as Error).message);
+    }
+  }
+  return [];
+}
+
+export async function upsertHomeBannerAdmin(data: {
+  id?: string;
+  title: string;
+  subtitle?: string;
+  desktopImageUrl: string;
+  mobileImageUrl?: string;
+  linkUrl?: string;
+  displayOrder?: number;
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  adminId?: string;
+}): Promise<any> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const status = data.status || "PUBLISHED";
+      const displayOrder = Number(data.displayOrder) || 0;
+      const linkUrl = data.linkUrl || "/store";
+
+      if (data.id) {
+        const rows = await sql`
+          UPDATE home_banners
+          SET 
+            title = ${data.title.trim()},
+            subtitle = ${data.subtitle || null},
+            desktop_image_url = ${data.desktopImageUrl},
+            mobile_image_url = ${data.mobileImageUrl || null},
+            link_url = ${linkUrl},
+            display_order = ${displayOrder},
+            status = ${status},
+            updated_at = NOW()
+          WHERE id::text = ${data.id}
+          RETURNING *;
+        `;
+        return rows[0];
+      } else {
+        const rows = await sql`
+          INSERT INTO home_banners (
+            title, subtitle, desktop_image_url, mobile_image_url, link_url, display_order, status
+          )
+          VALUES (
+            ${data.title.trim()}, ${data.subtitle || null}, ${data.desktopImageUrl},
+            ${data.mobileImageUrl || null}, ${linkUrl}, ${displayOrder}, ${status}
+          )
+          RETURNING *;
+        `;
+        return rows[0];
+      }
+    } catch (err) {
+      console.warn("[AdminDB] Error saving home banner:", (err as Error).message);
+    }
+  }
+  return { ...data, id: data.id || `banner-${Date.now()}` };
+}
+
+export async function deleteHomeBannerAdmin(id: string): Promise<boolean> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      await sql`DELETE FROM home_banners WHERE id::text = ${id};`;
+      return true;
+    } catch (err) {
+      console.warn("[AdminDB] Error deleting home banner:", (err as Error).message);
+    }
+  }
+  return true;
+}
+
+export async function listHomeSectionsAdmin(): Promise<any[]> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      return await sql`
+        SELECT * FROM home_sections ORDER BY display_order ASC;
+      `;
+    } catch (err) {
+      console.warn("[AdminDB] Error listing home sections:", (err as Error).message);
+    }
+  }
+  return [];
+}
+
+export async function updateHomeSectionAdmin(
+  sectionKey: string,
+  data: {
+    title?: string;
+    subtitle?: string;
+    isVisible?: boolean;
+    displayOrder?: number;
+    config?: Record<string, any>;
+  },
+  adminId?: string
+): Promise<any> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const rows = await sql`
+        UPDATE home_sections
+        SET 
+          title = COALESCE(${data.title || null}, title),
+          subtitle = COALESCE(${data.subtitle !== undefined ? data.subtitle : null}, subtitle),
+          is_visible = COALESCE(${data.isVisible !== undefined ? data.isVisible : null}, is_visible),
+          display_order = COALESCE(${data.displayOrder !== undefined ? data.displayOrder : null}, display_order),
+          config = COALESCE(${data.config ? JSON.stringify(data.config) : null}::jsonb, config),
+          updated_at = NOW()
+        WHERE section_key = ${sectionKey}
+        RETURNING *;
+      `;
+      await logAdminAuditEvent({
+        eventType: "HOME_SECTION_UPDATED",
+        adminId,
+        metadata: { sectionKey, ...data },
+      });
+      return rows[0];
+    } catch (err) {
+      console.warn("[AdminDB] Error updating home section:", (err as Error).message);
+    }
+  }
+  return { sectionKey, ...data };
+}
+
+// -----------------------------------------------------------------------------
+// Admin User Management & Customer Details Drill-down (Section 2.B)
+// -----------------------------------------------------------------------------
+
+export async function getCustomerDetailedProfileAdmin(customerId: string): Promise<any> {
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      const customers = await sql`
+        SELECT * FROM customers
+        WHERE id::text = ${customerId} OR customer_id = ${customerId};
+      `;
+      if (!customers || customers.length === 0) return null;
+      const c = customers[0];
+
+      const [ledger, surveys, submissions, vouchers, orders, referrals] = await Promise.all([
+        sql`SELECT * FROM coin_transactions WHERE customer_id = ${c.id} ORDER BY created_at DESC LIMIT 50;`,
+        sql`
+          SELECT sr.*, s.title as survey_title
+          FROM survey_responses sr
+          LEFT JOIN surveys s ON sr.survey_id = s.id
+          WHERE sr.customer_id = ${c.id}
+          ORDER BY sr.created_at DESC;
+        `,
+        sql`
+          SELECT fs.*, fa.title as activity_title, fa.document_type
+          FROM file_submissions fs
+          JOIN file_activities fa ON fs.activity_id = fa.id
+          WHERE fs.customer_id = ${c.id}
+          ORDER BY fs.created_at DESC;
+        `,
+        sql`
+          SELECT cv.*, v.title as voucher_title, v.code as voucher_code, v.discount_value
+          FROM customer_vouchers cv
+          JOIN vouchers v ON cv.voucher_id = v.id
+          WHERE cv.customer_id = ${c.id}
+          ORDER BY cv.created_at DESC;
+        `,
+        sql`SELECT * FROM orders WHERE customer_id = ${c.id} ORDER BY created_at DESC LIMIT 50;`,
+        sql`
+          SELECT ra.*, rec.customer_id as referee_code, rec.full_name as referee_name
+          FROM referral_attributions ra
+          JOIN customers rec ON ra.referee_id = rec.id
+          WHERE ra.referrer_id = ${c.id}
+          ORDER BY ra.created_at DESC;
+        `,
+      ]);
+
+      return {
+        customer: c,
+        ledger,
+        surveys,
+        submissions,
+        vouchers,
+        orders,
+        referrals,
+      };
+    } catch (err) {
+      console.warn("[AdminDB] Error loading detailed customer profile:", (err as Error).message);
+    }
+  }
+
+  const cust = await getCustomerDetailAdmin(customerId);
+  return { customer: cust, ledger: [], surveys: [], submissions: [], vouchers: [], orders: [], referrals: [] };
+}
+
+export async function toggleCustomerStatusAdmin(
+  customerId: string,
+  status: "ACTIVE" | "SUSPENDED",
+  adminId?: string
+): Promise<boolean> {
+  await logAdminAuditEvent({
+    eventType: status === "SUSPENDED" ? "CUSTOMER_SUSPENDED" : "CUSTOMER_ACTIVATED",
+    adminId,
+    customerId,
+    metadata: { newStatus: status },
+  });
+
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      await sql`
+        UPDATE customers
+        SET onboarding_status = ${status === "SUSPENDED" ? "SUSPENDED" : "COMPLETED"}, updated_at = NOW()
+        WHERE id::text = ${customerId} OR customer_id = ${customerId};
+      `;
+      return true;
+    } catch (err) {
+      console.warn("[AdminDB] Error updating customer status:", (err as Error).message);
+    }
+  }
+  return true;
+}
+
+export async function adjustCustomerCoinsAdmin(data: {
+  customerId: string;
+  amount: number;
+  reason: string;
+  adminId: string;
+}): Promise<{ success: boolean; newBalance?: number; error?: string }> {
+  if (!data.amount || data.amount === 0) {
+    return { success: false, error: "Adjustment amount cannot be zero." };
+  }
+
+  if (isDirectDatabaseConfigured()) {
+    try {
+      const sql = getDirectSql();
+      return await sql.begin(async (tx: any) => {
+        const custs = await tx`
+          SELECT id, reward_coins, full_name, phone_e164 FROM customers
+          WHERE id::text = ${data.customerId} OR customer_id = ${data.customerId}
+          FOR UPDATE;
+        `;
+        if (!custs || custs.length === 0) {
+          return { success: false, error: "Customer not found." };
+        }
+        const cust = custs[0];
+        const newBalance = (cust.reward_coins ?? 0) + data.amount;
+
+        if (newBalance < 0) {
+          return { success: false, error: "Adjustment would result in a negative coin balance." };
+        }
+
+        await tx`
+          UPDATE customers
+          SET reward_coins = ${newBalance}, updated_at = NOW()
+          WHERE id = ${cust.id};
+        `;
+
+        const idempotencyKey = `manual_adj_${cust.id}_${Date.now()}`;
+        await tx`
+          INSERT INTO coin_transactions (
+            customer_id, amount, type, description, idempotency_key, admin_id, metadata
+          )
+          VALUES (
+            ${cust.id},
+            ${data.amount},
+            'MANUAL_ADJUSTMENT',
+            ${data.reason.trim()},
+            ${idempotencyKey},
+            ${data.adminId},
+            ${JSON.stringify({ reason: data.reason.trim(), adminId: data.adminId })}::jsonb
+          );
+        `;
+
+        await logAdminAuditEvent({
+          eventType: "CUSTOMER_COINS_MANUALLY_ADJUSTED",
+          adminId: data.adminId,
+          customerId: cust.id,
+          metadata: { amount: data.amount, reason: data.reason, newBalance },
+        });
+
+        return { success: true, newBalance };
+      });
+    } catch (err: any) {
+      console.warn("[AdminDB] Error adjusting customer coins:", err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  return { success: true, newBalance: 100 };
+}
+

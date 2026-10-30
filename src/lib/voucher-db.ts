@@ -211,10 +211,11 @@ export async function unlockVoucherWithCoins(
           VALUES (
             ${customer.id},
             ${-coinCost},
-            'VOUCHER_UNLOCK',
+            'STORE_REDEMPTION',
             ${`Unlocked voucher: ${voucher.title} (${voucher.code})`},
             ${idempotencyKey},
             ${JSON.stringify({
+              action: "VOUCHER_UNLOCK",
               voucherId: voucher.id,
               voucherCode: voucher.code,
               coinCost,

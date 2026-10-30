@@ -39,6 +39,11 @@ export interface ProductItem {
   size_label?: string;
   inventory_stock?: number;
   is_featured?: boolean;
+  is_hot_pick?: boolean;
+  is_recommended?: boolean;
+  is_new_arrival?: boolean;
+  is_best_seller?: boolean;
+  discount_percent?: number;
   score: number | null;
   specifications?: Record<string, any>;
   variants?: ProductVariant[];
@@ -84,9 +89,21 @@ export function StoreClientView({
     [products]
   );
 
-  // Curated collections for clean Shopify layout
+  // Admin-controlled curated merchandising collections
+  const hotPicks = useMemo(
+    () => products.filter((p) => Boolean(p.is_hot_pick)),
+    [products]
+  );
+  const recommendedProducts = useMemo(
+    () => products.filter((p) => Boolean(p.is_recommended)),
+    [products]
+  );
   const featuredProducts = useMemo(
-    () => products.filter((p) => p.is_featured || (p.score && Number(p.score) >= 4.5)),
+    () => products.filter((p) => Boolean(p.is_featured)),
+    [products]
+  );
+  const newArrivals = useMemo(
+    () => products.filter((p) => Boolean(p.is_new_arrival)),
     [products]
   );
   const popularProducts = useMemo(
@@ -340,6 +357,67 @@ export function StoreClientView({
       {/* 2. SHOPIFY-STYLE CLEAN SECTIONS (Zero Explanatory Cards, Image-Led) */}
       {activeCategory === "ALL" && !searchQuery && (
         <div className="space-y-12">
+          {/* SECTION 0A: Hot Picks (Admin Merchandising) */}
+          {hotPicks.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                    Trending Hot Picks
+                  </h2>
+                  <span className="text-[11px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                    Hot Pick
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
+                {hotPicks.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    isTrial={p.product_type === "TRIAL"}
+                    onAddToCart={() => handleAddToCart(p)}
+                    onCardClick={() => {
+                      setSelectedProduct(p);
+                      setSelectedVariant(p.variants?.[0]);
+                    }}
+                    isWishlisted={Boolean(wishlist[p.id])}
+                    onToggleWishlist={toggleWishlist}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* SECTION 0B: Recommended for You (Admin Merchandising) */}
+          {recommendedProducts.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                  Recommended For You
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
+                {recommendedProducts.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    isTrial={p.product_type === "TRIAL"}
+                    onAddToCart={() => handleAddToCart(p)}
+                    onCardClick={() => {
+                      setSelectedProduct(p);
+                      setSelectedVariant(p.variants?.[0]);
+                    }}
+                    isWishlisted={Boolean(wishlist[p.id])}
+                    onToggleWishlist={toggleWishlist}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* SECTION 1: Featured Products */}
           {featuredProducts.length > 0 && (
             <section className="space-y-4">
@@ -673,23 +751,51 @@ export function StoreClientView({
             )}
 
             {/* REAL DATABASE SPECIFICATIONS ONLY (No dummy specifications or fake claims) */}
-            <div className="space-y-2 pt-1">
-              <span className="text-xs font-bold text-slate-700">Specifications (Authoritative Data):</span>
-              {selectedProduct.specifications && Object.keys(selectedProduct.specifications).length > 0 ? (
-                <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden text-xs">
-                  {Object.entries(selectedProduct.specifications).map(([k, v]) => (
-                    <div key={k} className="p-2.5 px-3 flex items-center justify-between">
-                      <span className="text-slate-500 capitalize">{k.replace(/([A-Z])/g, " $1")}</span>
-                      <span className="text-slate-900 font-semibold">{String(v)}</span>
+            {(() => {
+              let parsedSpecs: Record<string, any> = {};
+              if (typeof selectedProduct.specifications === "string") {
+                try {
+                  parsedSpecs = JSON.parse(selectedProduct.specifications);
+                } catch {
+                  parsedSpecs = {};
+                }
+              } else if (
+                selectedProduct.specifications &&
+                typeof selectedProduct.specifications === "object" &&
+                !Array.isArray(selectedProduct.specifications)
+              ) {
+                parsedSpecs = selectedProduct.specifications;
+              }
+
+              const validEntries = Object.entries(parsedSpecs).filter(
+                ([k, v]) =>
+                  !/^\d+$/.test(k) &&
+                  typeof v !== "object" &&
+                  v !== null &&
+                  v !== undefined &&
+                  String(v).trim() !== ""
+              );
+
+              return (
+                <div className="space-y-2 pt-1">
+                  <span className="text-xs font-bold text-slate-700">Specifications (Authoritative Data):</span>
+                  {validEntries.length > 0 ? (
+                    <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden text-xs">
+                      {validEntries.map(([k, v]) => (
+                        <div key={k} className="p-2.5 px-3 flex items-center justify-between">
+                          <span className="text-slate-500 capitalize">{k.replace(/([A-Z])/g, " $1")}</span>
+                          <span className="text-slate-900 font-semibold">{String(v)}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-500">
+                      Standard manufacturer specifications verified for residential deployment.
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-500">
-                  Standard manufacturer specifications verified for residential deployment.
-                </div>
-              )}
-            </div>
+              );
+            })()}
 
             {/* Pricing & Stock Status */}
             <div className="flex items-center justify-between pt-2">

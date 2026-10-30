@@ -43,10 +43,11 @@ export default async function StorePage() {
         SELECT 
           id, title, summary, price_inr, coin_price, brand, category, score,
           specifications, scorecard_details, evidence_sources, product_type,
-          inventory_stock, is_featured
+          inventory_stock, is_featured, is_hot_pick, is_recommended, is_new_arrival,
+          is_best_seller, discount_percent, display_order, image_url, status
         FROM products
         WHERE status = 'PUBLISHED'
-        ORDER BY is_featured DESC, score DESC NULLS LAST, created_at DESC;
+        ORDER BY display_order ASC, is_featured DESC, is_hot_pick DESC, score DESC NULLS LAST, created_at DESC;
       `;
 
       variants = await sql`
@@ -85,10 +86,43 @@ export default async function StorePage() {
     const imgKey = isTrial
       ? `trial_${(idx % 6) + 1}`
       : `prod_${(idx % 6) + 1}`;
+
+    // Ensure specifications is a clean key-value map and never a raw JSON string
+    let parsedSpecs: Record<string, any> = {};
+    if (typeof p.specifications === "string") {
+      try {
+        parsedSpecs = JSON.parse(p.specifications);
+      } catch {
+        parsedSpecs = {};
+      }
+    } else if (p.specifications && typeof p.specifications === "object" && !Array.isArray(p.specifications)) {
+      parsedSpecs = p.specifications;
+    }
+
+    const cleanSpecs: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsedSpecs)) {
+      if (!/^\d+$/.test(k) && typeof v !== "object" && v !== null && v !== undefined && String(v).trim()) {
+        cleanSpecs[k] = String(v);
+      }
+    }
+
+    const dynamicTag = p.is_hot_pick
+      ? "Hot Pick"
+      : p.is_recommended
+      ? "Recommended"
+      : p.is_new_arrival
+      ? "New Launch"
+      : p.is_featured
+      ? "Featured"
+      : isTrial
+      ? (idx % 2 === 0 ? "Hot Pick" : "Trending")
+      : undefined;
+
     return {
       ...p,
-      image_url: dummyImages[imgKey] || dummyImages.prod_1,
-      tag: isTrial ? (idx % 2 === 0 ? "Hot Picks" : "Trending Now") : (idx === 0 ? "New Launch" : "Best Seller"),
+      specifications: cleanSpecs,
+      image_url: p.image_url || dummyImages[imgKey] || dummyImages.prod_1,
+      tag: dynamicTag,
       size_label: isTrial ? `${(idx + 1) * 10} ml` : "1 Unit",
       variants: variantsByProduct.get(p.id) || [],
     };

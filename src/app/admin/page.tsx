@@ -148,47 +148,71 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Secondary Quick Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-            <PackageOpen className="w-5 h-5" />
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        {/* Document Submissions Queue */}
+        <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
           <div>
             <div className="text-base font-bold text-slate-900">
-              {metrics.totalProducts} Verified Products
+              {(metrics as any).pendingSubmissions ?? 0} Pending
             </div>
-            <p className="text-[11px] text-slate-500">
-              {metrics.activeTrials} active ₹0 trial kit campaign(s)
-            </p>
+            <p className="text-[11px] text-slate-500">Document submissions to review</p>
           </div>
+          <Link
+            href="/admin/rewards"
+            className="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold"
+          >
+            Review Queue →
+          </Link>
         </div>
 
-        <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-            <Headphones className="w-5 h-5" />
-          </div>
+        {/* Quick Poll Responses */}
+        <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
           <div>
             <div className="text-base font-bold text-slate-900">
-              {metrics.openTickets} Support Tickets Open
+              {(metrics as any).pollResponses ?? 0} Votes
             </div>
-            <p className="text-[11px] text-slate-500">
-              Requiring moderation or customer assistance
-            </p>
+            <p className="text-[11px] text-slate-500">Community poll responses</p>
           </div>
+          <Link
+            href="/admin/rewards"
+            className="px-2.5 py-1 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold"
+          >
+            Polls →
+          </Link>
         </div>
 
-        <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-            <Layers className="w-5 h-5" />
-          </div>
+        {/* Orders Placed */}
+        <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
           <div>
             <div className="text-base font-bold text-slate-900">
-              {metrics.totalBuildings} Registered Societies
+              {(metrics as any).ordersPlaced ?? 0} Orders
             </div>
             <p className="text-[11px] text-slate-500">
-              Building TDS & dampness baseline telemetry
+              {(metrics as any).vouchersUnlocked ?? 0} vouchers unlocked
             </p>
           </div>
+          <Link
+            href="/admin/store"
+            className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
+          >
+            Store Catalog →
+          </Link>
+        </div>
+
+        {/* Open Support Tickets */}
+        <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+          <div>
+            <div className="text-base font-bold text-slate-900">
+              {metrics.openTickets} Open Tickets
+            </div>
+            <p className="text-[11px] text-slate-500">Customer assistance queue</p>
+          </div>
+          <Link
+            href="/admin/support"
+            className="px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold"
+          >
+            Support →
+          </Link>
         </div>
       </div>
 
