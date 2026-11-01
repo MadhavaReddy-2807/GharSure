@@ -100,6 +100,10 @@ export default function AdminStorePage() {
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [displayOrder, setDisplayOrder] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [sku, setSku] = useState("");
+  const [originalPriceInr, setOriginalPriceInr] = useState<number>(0);
+  const [merchFilter, setMerchFilter] = useState<"ALL" | "HOT_PICKS" | "RECOMMENDED" | "FEATURED" | "NEW_ARRIVALS">("ALL");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Strike Off Listing Modal State
@@ -136,7 +140,9 @@ export default function AdminStorePage() {
     setCategory(chosenType === "TRIAL" ? "Trial Kits" : "Smart Home");
     setSummary("");
     setImageUrl("");
+    setSku("");
     setPriceInr(chosenType === "TRIAL" ? 0 : 999);
+    setOriginalPriceInr(chosenType === "TRIAL" ? 0 : 1299);
     setCoinPrice(chosenType === "TRIAL" ? 0 : 0);
     setInventoryStock(100);
     setScore("9.2");
@@ -145,7 +151,7 @@ export default function AdminStorePage() {
     setIsHotPick(false);
     setIsRecommended(false);
     setIsNewArrival(true);
-    setDiscountPercent(0);
+    setDiscountPercent(chosenType === "TRIAL" ? 0 : 23);
     setDisplayOrder(0);
     setIsModalOpen(true);
   };
@@ -157,8 +163,13 @@ export default function AdminStorePage() {
     setCategory(p.category);
     setSummary(p.summary || "");
     setImageUrl(p.image_url || "");
+    setSku(p.specifications?.sku || "");
     setProductType(p.product_type);
-    setPriceInr(Number(p.price_inr) || 0);
+    const currPrice = Number(p.price_inr) || 0;
+    const currDiscount = Number(p.discount_percent) || 0;
+    setPriceInr(currPrice);
+    setDiscountPercent(currDiscount);
+    setOriginalPriceInr(currDiscount > 0 ? Math.round(currPrice / (1 - currDiscount / 100)) : currPrice);
     setCoinPrice(Number(p.coin_price) || 0);
     setInventoryStock(p.inventory_stock ?? 100);
     setScore(p.score !== null ? String(p.score) : "");
@@ -167,7 +178,6 @@ export default function AdminStorePage() {
     setIsHotPick(Boolean(p.is_hot_pick));
     setIsRecommended(Boolean(p.is_recommended));
     setIsNewArrival(Boolean(p.is_new_arrival));
-    setDiscountPercent(Number(p.discount_percent) || 0);
     setDisplayOrder(Number(p.display_order) || 0);
     setIsModalOpen(true);
   };
@@ -201,6 +211,7 @@ export default function AdminStorePage() {
           isNewArrival,
           discountPercent: Number(discountPercent),
           displayOrder: Number(displayOrder),
+          specifications: { sku: sku.trim() },
         }),
       });
 
@@ -295,6 +306,12 @@ export default function AdminStorePage() {
     return products.filter((p) => {
       const matchType = activeTab === "ALL" || p.product_type === activeTab;
       const matchStatus = statusFilter === "ALL" || p.status === statusFilter;
+      const matchMerch =
+        merchFilter === "ALL" ||
+        (merchFilter === "HOT_PICKS" && p.is_hot_pick) ||
+        (merchFilter === "RECOMMENDED" && p.is_recommended) ||
+        (merchFilter === "FEATURED" && p.is_featured) ||
+        (merchFilter === "NEW_ARRIVALS" && p.is_new_arrival);
       const q = searchQuery.toLowerCase().trim();
       const matchQuery =
         !q ||
@@ -302,9 +319,9 @@ export default function AdminStorePage() {
         p.brand.toLowerCase().includes(q) ||
         p.category?.toLowerCase().includes(q) ||
         p.summary?.toLowerCase().includes(q);
-      return matchType && matchStatus && matchQuery;
+      return matchType && matchStatus && matchMerch && matchQuery;
     });
-  }, [products, activeTab, statusFilter, searchQuery]);
+  }, [products, activeTab, statusFilter, merchFilter, searchQuery]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -859,22 +876,40 @@ export default function AdminStorePage() {
 
                     <div className="flex items-center gap-2">
                       <label className="px-2.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700 cursor-pointer inline-flex items-center gap-1 transition-colors">
-                        <UploadCloud className="w-3 h-3 text-slate-500" />
-                        <span>Upload File</span>
+                        {isUploadingImage ? (
+                          <Loader2 className="w-3 h-3 text-brand-purple animate-spin" />
+                        ) : (
+                          <UploadCloud className="w-3 h-3 text-slate-500" />
+                        )}
+                        <span>{isUploadingImage ? "Uploading..." : "Upload Image"}</span>
                         <input
                           type="file"
                           accept="image/*"
+                          disabled={isUploadingImage}
                           className="hidden"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                if (event.target?.result) {
-                                  setImageUrl(event.target.result as string);
+                              setIsUploadingImage(true);
+                              const formData = new FormData();
+                              formData.append("file", file);
+                              formData.append("bucket", "products");
+                              try {
+                                const res = await fetch("/api/admin/upload", {
+                                  method: "POST",
+                                  body: formData,
+                                });
+                                const data = await res.json();
+                                if (data.success && data.url) {
+                                  setImageUrl(data.url);
+                                } else {
+                                  setError(data.error || "Image upload failed");
                                 }
-                              };
-                              reader.readAsDataURL(file);
+                              } catch (err: any) {
+                                setError("Upload error: " + err.message);
+                              } finally {
+                                setIsUploadingImage(false);
+                              }
                             }
                           }}
                         />
@@ -903,21 +938,72 @@ export default function AdminStorePage() {
                 </div>
               </div>
 
-              {/* Pricing & Coins */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* Pricing, Discount, Stock & SKU */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">MRP Price (₹)</label>
+                  <label className="block text-slate-700 font-semibold mb-1">Selling Price (₹) *</label>
                   <input
                     type="number"
                     min="0"
                     value={priceInr}
-                    onChange={(e) => setPriceInr(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const newPrice = parseFloat(e.target.value) || 0;
+                      setPriceInr(newPrice);
+                      if (originalPriceInr > newPrice) {
+                        setDiscountPercent(Math.round(((originalPriceInr - newPrice) / originalPriceInr) * 100));
+                      }
+                    }}
+                    className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple font-mono"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Original Price (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={originalPriceInr}
+                    onChange={(e) => {
+                      const newOrig = parseFloat(e.target.value) || 0;
+                      setOriginalPriceInr(newOrig);
+                      if (newOrig > priceInr && newOrig > 0) {
+                        setDiscountPercent(Math.round(((newOrig - priceInr) / newOrig) * 100));
+                      }
+                    }}
+                    placeholder="MSRP"
                     className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Coin Price</label>
+                  <label className="block text-slate-700 font-semibold mb-1">Discount (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={discountPercent}
+                    onChange={(e) => setDiscountPercent(parseFloat(e.target.value) || 0)}
+                    className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">SKU Code</label>
+                  <input
+                    type="text"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value.toUpperCase())}
+                    placeholder="e.g. GS-RO-2026"
+                    className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-purple font-mono uppercase"
+                  />
+                </div>
+              </div>
+
+              {/* Coin Price & Inventory Stock */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Coin Price (0 if none)</label>
                   <input
                     type="number"
                     min="0"
@@ -928,7 +1014,7 @@ export default function AdminStorePage() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Stock Level *</label>
+                  <label className="block text-slate-700 font-semibold mb-1">Stock Quantity *</label>
                   <input
                     type="number"
                     min="0"

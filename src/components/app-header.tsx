@@ -82,17 +82,19 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
               </span>
             </Link>
 
-            {/* Shopping Cart Icon with Live Counter */}
+            {/* Shopping Cart Icon with Minimal Counter */}
             <button
               onClick={openCart}
-              className="relative p-1.5 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 py-1 px-1.5 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer select-none"
               title="Open Shopping Cart"
               aria-label={`Shopping cart with ${totalCount} items`}
             >
               <ShoppingCart className="w-5 h-5 stroke-[2]" />
-              <span className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-[#2563EB] text-white font-bold text-[10px] flex items-center justify-center leading-none shadow-xs">
-                {totalCount}
-              </span>
+              {totalCount > 0 && (
+                <span className="text-xs font-semibold text-slate-800">
+                  {totalCount}
+                </span>
+              )}
             </button>
 
             {/* Profile Avatar & Name */}

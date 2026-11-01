@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentSession } from "@/lib/session";
+import { getCurrentSession, verifyRequestSession } from "@/lib/session";
 import { unlockVoucherWithCoins } from "@/lib/voucher-db";
 import { z } from "zod";
 
@@ -9,7 +9,7 @@ const unlockSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getCurrentSession();
+    const session = (await verifyRequestSession(req)) || (await getCurrentSession());
     if (!session?.customerId) {
       return NextResponse.json(
         { success: false, error: "Please log in with your mobile number to unlock vouchers." },

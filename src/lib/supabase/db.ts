@@ -19,6 +19,7 @@ export interface CustomerRecord {
   onboarding_completed: boolean;
   reward_coins?: number;
   referral_code?: string | null;
+  household_details?: Record<string, any>;
   status?: string;
   created_at: string;
   updated_at: string;
@@ -149,6 +150,7 @@ class InMemoryStore {
       email?: string | null;
       address?: string | null;
       pincode?: string | null;
+      household_details?: Record<string, any>;
     }
   ): CustomerRecord | null {
     const customer = this.customersById.get(id);
@@ -162,6 +164,7 @@ class InMemoryStore {
       email: updates.email !== undefined ? updates.email : customer.email,
       address: updates.address !== undefined ? updates.address : customer.address,
       pincode: updates.pincode !== undefined ? updates.pincode : customer.pincode,
+      household_details: updates.household_details !== undefined ? updates.household_details : customer.household_details,
       onboarding_completed: true,
       updated_at: new Date().toISOString(),
     };
@@ -784,6 +787,7 @@ export async function updateCustomerProfile(
     email?: string | null;
     address?: string | null;
     pincode?: string | null;
+    householdDetails?: Record<string, any> | null;
   }
 ): Promise<CustomerRecord> {
   const now = new Date().toISOString();
@@ -800,6 +804,7 @@ export async function updateCustomerProfile(
             email = ${profile.email !== undefined ? profile.email?.trim() || null : null},
             address = ${profile.address !== undefined ? profile.address?.trim() || null : null},
             pincode = ${profile.pincode !== undefined ? profile.pincode?.trim() || null : null},
+            household_details = COALESCE(${profile.householdDetails ? JSON.stringify(profile.householdDetails) : null}::jsonb, household_details),
             onboarding_completed = true,
             updated_at = NOW()
         WHERE id::text = ${id} OR customer_id = ${id}
@@ -817,18 +822,23 @@ export async function updateCustomerProfile(
   if (isLiveSupabaseAvailable()) {
     try {
       const supabase = getSupabaseServerClient();
+      const updateData: any = {
+        full_name: profile.fullName.trim(),
+        city: profile.city?.trim() || null,
+        display_name: profile.displayName?.trim() || null,
+        email: profile.email !== undefined ? profile.email?.trim() || null : null,
+        address: profile.address !== undefined ? profile.address?.trim() || null : null,
+        pincode: profile.pincode !== undefined ? profile.pincode?.trim() || null : null,
+        onboarding_completed: true,
+        updated_at: now,
+      };
+      if (profile.householdDetails) {
+        updateData.household_details = profile.householdDetails;
+      }
+
       const { data, error } = await supabase
         .from("customers")
-        .update({
-          full_name: profile.fullName.trim(),
-          city: profile.city?.trim() || null,
-          display_name: profile.displayName?.trim() || null,
-          email: profile.email !== undefined ? profile.email?.trim() || null : null,
-          address: profile.address !== undefined ? profile.address?.trim() || null : null,
-          pincode: profile.pincode !== undefined ? profile.pincode?.trim() || null : null,
-          onboarding_completed: true,
-          updated_at: now,
-        } as any)
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
@@ -849,6 +859,7 @@ export async function updateCustomerProfile(
     email: profile.email?.trim() || null,
     address: profile.address?.trim() || null,
     pincode: profile.pincode?.trim() || null,
+    household_details: profile.householdDetails || undefined,
   });
 
   if (!updated) {

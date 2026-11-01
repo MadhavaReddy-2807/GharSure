@@ -13,7 +13,12 @@ export async function GET(
     }
 
     const { id } = await params;
-    const analytics = await getSurveyAnalyticsAdmin(id);
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status") || undefined;
+    const startDate = searchParams.get("startDate") || undefined;
+    const endDate = searchParams.get("endDate") || undefined;
+
+    const analytics = await getSurveyAnalyticsAdmin(id, { status, startDate, endDate });
 
     return NextResponse.json({ success: true, analytics });
   } catch (err: any) {

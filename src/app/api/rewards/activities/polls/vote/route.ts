@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentSession } from "@/lib/session";
+import { getCurrentSession, verifyRequestSession } from "@/lib/session";
 import { submitQuickPollVote } from "@/lib/rewards-activities-db";
 import { z } from "zod";
 
@@ -10,7 +10,7 @@ const voteSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getCurrentSession();
+    const session = (await verifyRequestSession(req)) || (await getCurrentSession());
     if (!session?.customerId) {
       return NextResponse.json(
         { success: false, error: "Please log in to participate in quick polls." },

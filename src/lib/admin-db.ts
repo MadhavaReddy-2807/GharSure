@@ -752,12 +752,14 @@ export async function updateSurveyDetailsAdmin(
   if (isDirectDatabaseConfigured()) {
     try {
       const sql = getDirectSql();
+      const hasImage = data.imageUrl !== undefined;
+      const targetImage = data.imageUrl || null;
       const rows = await sql`
         UPDATE surveys
         SET 
           title = COALESCE(${data.title?.trim() || null}, title),
           description = COALESCE(${data.description || null}, description),
-          image_url = COALESCE(${data.imageUrl !== undefined ? data.imageUrl : null}, image_url),
+          image_url = ${hasImage ? targetImage : sql`image_url`},
           survey_type = COALESCE(${data.surveyType || null}, survey_type),
           category = COALESCE(${data.category || null}, category),
           estimated_duration_min = COALESCE(${data.estimatedDurationMin || null}, estimated_duration_min),
@@ -775,7 +777,10 @@ export async function updateSurveyDetailsAdmin(
     }
   }
 
-  return dummySurveyStore.updateSurvey(id, data as any);
+  return dummySurveyStore.updateSurvey(id, {
+    ...data,
+    image_url: data.imageUrl !== undefined ? data.imageUrl : undefined,
+  } as any);
 }
 
 export async function updateSurveyStatusAdmin(
@@ -1184,9 +1189,20 @@ function finalAnswersByPos(keys: string[], answers: Record<string, any>, idx: nu
   return undefined;
 }
 
-export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
+export async function getSurveyAnalyticsAdmin(
+  surveyId: string,
+  filters?: {
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  }
+): Promise<any> {
   const survey = await getSurveyByIdAdmin(surveyId);
   if (!survey) throw new Error("Survey not found.");
+
+  const statusFilter = filters?.status && filters.status !== "ALL" ? filters.status : null;
+  const startDate = filters?.startDate || null;
+  const endDate = filters?.endDate || null;
 
   if (isDirectDatabaseConfigured()) {
     try {
@@ -1199,10 +1215,14 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
           count(*) FILTER (WHERE status = 'COMPLETED')::int as completions,
           count(*) FILTER (WHERE status IN ('STARTED', 'IN_PROGRESS'))::int as in_progress,
           count(*) FILTER (WHERE status = 'DISQUALIFIED')::int as disqualified,
+          count(DISTINCT customer_id)::int as unique_respondents,
           COALESCE(SUM(reward_coins) FILTER (WHERE reward_issued = true), 0)::int as total_coins_distributed,
           AVG(EXTRACT(EPOCH FROM (completed_at - started_at))) FILTER (WHERE status = 'COMPLETED')::numeric(10,1) as avg_duration_seconds
         FROM survey_responses
-        WHERE survey_id::text = ${targetUuid};
+        WHERE survey_id::text = ${targetUuid}
+          AND (${statusFilter}::text IS NULL OR status = ${statusFilter})
+          AND (${startDate}::timestamptz IS NULL OR created_at >= ${startDate}::timestamptz)
+          AND (${endDate}::timestamptz IS NULL OR created_at <= ${endDate}::timestamptz);
       `;
 
       const stats = summary[0] || {
@@ -1210,6 +1230,7 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
         completions: 0,
         in_progress: 0,
         disqualified: 0,
+        unique_respondents: 0,
         total_coins_distributed: 0,
         avg_duration_seconds: null,
       };
@@ -1229,9 +1250,15 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
 
       // Fetch all responses to compute question breakdowns
       const allResponses = await sql`
-        SELECT answers, status
-        FROM survey_responses
-        WHERE survey_id::text = ${targetUuid};
+        SELECT sr.answers, sr.status, sr.created_at,
+               c.full_name as customer_name, c.customer_id as customer_readable_id
+        FROM survey_responses sr
+        LEFT JOIN customers c ON sr.customer_id = c.id
+        WHERE sr.survey_id::text = ${targetUuid}
+          AND (${statusFilter}::text IS NULL OR sr.status = ${statusFilter})
+          AND (${startDate}::timestamptz IS NULL OR sr.created_at >= ${startDate}::timestamptz)
+          AND (${endDate}::timestamptz IS NULL OR sr.created_at <= ${endDate}::timestamptz)
+        ORDER BY sr.created_at DESC;
       `;
 
       const questionsWithAnalytics = rawQuestions.map((q: any, qIdx: number) => {
@@ -1241,6 +1268,12 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
         } catch {
           opts = [];
         }
+
+        const qType = q.question_type || "SINGLE_CHOICE";
+        const isMulti = qType === "MULTIPLE_CHOICE";
+        const isRating = qType === "RATING_SCALE" || qType === "STAR_RATING" || qType === "RATING" || qType === "NPS";
+        const isNumeric = qType === "NUMBER";
+        const isText = qType === "SHORT_TEXT" || qType === "LONG_TEXT";
 
         const distribution: Record<string, number> = {};
         if (Array.isArray(opts)) {
@@ -1253,6 +1286,8 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
         let responseCount = 0;
         let sumRatings = 0;
         let ratingCount = 0;
+        const textResponses: Array<{ text: string; respondent: string; date: string }> = [];
+        const numValues: number[] = [];
 
         for (const resp of allResponses) {
           let ansObj: Record<string, any> = {};
@@ -1279,35 +1314,88 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
           if (userVal !== undefined && userVal !== null && userVal !== "") {
             responseCount++;
 
-            if (q.question_type === "RATING" || q.question_type === "NPS" || q.question_type === "NUMBER") {
-              const numVal = Number(userVal);
-              if (!isNaN(numVal)) {
-                sumRatings += numVal;
+            if (isText) {
+              textResponses.push({
+                text: String(userVal),
+                respondent: resp.customer_name || resp.customer_readable_id || "Anonymous",
+                date: resp.created_at ? new Date(resp.created_at).toLocaleDateString() : "",
+              });
+            } else if (isNumeric) {
+              const n = Number(userVal);
+              if (!isNaN(n)) {
+                numValues.push(n);
+                distribution[String(n)] = (distribution[String(n)] || 0) + 1;
+              }
+            } else if (isRating) {
+              const r = Number(userVal);
+              if (!isNaN(r)) {
+                sumRatings += r;
                 ratingCount++;
+                distribution[String(r)] = (distribution[String(r)] || 0) + 1;
               }
-            }
-
-            let label = String(userVal);
-            if (typeof userVal === "boolean") {
-              label = userVal ? "Yes" : "No";
-            } else if (Array.isArray(opts) && opts.length > 0) {
-              const matchedOpt = opts.find(
-                (o: any, oIdx: number) =>
-                  o.value === userVal ||
-                  o.label === userVal ||
-                  String(oIdx + 1) === String(userVal) ||
-                  String(oIdx) === String(userVal)
-              );
-              if (matchedOpt) {
-                label = matchedOpt.label || matchedOpt.value || label;
+            } else if (isMulti) {
+              let selectedArr: any[] = [];
+              if (Array.isArray(userVal)) {
+                selectedArr = userVal;
+              } else if (typeof userVal === "string") {
+                try {
+                  const parsed = JSON.parse(userVal);
+                  selectedArr = Array.isArray(parsed) ? parsed : [userVal];
+                } catch {
+                  selectedArr = userVal.split(",").map((s) => s.trim());
+                }
+              } else {
+                selectedArr = [userVal];
               }
-            }
 
-            distribution[label] = (distribution[label] || 0) + 1;
+              selectedArr.forEach((item) => {
+                let label = String(item);
+                if (Array.isArray(opts) && opts.length > 0) {
+                  const matched = opts.find((o: any) => o.value === item || o.label === item);
+                  if (matched) label = matched.label || matched.value || label;
+                }
+                distribution[label] = (distribution[label] || 0) + 1;
+              });
+            } else {
+              let label = String(userVal);
+              if (typeof userVal === "boolean") {
+                label = userVal ? "Yes" : "No";
+              } else if (Array.isArray(opts) && opts.length > 0) {
+                const matchedOpt = opts.find(
+                  (o: any, oIdx: number) =>
+                    o.value === userVal ||
+                    o.label === userVal ||
+                    String(oIdx + 1) === String(userVal) ||
+                    String(oIdx) === String(userVal)
+                );
+                if (matchedOpt) {
+                  label = matchedOpt.label || matchedOpt.value || label;
+                }
+              }
+              distribution[label] = (distribution[label] || 0) + 1;
+            }
           }
         }
 
+        let numStats: { min?: number; max?: number; avg?: number; median?: number } | undefined;
+        if (numValues.length > 0) {
+          numValues.sort((a, b) => a - b);
+          const min = numValues[0];
+          const max = numValues[numValues.length - 1];
+          const avg = Number((numValues.reduce((a, b) => a + b, 0) / numValues.length).toFixed(1));
+          const mid = Math.floor(numValues.length / 2);
+          const median = numValues.length % 2 !== 0 ? numValues[mid] : (numValues[mid - 1] + numValues[mid]) / 2;
+          numStats = { min, max, avg, median };
+        }
+
         const average = ratingCount > 0 ? (sumRatings / ratingCount).toFixed(1) : undefined;
+
+        const percentages: Record<string, number> = {};
+        if (responseCount > 0) {
+          for (const [key, cnt] of Object.entries(distribution)) {
+            percentages[key] = Math.round((cnt / responseCount) * 100);
+          }
+        }
 
         return {
           id: q.id,
@@ -1316,7 +1404,11 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
           question_type: q.question_type,
           response_count: responseCount,
           distribution,
+          percentages,
           average,
+          numStats,
+          textResponses: isText ? textResponses.slice(0, 50) : undefined,
+          isMultiChoice: isMulti,
         };
       });
 
@@ -1328,9 +1420,12 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
           completions: stats.completions,
           in_progress: stats.in_progress,
           disqualified: stats.disqualified,
+          unique_respondents: stats.unique_respondents || stats.total_starts,
           completion_rate: completionRate,
           avg_completion_time_min: avgDurationMin,
           total_coins_distributed: stats.total_coins_distributed,
+          survey_start_date: survey.start_date || null,
+          survey_end_date: survey.end_date || null,
         },
         stats: {
           ...stats,
@@ -1354,9 +1449,12 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
       completions,
       in_progress: 14,
       disqualified: 4,
+      unique_respondents: completions + 10,
       completion_rate: 87,
       avg_completion_time_min: 2.4,
       total_coins_distributed: completions * (survey.reward_coins || 50),
+      survey_start_date: survey.start_date || "2026-10-01",
+      survey_end_date: survey.end_date || null,
     },
     stats: {
       total_starts: completions + 18,
@@ -1367,7 +1465,21 @@ export async function getSurveyAnalyticsAdmin(surveyId: string): Promise<any> {
       avg_duration_seconds: 145,
       completionRate: 87,
     },
-    questions: [],
+    questions: (survey.questions || []).map((q: any) => ({
+      id: q.id,
+      order_num: q.order_num || q.orderNum || 1,
+      question_text: q.question_text || q.questionText || "",
+      question_type: q.question_type || q.questionType || "SINGLE_CHOICE",
+      response_count: completions,
+      distribution: Array.isArray(q.options)
+        ? Object.fromEntries(q.options.map((o: any, idx: number) => [typeof o === "string" ? o : o.label || o.value, Math.round(completions / (idx + 1.5))]))
+        : {},
+      percentages: Array.isArray(q.options)
+        ? Object.fromEntries(q.options.map((o: any, idx: number) => [typeof o === "string" ? o : o.label || o.value, Math.round(100 / (q.options.length || 1))]))
+        : {},
+      average: (q.question_type === "RATING_SCALE" || q.questionType === "RATING_SCALE") ? "4.4" : undefined,
+      isMultiChoice: q.question_type === "MULTIPLE_CHOICE" || q.questionType === "MULTIPLE_CHOICE",
+    })),
     questionBreakdowns: {},
   };
 }
@@ -1722,7 +1834,7 @@ export async function saveProductAdmin(data: {
   category: string;
   brand: string;
   summary: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   specifications?: Record<string, unknown>;
   priceInr?: number;
   coinPrice?: number;

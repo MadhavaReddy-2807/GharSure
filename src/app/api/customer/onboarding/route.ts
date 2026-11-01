@@ -29,6 +29,10 @@ const onboardingSchema = z.object({
     .max(30)
     .optional()
     .or(z.literal("")),
+  householdDetails: z.record(z.any()).optional(),
+  homeType: z.string().optional(),
+  waterSource: z.string().optional(),
+  appliances: z.array(z.string()).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -55,10 +59,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { fullName, city, displayName, referralCode } = parsed.data;
+    const { fullName, city, displayName, referralCode, householdDetails, homeType, waterSource, appliances } = parsed.data;
 
     const trimmedCity = city && city.trim().length > 0 ? city.trim() : null;
     const cleanReferralCode = referralCode && referralCode.trim().length > 0 ? referralCode.trim().toUpperCase() : undefined;
+
+    // Combine household details
+    const mergedHousehold: Record<string, any> = {
+      ...(householdDetails || {}),
+      ...(homeType ? { homeType } : {}),
+      ...(waterSource ? { waterSource } : {}),
+      ...(appliances ? { appliances } : {}),
+    };
 
     // Process referral code attribution and rewards if provided
     let referralAttributionId: string | undefined;
@@ -82,6 +94,7 @@ export async function POST(req: NextRequest) {
       fullName,
       city: trimmedCity,
       displayName: displayName || null,
+      householdDetails: Object.keys(mergedHousehold).length > 0 ? mergedHousehold : undefined,
     });
 
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
@@ -102,6 +115,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({
       success: true,
       message: "Onboarding completed successfully.",
+      token: updatedToken,
       customer: {
         id: updatedCustomer.id,
         customerId: updatedCustomer.customer_id,

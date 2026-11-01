@@ -37,6 +37,10 @@ import {
   RotateCcw,
   Image as ImageIcon,
   UploadCloud,
+  ChevronLeft,
+  ChevronRight,
+  User,
+  Star,
 } from "lucide-react";
 import {
   validateSurveyDefinition,
@@ -176,17 +180,19 @@ export default function AdminSurveysPage() {
   const [previewDevice, setPreviewDevice] = useState<"mobile" | "desktop">("mobile");
   const [previewError, setPreviewError] = useState<string | null>(null);
 
-  // Submissions Drawer
-  const [responsesSurvey, setResponsesSurvey] = useState<Survey | null>(null);
-  const [responsesData, setResponsesData] = useState<any[]>([]);
-  const [responsesTotal, setResponsesTotal] = useState(0);
-  const [isLoadingResponses, setIsLoadingResponses] = useState(false);
-  const [expandedResponseId, setExpandedResponseId] = useState<string | null>(null);
-
-  // Analytics Drawer
+  // Submissions & Analytics Drawer State (Google Forms Style)
   const [analyticsSurvey, setAnalyticsSurvey] = useState<Survey | null>(null);
   const [analyticsData, setAnalyticsData] = useState<any | null>(null);
+  const [analyticsTab, setAnalyticsTab] = useState<"summary" | "individual">("summary");
+  const [analyticsStatusFilter, setAnalyticsStatusFilter] = useState("ALL");
+  const [analyticsStartDate, setAnalyticsStartDate] = useState("");
+  const [analyticsEndDate, setAnalyticsEndDate] = useState("");
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [responsesData, setResponsesData] = useState<any[]>([]);
+  const [responsesTotal, setResponsesTotal] = useState(0);
+  const [individualIndex, setIndividualIndex] = useState(0);
+  const [questionTextFilters, setQuestionTextFilters] = useState<Record<string, string>>({});
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // New Survey Form State
   const [newSurveyId, setNewSurveyId] = useState("");
@@ -572,41 +578,91 @@ export default function AdminSurveysPage() {
     }
   };
 
-  // Open Responses Drawer
-  const handleOpenResponses = async (survey: Survey) => {
-    setResponsesSurvey(survey);
-    setIsLoadingResponses(true);
-    setResponsesData([]);
+  // Image Upload Helper (Supabase Storage 'surveys' bucket via /api/admin/upload)
+  const handleUploadSurveyImage = async (file: File, isEdit: boolean = false) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file (PNG, JPG, WebP, SVG).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be less than 5MB.");
+      return;
+    }
+    setIsUploadingImage(true);
     try {
-      const res = await fetch(`/api/admin/surveys/${survey.id}/responses?limit=50`);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", "surveys");
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
       const data = await res.json();
-      if (res.ok && data.success) {
-        setResponsesData(data.responses || []);
-        setResponsesTotal(data.totalCount || 0);
+      if (data.success && data.url) {
+        if (isEdit) {
+          setSurveyDetails((prev: any) => ({ ...prev, image_url: data.url }));
+        } else {
+          setNewImageUrl(data.url);
+        }
+      } else {
+        setError(data.error || "Failed to upload image.");
       }
     } catch (err: any) {
-      setError("Failed to load survey responses: " + err.message);
+      setError("Image upload failed: " + err.message);
     } finally {
-      setIsLoadingResponses(false);
+      setIsUploadingImage(false);
     }
   };
 
-  // Open Analytics Drawer
-  const handleOpenAnalytics = async (survey: Survey) => {
-    setAnalyticsSurvey(survey);
+  // Load Analytics and Submissions for Drawer
+  const loadSurveyAnalyticsAndResponses = async (
+    survey: Survey,
+    status = analyticsStatusFilter,
+    start = analyticsStartDate,
+    end = analyticsEndDate
+  ) => {
     setIsLoadingAnalytics(true);
-    setAnalyticsData(null);
     try {
-      const res = await fetch(`/api/admin/surveys/${survey.id}/analytics`);
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setAnalyticsData(data.analytics);
+      const params = new URLSearchParams();
+      if (status && status !== "ALL") params.set("status", status);
+      if (start) params.set("startDate", start);
+      if (end) params.set("endDate", end);
+      const qs = params.toString() ? `?${params.toString()}` : "";
+
+      const [aRes, rRes] = await Promise.all([
+        fetch(`/api/admin/surveys/${survey.id}/analytics${qs}`),
+        fetch(`/api/admin/surveys/${survey.id}/responses${qs ? `${qs}&limit=100` : "?limit=100"}`),
+      ]);
+
+      const aData = await aRes.json();
+      if (aRes.ok && aData.success) {
+        setAnalyticsData(aData.analytics);
+      }
+
+      const rData = await rRes.json();
+      if (rRes.ok && rData.success) {
+        setResponsesData(rData.responses || []);
+        setResponsesTotal(rData.total || 0);
       }
     } catch (err: any) {
       setError("Failed to load survey analytics: " + err.message);
     } finally {
       setIsLoadingAnalytics(false);
     }
+  };
+
+  // Open Analytics Drawer (Summary view)
+  const handleOpenAnalytics = (survey: Survey, tab: "summary" | "individual" = "summary") => {
+    setAnalyticsSurvey(survey);
+    setAnalyticsTab(tab);
+    setIndividualIndex(0);
+    loadSurveyAnalyticsAndResponses(survey, analyticsStatusFilter, analyticsStartDate, analyticsEndDate);
+  };
+
+  // Open Responses (Individual responses view)
+  const handleOpenResponses = (survey: Survey) => {
+    handleOpenAnalytics(survey, "individual");
   };
 
   const renderLivePreviewTab = () => {
@@ -1236,12 +1292,13 @@ export default function AdminSurveysPage() {
                 />
               </div>
 
-              {/* Survey Cover Image */}
+              {/* Survey Cover Image (Optional) */}
               <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
                 <div className="flex items-center justify-between">
                   <label className="block text-slate-800 font-bold text-xs flex items-center gap-1.5">
                     <ImageIcon className="w-3.5 h-3.5 text-brand-orange" />
                     <span>Survey Cover Image</span>
+                    <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
                   </label>
                   {newImageUrl && (
                     <button
@@ -1249,14 +1306,14 @@ export default function AdminSurveysPage() {
                       onClick={() => setNewImageUrl("")}
                       className="text-[11px] text-rose-600 hover:underline cursor-pointer"
                     >
-                      Clear
+                      Clear / Remove
                     </button>
                   )}
                 </div>
 
                 <div className="flex gap-3 items-start">
                   {newImageUrl ? (
-                    <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0 shadow-2xs">
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0 shadow-2xs">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={newImageUrl}
@@ -1268,8 +1325,8 @@ export default function AdminSurveysPage() {
                       />
                     </div>
                   ) : (
-                    <div className="w-14 h-14 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 shrink-0 bg-white">
-                      <ImageIcon className="w-4 h-4 text-slate-300" />
+                    <div className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 shrink-0 bg-white">
+                      <ImageIcon className="w-5 h-5 text-slate-300" />
                       <span className="text-[9px] mt-0.5">No image</span>
                     </div>
                   )}
@@ -1279,29 +1336,26 @@ export default function AdminSurveysPage() {
                       type="url"
                       value={newImageUrl}
                       onChange={(e) => setNewImageUrl(e.target.value)}
-                      placeholder="Image URL (https://...)"
+                      placeholder="Image URL or upload file below (optional)"
                       className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-orange bg-white"
                     />
 
                     <div className="flex items-center gap-2">
-                      <label className="px-2 py-0.5 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-semibold text-slate-700 cursor-pointer inline-flex items-center gap-1 transition-colors">
-                        <UploadCloud className="w-3 h-3 text-slate-500" />
-                        <span>Upload File</span>
+                      <label className={`px-2.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-semibold text-slate-700 cursor-pointer inline-flex items-center gap-1.5 transition-colors shadow-2xs ${isUploadingImage ? "opacity-60 cursor-not-allowed" : ""}`}>
+                        {isUploadingImage ? (
+                          <Loader2 className="w-3 h-3 animate-spin text-brand-orange" />
+                        ) : (
+                          <UploadCloud className="w-3 h-3 text-slate-500" />
+                        )}
+                        <span>{isUploadingImage ? "Uploading..." : "Upload Image"}</span>
                         <input
                           type="file"
                           accept="image/*"
                           className="hidden"
+                          disabled={isUploadingImage}
                           onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                if (event.target?.result) {
-                                  setNewImageUrl(event.target.result as string);
-                                }
-                              };
-                              reader.readAsDataURL(file);
-                            }
+                            if (file) handleUploadSurveyImage(file, false);
                           }}
                         />
                       </label>
@@ -2094,12 +2148,13 @@ export default function AdminSurveysPage() {
                     />
                   </div>
 
-                  {/* Survey Cover Image in Settings */}
+                  {/* Survey Cover Image in Settings (Optional) */}
                   <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <div className="flex items-center justify-between">
                       <label className="block text-slate-800 font-bold text-xs flex items-center gap-1.5">
                         <ImageIcon className="w-3.5 h-3.5 text-brand-orange" />
                         <span>Survey Cover Image</span>
+                        <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
                       </label>
                       {surveyDetails.image_url && (
                         <button
@@ -2107,14 +2162,14 @@ export default function AdminSurveysPage() {
                           onClick={() => setSurveyDetails({ ...surveyDetails, image_url: "" })}
                           className="text-[11px] text-rose-600 hover:underline cursor-pointer"
                         >
-                          Clear
+                          Clear / Remove
                         </button>
                       )}
                     </div>
 
                     <div className="flex gap-3 items-start">
                       {surveyDetails.image_url ? (
-                        <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0 shadow-2xs">
+                        <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0 shadow-2xs">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={surveyDetails.image_url}
@@ -2126,8 +2181,8 @@ export default function AdminSurveysPage() {
                           />
                         </div>
                       ) : (
-                        <div className="w-14 h-14 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 shrink-0 bg-white">
-                          <ImageIcon className="w-4 h-4 text-slate-300" />
+                        <div className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 shrink-0 bg-white">
+                          <ImageIcon className="w-5 h-5 text-slate-300" />
                           <span className="text-[9px] mt-0.5">No image</span>
                         </div>
                       )}
@@ -2137,29 +2192,26 @@ export default function AdminSurveysPage() {
                           type="url"
                           value={surveyDetails.image_url || ""}
                           onChange={(e) => setSurveyDetails({ ...surveyDetails, image_url: e.target.value })}
-                          placeholder="Image URL (https://...)"
+                          placeholder="Image URL or upload file below (optional)"
                           className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-brand-orange bg-white"
                         />
 
                         <div className="flex items-center gap-2">
-                          <label className="px-2 py-0.5 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-semibold text-slate-700 cursor-pointer inline-flex items-center gap-1 transition-colors">
-                            <UploadCloud className="w-3 h-3 text-slate-500" />
-                            <span>Upload File</span>
+                          <label className={`px-2.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-semibold text-slate-700 cursor-pointer inline-flex items-center gap-1.5 transition-colors shadow-2xs ${isUploadingImage ? "opacity-60 cursor-not-allowed" : ""}`}>
+                            {isUploadingImage ? (
+                              <Loader2 className="w-3 h-3 animate-spin text-brand-orange" />
+                            ) : (
+                              <UploadCloud className="w-3 h-3 text-slate-500" />
+                            )}
+                            <span>{isUploadingImage ? "Uploading..." : "Upload Image"}</span>
                             <input
                               type="file"
                               accept="image/*"
                               className="hidden"
+                              disabled={isUploadingImage}
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) {
-                                  const reader = new FileReader();
-                                  reader.onload = (event) => {
-                                    if (event.target?.result) {
-                                      setSurveyDetails({ ...surveyDetails, image_url: event.target.result as string });
-                                    }
-                                  };
-                                  reader.readAsDataURL(file);
-                                }
+                                if (file) handleUploadSurveyImage(file, true);
                               }}
                             />
                           </label>
@@ -2397,288 +2449,673 @@ export default function AdminSurveysPage() {
         </div>
       )}
 
-      {/* RESPONSES VIEWER DRAWER */}
-      {responsesSurvey && (
+      {/* GOOGLE FORMS-STYLE RESPONSE ANALYTICS & INDIVIDUAL SUBMISSIONS DRAWER */}
+      {analyticsSurvey && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-3xl bg-white h-full shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-200">
+          <div className="w-full max-w-4xl bg-white h-full shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-200">
             {/* Header */}
-            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-bold text-sm text-slate-900">
-                  Responses: {responsesSurvey.title}
-                </h3>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">
-                  {responsesSurvey.survey_id} · Total Submissions: {responsesTotal}
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-base text-slate-900">
+                    {analyticsSurvey.title}
+                  </h3>
+                  <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-200 text-slate-700 rounded font-semibold">
+                    {analyticsSurvey.survey_id}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Google Forms-Style Response Analytics & Individual Submissions
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
                 <a
-                  href={`/api/admin/surveys/${responsesSurvey.id}/export`}
+                  href={`/api/admin/surveys/${analyticsSurvey.id}/export`}
                   download
                   className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
+                  title="Export all responses to CSV"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Export CSV</span>
                 </a>
                 <button
-                  onClick={() => setResponsesSurvey(null)}
-                  className="text-slate-400 hover:text-slate-600 p-1"
+                  type="button"
+                  onClick={() => setAnalyticsSurvey(null)}
+                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* List */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-3">
-              {isLoadingResponses ? (
-                <div className="py-20 text-center text-slate-400 text-xs">
-                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-slate-400" />
-                  Loading respondent submissions...
-                </div>
-              ) : responsesData.length === 0 ? (
-                <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl text-xs text-slate-400">
-                  No responses recorded yet for this survey.
-                </div>
-              ) : (
-                responsesData.map((resp) => {
-                  const isExpanded = expandedResponseId === resp.id;
-
-                  return (
-                    <div
-                      key={resp.id}
-                      className="border border-slate-200 rounded-xl bg-white shadow-xs overflow-hidden"
-                    >
-                      <div
-                        onClick={() => setExpandedResponseId(isExpanded ? null : resp.id)}
-                        className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold font-mono text-xs text-slate-900">
-                              {resp.customer_readable_id || "Customer"}
-                            </span>
-                            <span className="text-[11px] text-slate-400">({resp.phone_number})</span>
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.2 rounded-full border ${
-                                STATUS_BADGES[resp.status] || "bg-slate-100"
-                              }`}
-                            >
-                              {resp.status}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-400 mt-1">
-                            Started: {new Date(resp.created_at).toLocaleString()}
-                            {resp.completed_at && ` · Completed: ${new Date(resp.completed_at).toLocaleTimeString()}`}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {resp.reward_issued && (
-                            <span className="font-mono text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                              +Coins Issued
-                            </span>
-                          )}
-                          {isExpanded ? (
-                            <ChevronUp className="w-4 h-4 text-slate-400" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4 text-slate-400" />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Expanded Answers Table */}
-                      {isExpanded && (
-                        <div className="p-4 bg-slate-50 border-t border-slate-100 text-xs space-y-2">
-                          <div className="font-semibold text-slate-700">Submitted Answers:</div>
-                          {resp.formatted_answers && resp.formatted_answers.length > 0 ? (
-                            <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                              {resp.formatted_answers.map((item: any, idx: number) => (
-                                <div key={item.question_id || idx} className="p-2.5 flex items-start justify-between gap-4">
-                                  <div className="shrink-0 max-w-[65%]">
-                                    <span className="font-semibold text-slate-800 text-[11px] block">
-                                      Q{item.order_num}: {item.question_text}
-                                    </span>
-                                  </div>
-                                  <span className="font-medium text-blue-700 text-right text-[11px] break-all bg-blue-50/60 px-2 py-0.5 rounded border border-blue-100">
-                                    {item.answer_value}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            (() => {
-                              let answersObj: Record<string, any> = {};
-                              if (typeof resp.answers === "string") {
-                                try {
-                                  answersObj = JSON.parse(resp.answers);
-                                } catch {
-                                  answersObj = {};
-                                }
-                              } else if (resp.answers && typeof resp.answers === "object") {
-                                answersObj = resp.answers;
-                              }
-                              const entries = Object.entries(answersObj);
-                              if (entries.length === 0) {
-                                return <div className="text-slate-400 italic">No answers saved yet.</div>;
-                              }
-                              return (
-                                <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                                  {entries.map(([key, val]) => (
-                                    <div key={key} className="p-2.5 flex items-start justify-between gap-4">
-                                      <span className="font-mono text-slate-600 text-[11px] shrink-0">{key}</span>
-                                      <span className="font-medium text-slate-900 text-right text-[11px] break-all">
-                                        {typeof val === "object" ? JSON.stringify(val) : String(val)}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              );
-                            })()
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
-              <button
-                onClick={() => setResponsesSurvey(null)}
-                className="px-4 py-2 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ANALYTICS DRAWER */}
-      {analyticsSurvey && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-3xl bg-white h-full shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-200">
-            {/* Header */}
-            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-sm text-slate-900">
-                  Analytics: {analyticsSurvey.title}
-                </h3>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">
-                  {analyticsSurvey.survey_id} · Question Level Metrics
-                </p>
+            {/* Sub-Header: Google Forms Tabs & Live Filters */}
+            <div className="px-5 py-3 border-b border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+              {/* Google Forms-style Tabs: Summary vs Individual */}
+              <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-medium self-start">
+                <button
+                  type="button"
+                  onClick={() => setAnalyticsTab("summary")}
+                  className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                    analyticsTab === "summary"
+                      ? "bg-white text-slate-900 font-bold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Summary & Analytics</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAnalyticsTab("individual")}
+                  className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                    analyticsTab === "individual"
+                      ? "bg-white text-slate-900 font-bold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>Individual Responses ({responsesData.length})</span>
+                </button>
               </div>
 
-              <button
-                onClick={() => setAnalyticsSurvey(null)}
-                className="text-slate-400 hover:text-slate-600 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              {/* Live Response Filters */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1 text-xs">
+                  <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  <select
+                    value={analyticsStatusFilter}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAnalyticsStatusFilter(val);
+                      if (analyticsSurvey) {
+                        loadSurveyAnalyticsAndResponses(analyticsSurvey, val, analyticsStartDate, analyticsEndDate);
+                      }
+                    }}
+                    className="h-8 px-2 rounded-lg border border-slate-200 text-xs bg-slate-50 text-slate-700 font-medium focus:ring-1 focus:ring-brand-orange"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="COMPLETED">Completed Only</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="DISQUALIFIED">Disqualified</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1 text-xs text-slate-500">
+                  <input
+                    type="date"
+                    value={analyticsStartDate}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAnalyticsStartDate(val);
+                      if (analyticsSurvey) {
+                        loadSurveyAnalyticsAndResponses(analyticsSurvey, analyticsStatusFilter, val, analyticsEndDate);
+                      }
+                    }}
+                    className="h-8 px-2 rounded-lg border border-slate-200 text-xs bg-slate-50 text-slate-700"
+                    title="From date"
+                  />
+                  <span>to</span>
+                  <input
+                    type="date"
+                    value={analyticsEndDate}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAnalyticsEndDate(val);
+                      if (analyticsSurvey) {
+                        loadSurveyAnalyticsAndResponses(analyticsSurvey, analyticsStatusFilter, analyticsStartDate, val);
+                      }
+                    }}
+                    className="h-8 px-2 rounded-lg border border-slate-200 text-xs bg-slate-50 text-slate-700"
+                    title="To date"
+                  />
+                  {(analyticsStatusFilter !== "ALL" || analyticsStartDate || analyticsEndDate) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAnalyticsStatusFilter("ALL");
+                        setAnalyticsStartDate("");
+                        setAnalyticsEndDate("");
+                        if (analyticsSurvey) {
+                          loadSurveyAnalyticsAndResponses(analyticsSurvey, "ALL", "", "");
+                        }
+                      }}
+                      className="px-2 py-1 rounded text-[11px] text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
               {isLoadingAnalytics ? (
-                <div className="py-20 text-center text-slate-400 text-xs">
-                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-slate-400" />
-                  Aggregating survey analytics...
+                <div className="py-24 text-center text-slate-400 text-xs">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2.5 text-brand-orange" />
+                  Generating Google Forms-style visual analytics...
                 </div>
               ) : !analyticsData ? (
-                <div className="p-8 text-center text-slate-400 text-xs">
-                  No analytics data available.
+                <div className="py-20 text-center text-slate-400 text-xs">
+                  No survey analytics data available.
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Responses</div>
-                      <div className="text-lg font-bold text-slate-900 font-mono mt-0.5">
-                        {analyticsData.summary?.total_responses || 0}
+              ) : analyticsTab === "summary" ? (
+                /* TAB 1: SUMMARY & QUESTION-WISE VISUALIZATIONS */
+                <div className="space-y-6">
+                  {/* Overview Metrics Cards */}
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
+                      Survey Performance Overview
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Starts</div>
+                        <div className="text-lg font-bold text-slate-900 font-mono mt-0.5">
+                          {analyticsData.summary?.total_responses || 0}
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="text-[10px] text-slate-400 uppercase font-semibold">Completion Rate</div>
-                      <div className="text-lg font-bold text-emerald-700 font-mono mt-0.5">
-                        {analyticsData.summary?.completion_rate || 0}%
+                      <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                        <div className="text-[10px] text-emerald-600 uppercase font-semibold">Completed</div>
+                        <div className="text-lg font-bold text-emerald-700 font-mono mt-0.5">
+                          {analyticsData.summary?.completions || 0}
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="text-[10px] text-slate-400 uppercase font-semibold">Avg Completion Time</div>
-                      <div className="text-lg font-bold text-blue-700 font-mono mt-0.5">
-                        {analyticsData.summary?.avg_completion_time_min || 0}m
+                      <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100">
+                        <div className="text-[10px] text-amber-600 uppercase font-semibold">Incomplete</div>
+                        <div className="text-lg font-bold text-amber-700 font-mono mt-0.5">
+                          {analyticsData.summary?.in_progress || 0}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                        <div className="text-[10px] text-blue-600 uppercase font-semibold">Completion %</div>
+                        <div className="text-lg font-bold text-blue-700 font-mono mt-0.5">
+                          {analyticsData.summary?.completion_rate || 0}%
+                        </div>
+                      </div>
+                      <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100">
+                        <div className="text-[10px] text-purple-600 uppercase font-semibold">Unique Users</div>
+                        <div className="text-lg font-bold text-purple-700 font-mono mt-0.5">
+                          {analyticsData.summary?.unique_respondents || analyticsData.summary?.total_responses || 0}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Avg Time</div>
+                        <div className="text-lg font-bold text-slate-900 font-mono mt-0.5">
+                          {analyticsData.summary?.avg_completion_time_min || 0}m
+                        </div>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Active Dates</div>
+                        <div className="text-[11px] font-semibold text-slate-700 mt-1 line-clamp-1">
+                          {analyticsData.summary?.survey_start_date ? new Date(analyticsData.summary.survey_start_date).toLocaleDateString() : "Ongoing"}
+                          {analyticsData.summary?.survey_end_date ? ` - ${new Date(analyticsData.summary.survey_end_date).toLocaleDateString()}` : ""}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Question Breakdowns */}
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                      Question Response Breakdowns
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Question Response Analytics ({analyticsData.questions?.length || 0} Questions)
                     </h4>
 
-                    {(analyticsData.questions || []).map((q: any, i: number) => (
-                      <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono font-bold text-xs text-slate-800">
-                            Q{q.order_num}: {q.question_text}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-500 uppercase px-2 py-0.5 bg-slate-100 rounded">
-                            {q.question_type}
-                          </span>
+                    {(analyticsData.questions || []).map((q: any, i: number) => {
+                      const totalResp = q.response_count || 0;
+                      const qType = q.question_type || "SINGLE_CHOICE";
+                      const isMulti = q.isMultiChoice || qType === "MULTIPLE_CHOICE";
+                      const isRating = qType === "RATING_SCALE" || qType === "STAR_RATING" || qType === "RATING" || qType === "NPS";
+                      const isNumeric = qType === "NUMBER";
+                      const isText = qType === "SHORT_TEXT" || qType === "LONG_TEXT";
+                      const PALETTE = ["#2563EB", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#06B6D4", "#F97316", "#64748B"];
+
+                      return (
+                        <div key={q.id || i} className="p-5 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+                          {/* Question Header */}
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold text-xs text-brand-purple">
+                                  Q{q.order_num}:
+                                </span>
+                                <span className="font-bold text-sm text-slate-900">
+                                  {q.question_text}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-slate-400 mt-0.5 block">
+                                {totalResp} {totalResp === 1 ? "response" : "responses"} recorded
+                              </span>
+                            </div>
+
+                            <span className="text-[10px] font-bold text-slate-600 uppercase px-2.5 py-1 bg-slate-100 rounded-md self-start border border-slate-200">
+                              {qType.replace(/_/g, " ")}
+                            </span>
+                          </div>
+
+                          {/* Visualizations by Question Type */}
+                          {totalResp === 0 ? (
+                            <div className="py-6 text-center text-xs text-slate-400 italic">
+                              No responses submitted yet for this question.
+                            </div>
+                          ) : isText ? (
+                            /* TEXT QUESTION: Filterable list of real user responses */
+                            <div className="space-y-3">
+                              <div className="relative">
+                                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                                <input
+                                  type="text"
+                                  value={questionTextFilters[q.id] || ""}
+                                  onChange={(e) =>
+                                    setQuestionTextFilters((prev) => ({ ...prev, [q.id]: e.target.value }))
+                                  }
+                                  placeholder="Filter written responses..."
+                                  className="w-full h-8 pl-8 pr-3 rounded-lg border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-brand-orange"
+                                />
+                              </div>
+
+                              <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl bg-slate-50/40">
+                                {((q.textResponses || []) as Array<{ text: string; respondent: string; date: string }>)
+                                  .filter((item) =>
+                                    !questionTextFilters[q.id] ||
+                                    item.text.toLowerCase().includes(questionTextFilters[q.id].toLowerCase()) ||
+                                    item.respondent.toLowerCase().includes(questionTextFilters[q.id].toLowerCase())
+                                  )
+                                  .map((item, tIdx) => (
+                                    <div key={tIdx} className="p-3 text-xs space-y-1">
+                                      <div className="font-medium text-slate-800 italic">
+                                        &ldquo;{item.text}&rdquo;
+                                      </div>
+                                      <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                                        <span>{item.respondent}</span>
+                                        {item.date && <span>· {item.date}</span>}
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          ) : isNumeric ? (
+                            /* NUMERIC QUESTION: Min, Max, Average, Median + Distribution */
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-center">
+                                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Minimum</div>
+                                  <div className="text-base font-bold text-slate-900 font-mono mt-0.5">
+                                    {q.numStats?.min ?? "N/A"}
+                                  </div>
+                                </div>
+                                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-center">
+                                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Maximum</div>
+                                  <div className="text-base font-bold text-slate-900 font-mono mt-0.5">
+                                    {q.numStats?.max ?? "N/A"}
+                                  </div>
+                                </div>
+                                <div className="p-2.5 bg-blue-50/50 rounded-lg border border-blue-100 text-center">
+                                  <div className="text-[10px] text-blue-600 uppercase font-semibold">Average</div>
+                                  <div className="text-base font-bold text-blue-800 font-mono mt-0.5">
+                                    {q.numStats?.avg ?? "N/A"}
+                                  </div>
+                                </div>
+                                <div className="p-2.5 bg-emerald-50/50 rounded-lg border border-emerald-100 text-center">
+                                  <div className="text-[10px] text-emerald-600 uppercase font-semibold">Median</div>
+                                  <div className="text-base font-bold text-emerald-800 font-mono mt-0.5">
+                                    {q.numStats?.median ?? "N/A"}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {q.distribution && Object.keys(q.distribution).length > 0 && (
+                                <div className="space-y-1.5 pt-1">
+                                  {Object.entries(q.distribution).map(([val, cnt]: [string, any]) => {
+                                    const pct = Math.round((Number(cnt) / totalResp) * 100);
+                                    return (
+                                      <div key={val} className="text-xs">
+                                        <div className="flex justify-between text-[11px] mb-0.5">
+                                          <span className="text-slate-700 font-mono font-medium">{val}</span>
+                                          <span className="text-slate-500 font-mono">{cnt} ({pct}%)</span>
+                                        </div>
+                                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                          <div className="h-full bg-blue-600 rounded-full" style={{ width: `${pct}%` }} />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          ) : isRating ? (
+                            /* RATING QUESTION: Average rating display and rating distribution */
+                            <div className="space-y-3">
+                              <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200 flex items-center gap-4">
+                                <div className="text-center px-3 py-1 bg-white rounded-xl border border-amber-200 shadow-2xs">
+                                  <div className="text-2xl font-black text-amber-900 font-mono flex items-center justify-center gap-1">
+                                    <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                                    <span>{q.average || "N/A"}</span>
+                                  </div>
+                                  <div className="text-[9px] text-amber-700 font-bold uppercase mt-0.5">Average Score</div>
+                                </div>
+                                <div className="text-xs text-amber-800 leading-relaxed">
+                                  Based on <span className="font-bold">{totalResp}</span> verified participant ratings.
+                                </div>
+                              </div>
+
+                              {q.distribution && (
+                                <div className="space-y-1.5 pt-1">
+                                  {Object.entries(q.distribution)
+                                    .sort(([a], [b]) => Number(b) - Number(a))
+                                    .map(([score, cnt]: [string, any]) => {
+                                      const pct = Math.round((Number(cnt) / totalResp) * 100);
+                                      return (
+                                        <div key={score} className="text-xs">
+                                          <div className="flex justify-between text-[11px] mb-0.5">
+                                            <span className="text-slate-700 font-medium flex items-center gap-1">
+                                              <span>{score} Stars / Tier</span>
+                                            </span>
+                                            <span className="text-slate-500 font-mono">{cnt} ({pct}%)</span>
+                                          </div>
+                                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              )}
+                            </div>
+                          ) : isMulti ? (
+                            /* MULTIPLE CHOICE QUESTION: Horizontal bar chart with notice */
+                            <div className="space-y-3">
+                              <div className="p-2.5 rounded-lg bg-blue-50/70 border border-blue-100 text-[11px] text-blue-800 flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 text-blue-600 shrink-0" />
+                                <span>
+                                  Respondents can select multiple choices; percentages reflect respondent share and may total over 100%.
+                                </span>
+                              </div>
+
+                              <div className="space-y-2 pt-1">
+                                {Object.entries(q.distribution || {}).map(([opt, cnt]: [string, any], optIdx) => {
+                                  const pct = q.percentages?.[opt] ?? Math.round((Number(cnt) / totalResp) * 100);
+                                  return (
+                                    <div key={opt} className="text-xs space-y-1">
+                                      <div className="flex justify-between text-[11px]">
+                                        <span className="text-slate-800 font-medium">{opt}</span>
+                                        <span className="text-slate-600 font-mono font-semibold">
+                                          {cnt} ({pct}%)
+                                        </span>
+                                      </div>
+                                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                          className="h-full rounded-full transition-all duration-300"
+                                          style={{
+                                            width: `${Math.min(pct, 100)}%`,
+                                            backgroundColor: PALETTE[optIdx % PALETTE.length],
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : (
+                            /* SINGLE CHOICE / DROPDOWN / YES_NO: SVG Donut Chart + Legend */
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center pt-1">
+                              {/* Donut Chart SVG */}
+                              <div className="sm:col-span-5 flex justify-center">
+                                {(() => {
+                                  const entries = Object.entries(q.distribution || {});
+                                  let cumulative = 0;
+                                  const radius = 36;
+                                  const circumference = 2 * Math.PI * radius;
+
+                                  return (
+                                    <div className="relative w-40 h-40">
+                                      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                                        <circle
+                                          cx="50"
+                                          cy="50"
+                                          r={radius}
+                                          fill="transparent"
+                                          stroke="#F1F5F9"
+                                          strokeWidth="14"
+                                        />
+                                        {entries.map(([_, cnt], optIdx) => {
+                                          const num = Number(cnt) || 0;
+                                          const pct = totalResp > 0 ? num / totalResp : 0;
+                                          const strokeDash = pct * circumference;
+                                          const strokeOffset = cumulative * circumference;
+                                          cumulative += pct;
+
+                                          return (
+                                            <circle
+                                              key={optIdx}
+                                              cx="50"
+                                              cy="50"
+                                              r={radius}
+                                              fill="transparent"
+                                              stroke={PALETTE[optIdx % PALETTE.length]}
+                                              strokeWidth="14"
+                                              strokeDasharray={`${strokeDash} ${circumference}`}
+                                              strokeDashoffset={-strokeOffset}
+                                              className="transition-all duration-300"
+                                            />
+                                          );
+                                        })}
+                                      </svg>
+                                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                        <span className="text-base font-black text-slate-900 font-mono">
+                                          {totalResp}
+                                        </span>
+                                        <span className="text-[9px] text-slate-400 font-semibold uppercase">
+                                          Answers
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+
+                              {/* Option Breakdown Legend */}
+                              <div className="sm:col-span-7 space-y-2">
+                                {Object.entries(q.distribution || {}).map(([opt, cnt]: [string, any], optIdx) => {
+                                  const pct = q.percentages?.[opt] ?? Math.round((Number(cnt) / totalResp) * 100);
+                                  return (
+                                    <div key={opt} className="text-xs space-y-0.5">
+                                      <div className="flex items-center justify-between text-[11px]">
+                                        <span className="flex items-center gap-1.5 text-slate-800 font-medium">
+                                          <span
+                                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                                            style={{ backgroundColor: PALETTE[optIdx % PALETTE.length] }}
+                                          />
+                                          <span className="truncate max-w-[200px]">{opt}</span>
+                                        </span>
+                                        <span className="text-slate-600 font-mono font-semibold shrink-0">
+                                          {cnt} ({pct}%)
+                                        </span>
+                                      </div>
+                                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden ml-4">
+                                        <div
+                                          className="h-full rounded-full transition-all duration-300"
+                                          style={{
+                                            width: `${pct}%`,
+                                            backgroundColor: PALETTE[optIdx % PALETTE.length],
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* TAB 2: INDIVIDUAL RESPONSES VIEW */
+                responsesData.length === 0 ? (
+                  <div className="py-20 text-center text-slate-400 text-xs">
+                    No individual responses found for this survey or filter.
+                  </div>
+                ) : (
+                  (() => {
+                    const currentResp = responsesData[individualIndex] || responsesData[0];
+                    let answersObj: Record<string, any> = {};
+                    if (typeof currentResp.answers === "string") {
+                      try {
+                        answersObj = JSON.parse(currentResp.answers);
+                      } catch {
+                        answersObj = {};
+                      }
+                    } else if (currentResp.answers && typeof currentResp.answers === "object") {
+                      answersObj = currentResp.answers;
+                    }
+
+                    return (
+                      <div className="space-y-5">
+                        {/* Stepper Navigation */}
+                        <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-700">
+                              Response {individualIndex + 1} of {responsesData.length}
+                            </span>
+                            <select
+                              value={individualIndex}
+                              onChange={(e) => setIndividualIndex(Number(e.target.value))}
+                              className="h-8 px-2 text-xs rounded-lg border border-slate-200 bg-white font-medium text-slate-800"
+                            >
+                              {responsesData.map((r, idx) => (
+                                <option key={r.id} value={idx}>
+                                  #{idx + 1} - {r.customer_name || r.customer_readable_id || "Customer"} ({r.status})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={individualIndex === 0}
+                              onClick={() => setIndividualIndex((i) => Math.max(0, i - 1))}
+                              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed transition-colors"
+                            >
+                              <ChevronLeft className="w-3.5 h-3.5" />
+                              <span>Previous</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={individualIndex >= responsesData.length - 1}
+                              onClick={() => setIndividualIndex((i) => Math.min(responsesData.length - 1, i + 1))}
+                              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed transition-colors"
+                            >
+                              <span>Next</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
-                        {/* Breakdown Display */}
-                        {q.distribution && Object.keys(q.distribution).length > 0 ? (
-                          <div className="space-y-1.5 pt-1">
-                            {Object.entries(q.distribution).map(([opt, count]: [string, any]) => {
-                              const totalQ = q.response_count || 1;
-                              const pct = Math.round((Number(count) / totalQ) * 100);
+                        {/* Respondent Metadata Card */}
+                        <div className="p-4 rounded-2xl border border-slate-200 bg-white space-y-3 shadow-2xs">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-slate-900">
+                                  {currentResp.customer_name || currentResp.customer_readable_id || "Respondent"}
+                                </span>
+                                <span className="text-xs font-mono text-slate-400">
+                                  ({currentResp.phone_e164 || currentResp.phone_number || "No phone"})
+                                </span>
+                                {currentResp.customer_city && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
+                                    {currentResp.customer_city}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">
+                                Submitted on: {new Date(currentResp.created_at).toLocaleString()}
+                                {currentResp.completed_at && ` · Completed: ${new Date(currentResp.completed_at).toLocaleTimeString()}`}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${STATUS_BADGES[currentResp.status] || "bg-slate-100"}`}>
+                                {currentResp.status}
+                              </span>
+                              {currentResp.reward_issued && (
+                                <span className="font-mono text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                                  +{currentResp.reward_coins || 50} Coins
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Submission Details */}
+                          <div className="space-y-3 pt-2">
+                            <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                              Submitted Answers ({analyticsData.questions?.length || 0} Questions)
+                            </h5>
+
+                            {(analyticsData.questions || []).map((q: any) => {
+                              const ansVal = answersObj[q.id] ?? answersObj[`q_${q.order_num}`];
+                              const hasAnswer = ansVal !== undefined && ansVal !== null && ansVal !== "";
 
                               return (
-                                <div key={opt} className="text-xs">
-                                  <div className="flex justify-between text-[11px] mb-0.5">
-                                    <span className="text-slate-700 font-medium">{opt}</span>
-                                    <span className="text-slate-400 font-mono">{count} ({pct}%)</span>
+                                <div key={q.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-1.5">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="font-semibold text-slate-800">
+                                      Q{q.order_num}: {q.question_text}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 uppercase font-mono">
+                                      {q.question_type}
+                                    </span>
                                   </div>
-                                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full bg-brand-orange rounded-full"
-                                      style={{ width: `${pct}%` }}
-                                    />
-                                  </div>
+
+                                  {hasAnswer ? (
+                                    <div className="p-2.5 bg-white rounded-lg border border-slate-200 font-medium text-xs text-blue-900 shadow-2xs">
+                                      {Array.isArray(ansVal) ? (
+                                        <div className="flex flex-wrap gap-1">
+                                          {ansVal.map((v: any, vi: number) => (
+                                            <span key={vi} className="px-2 py-0.5 bg-blue-50 text-blue-800 rounded font-semibold text-[11px] border border-blue-100">
+                                              {String(v)}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      ) : typeof ansVal === "boolean" ? (
+                                        ansVal ? "Yes" : "No"
+                                      ) : (
+                                        String(ansVal)
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="text-[11px] text-slate-400 italic">
+                                      (Question was skipped or not answered)
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
                           </div>
-                        ) : q.average !== undefined ? (
-                          <div className="text-xs font-mono text-slate-700">
-                            Average Score: <span className="font-bold text-slate-900">{q.average}</span> (from {q.response_count} ratings)
-                          </div>
-                        ) : (
-                          <div className="text-[11px] text-slate-400 italic">
-                            {q.response_count || 0} responses recorded.
-                          </div>
-                        )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    );
+                  })()
+                )
               )}
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
+              <span className="text-xs text-slate-400">
+                GharSure Survey Intelligence · Authoritative Database Records
+              </span>
               <button
+                type="button"
                 onClick={() => setAnalyticsSurvey(null)}
-                className="px-4 py-2 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold"
+                className="px-4 py-2 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold cursor-pointer transition-colors"
               >
-                Close
+                Close Drawer
               </button>
             </div>
           </div>

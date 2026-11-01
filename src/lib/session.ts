@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 export const SESSION_COOKIE_NAME = "gharsure_session";
@@ -60,19 +60,50 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
 }
 
 /**
- * Get current session from Next.js cookies (Server Components & Server Actions)
+ * Get current session from Next.js headers (Bearer) or cookies (Web)
  */
 export async function getCurrentSession(): Promise<SessionPayload | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  if (!token) return null;
-  return await verifySession(token);
+  // 1. Check Authorization header for Bearer token (Mobile apps / API clients)
+  try {
+    const headerStore = await headers();
+    const authHeader = headerStore.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const bearerToken = authHeader.substring(7).trim();
+      if (bearerToken) {
+        const session = await verifySession(bearerToken);
+        if (session) return session;
+      }
+    }
+  } catch {
+    // headers() might throw in standalone testing or non-request context
+  }
+
+  // 2. Fallback to cookies
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    if (!token) return null;
+    return await verifySession(token);
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Verify session from a NextRequest (Middleware or Route Handler)
  */
 export async function verifyRequestSession(req: NextRequest): Promise<SessionPayload | null> {
+  // 1. Check Authorization header for Bearer token
+  const authHeader = req.headers.get("authorization");
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const bearerToken = authHeader.substring(7).trim();
+    if (bearerToken) {
+      const session = await verifySession(bearerToken);
+      if (session) return session;
+    }
+  }
+
+  // 2. Fallback to HTTP-only cookie
   const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
   return await verifySession(token);

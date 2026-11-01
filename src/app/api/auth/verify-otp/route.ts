@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({
       success: true,
       message: "Authentication successful.",
+      token,
       customer: {
         id: customer.id,
         customerId: customer.customer_id,
@@ -79,6 +80,8 @@ export async function POST(req: NextRequest) {
         fullName: customer.full_name,
         city: customer.city,
         displayName: customer.display_name,
+        referralCode: customer.referral_code,
+        rewardCoins: customer.reward_coins ?? 100,
         onboardingCompleted: customer.onboarding_completed,
       },
       nextStep: customer.onboarding_completed ? "/home" : "/onboarding",

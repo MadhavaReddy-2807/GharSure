@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
         displayName: customer.display_name,
         referralCode: customer.referral_code,
         rewardCoins: customer.reward_coins ?? 100,
+        householdDetails: customer.household_details || {},
         onboardingCompleted: customer.onboarding_completed,
       },
     });

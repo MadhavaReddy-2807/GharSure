@@ -308,7 +308,19 @@ export default function SurveyTakingPage({
 
         {/* Intro Card */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-          <div className="p-6 sm:p-8 border-b border-slate-100 bg-gradient-to-b from-blue-50/40 via-white to-white space-y-3">
+          <div className="p-6 sm:p-8 border-b border-slate-100 bg-gradient-to-b from-blue-50/40 via-white to-white space-y-4">
+            {/* Optional Survey Cover Image */}
+            {(survey?.imageUrl || survey?.image_url) ? (
+              <div className="w-full aspect-[21/9] sm:aspect-[24/9] max-h-56 rounded-xl overflow-hidden border border-slate-200/80 bg-slate-100 shadow-2xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={survey.imageUrl || survey.image_url}
+                  alt={survey?.title || "Survey cover"}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : null}
+
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-[#2563EB] uppercase tracking-wider bg-blue-50 px-2.5 py-0.5 rounded border border-blue-100">
                 {survey?.category || "Research Survey"}
@@ -495,6 +507,16 @@ export default function SurveyTakingPage({
             >
               <ChevronLeft className="w-4 h-4" />
             </Link>
+            {(survey?.imageUrl || survey?.image_url) ? (
+              <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100 shadow-2xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={survey.imageUrl || survey.image_url}
+                  alt={survey?.title || "Survey cover"}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : null}
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-[#2563EB] uppercase tracking-wider bg-blue-50 px-2 py-0.5 rounded">

@@ -58,22 +58,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load cart from localStorage on mount
+  // Load cart from localStorage and server on mount
   useEffect(() => {
+    let localItems: CartItem[] = [];
     try {
       const saved = localStorage.getItem(CART_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // Normalize lineId if migrating from v1
-          const normalized = parsed.map((item: any) => ({
+          localItems = parsed.map((item: any) => ({
             lineId: item.lineId || `${item.product.id}_${item.variantId || "default"}`,
             product: item.product,
             variantId: item.variantId,
             variantName: item.variantName,
             quantity: item.quantity || 1,
           }));
-          setItems(normalized);
+          setItems(localItems);
         }
       }
     } catch {
@@ -81,9 +81,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoaded(true);
     }
+
+    // Attempt to sync with server cart if authenticated
+    fetch("/api/cart")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.success && Array.isArray(data.items)) {
+          if (data.items.length > 0) {
+            setItems(data.items);
+          } else if (localItems.length > 0) {
+            // Push guest local items to server
+            fetch("/api/cart", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ items: localItems }),
+            }).catch(() => {});
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  // Save to localStorage on change
+  // Save to localStorage and sync to server on change
   useEffect(() => {
     if (!isLoaded) return;
     try {
@@ -91,6 +110,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Ignore write errors
     }
+
+    // Debounced sync to server
+    const timeout = setTimeout(() => {
+      fetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      }).catch(() => {});
+    }, 600);
+
+    return () => clearTimeout(timeout);
   }, [items, isLoaded]);
 
   const addToCart = (product: ProductItem, variant?: ProductVariant, qty: number = 1) => {
@@ -145,6 +175,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => {
     setItems([]);
+    fetch("/api/cart", { method: "DELETE" }).catch(() => {});
   };
 
   const clearPurchasedItems = (purchasedLineIds: string[]) => {

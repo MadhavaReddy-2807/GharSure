@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentSession } from "@/lib/session";
+import { getCurrentSession, verifyRequestSession } from "@/lib/session";
 import { isDirectDatabaseConfigured, getDirectSql } from "@/lib/supabase/direct-db";
 import { validateVoucherForOrder } from "@/lib/voucher-db";
 import { z } from "zod";
@@ -17,7 +17,7 @@ const validateCartSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getCurrentSession();
+    const session = (await verifyRequestSession(req)) || (await getCurrentSession());
     const customerId = session?.customerId || "guest";
 
     const body = await req.json();
