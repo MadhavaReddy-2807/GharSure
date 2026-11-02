@@ -682,176 +682,246 @@ export function StoreClientView({
         </section>
       )}
 
-      {/* 6. TRAIL+ & PRODUCT DETAIL MODAL (Option 1: Proceed to Buy, Option 2: Add to Cart) */}
+      {/* 6. TRAIL+ & PRODUCT DETAIL LEFT SIDEBAR DRAWER (Slides out from left on desktop & responsive) */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 border border-slate-200 animate-fade-in max-h-[90vh] overflow-y-auto space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                {selectedProduct.product_type === "TRIAL" ? "Trail+ Item Details" : "Product Specifications"}
-              </span>
-              <button
-                onClick={() => setSelectedProduct(null)}
-                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                aria-label="Close modal"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fade-in cursor-pointer"
+            onClick={() => setSelectedProduct(null)}
+            aria-label="Close product sidebar overlay"
+          />
 
-            {/* Product Photo */}
-            <div className="w-full h-52 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative">
-              <img
-                src={selectedProduct.image_url}
-                alt={selectedProduct.title}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-bold text-[#2563EB] uppercase text-xs">
-                  {selectedProduct.brand}
-                </span>
-                <span className="text-slate-300">·</span>
-                <span className="text-slate-500 font-medium text-xs">{selectedProduct.category}</span>
-                {selectedProduct.score && (
-                  <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold text-slate-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                    <span>{Number(selectedProduct.score).toFixed(1)}</span>
+          {/* Left-Aligned Drawer Container */}
+          <div className="fixed inset-y-0 left-0 max-w-full flex pr-6 sm:pr-12 pointer-events-none">
+            <div className="w-screen max-w-md md:max-w-lg bg-white shadow-2xl flex flex-col justify-between animate-slide-in-left border-r border-slate-200 pointer-events-auto h-full">
+              {/* Header */}
+              <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[11px] font-bold text-[#2563EB] bg-blue-50 px-2.5 py-0.5 rounded uppercase tracking-wider border border-blue-100 shrink-0">
+                    {selectedProduct.brand || "GharSure"}
                   </span>
-                )}
-              </div>
-              <h3 className="text-base font-bold text-slate-900">{selectedProduct.title}</h3>
-              <p className="text-slate-600 text-xs mt-1 leading-relaxed">{selectedProduct.summary}</p>
-            </div>
-
-            {/* Variant Selector if present */}
-            {selectedProduct.variants && selectedProduct.variants.length > 0 && (
-              <div className="space-y-1.5 pt-1">
-                <label className="text-xs font-bold text-slate-700">Select Edition / Size:</label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedProduct.variants.map((v) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setSelectedVariant(v)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer",
-                        selectedVariant?.id === v.id
-                          ? "border-[#2563EB] bg-blue-50 text-[#2563EB]"
-                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                      )}
-                    >
-                      {v.name}
-                    </button>
-                  ))}
+                  <span className="text-xs font-semibold text-slate-500 truncate">
+                    {selectedProduct.product_type === "TRIAL" ? "Trail+ Item" : selectedProduct.category}
+                  </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedProduct(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+                  aria-label="Close product drawer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-            )}
 
-            {/* REAL DATABASE SPECIFICATIONS ONLY (No dummy specifications or fake claims) */}
-            {(() => {
-              let parsedSpecs: Record<string, any> = {};
-              if (typeof selectedProduct.specifications === "string") {
-                try {
-                  parsedSpecs = JSON.parse(selectedProduct.specifications);
-                } catch {
-                  parsedSpecs = {};
-                }
-              } else if (
-                selectedProduct.specifications &&
-                typeof selectedProduct.specifications === "object" &&
-                !Array.isArray(selectedProduct.specifications)
-              ) {
-                parsedSpecs = selectedProduct.specifications;
-              }
-
-              const validEntries = Object.entries(parsedSpecs).filter(
-                ([k, v]) =>
-                  !/^\d+$/.test(k) &&
-                  typeof v !== "object" &&
-                  v !== null &&
-                  v !== undefined &&
-                  String(v).trim() !== ""
-              );
-
-              return (
-                <div className="space-y-2 pt-1">
-                  <span className="text-xs font-bold text-slate-700">Specifications (Authoritative Data):</span>
-                  {validEntries.length > 0 ? (
-                    <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden text-xs">
-                      {validEntries.map(([k, v]) => (
-                        <div key={k} className="p-2.5 px-3 flex items-center justify-between">
-                          <span className="text-slate-500 capitalize">{k.replace(/([A-Z])/g, " $1")}</span>
-                          <span className="text-slate-900 font-semibold">{String(v)}</span>
-                        </div>
-                      ))}
+              {/* Scrollable Body */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+                {/* Product Photo Showcase */}
+                <div className="w-full h-64 sm:h-72 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 relative group flex items-center justify-center">
+                  <img
+                    src={selectedProduct.image_url}
+                    alt={selectedProduct.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {selectedProduct.product_type === "TRIAL" && (
+                    <div className="absolute top-3 left-3 bg-amber-500 text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow-md tracking-wider flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      <span>Trail+ Sample</span>
                     </div>
-                  ) : (
-                    <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-500">
-                      Standard manufacturer specifications verified for residential deployment.
+                  )}
+                  {selectedProduct.score && (
+                    <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-full shadow-sm border border-slate-200/80 flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      <span className="text-xs font-bold text-slate-800">
+                        {Number(selectedProduct.score).toFixed(1)}
+                      </span>
                     </div>
                   )}
                 </div>
-              );
-            })()}
 
-            {/* Pricing & Stock Status */}
-            <div className="flex items-center justify-between pt-2">
-              <div>
-                <span className="text-[10px] font-semibold text-slate-400 uppercase block">Price</span>
-                {selectedProduct.product_type === "TRIAL" ? (
-                  <div className="text-sm font-bold font-mono text-amber-900 flex items-center gap-1">
-                    <Coins className="w-4 h-4 text-amber-600" />
-                    <span>
-                      {selectedProduct.coin_price === 0
-                        ? "Free Trial (0 Coins)"
-                        : `${selectedProduct.coin_price} Coins`}
+                {/* Title & Brand Info */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-[#2563EB] uppercase text-xs tracking-wider">
+                      {selectedProduct.brand}
                     </span>
+                    <span className="text-slate-300">·</span>
+                    <span className="text-slate-500 font-medium text-xs">{selectedProduct.category}</span>
                   </div>
-                ) : (
-                  <div className="text-base font-bold font-mono text-slate-900">
-                    ₹{Number(selectedVariant?.price_inr ?? selectedProduct.price_inr ?? 0).toLocaleString("en-IN")}
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">
+                    {selectedProduct.title}
+                  </h2>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                      {selectedProduct.summary}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Variant Selector if present */}
+                {selectedProduct.variants && selectedProduct.variants.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                      <span>Select Edition / Size:</span>
+                      {selectedVariant && (
+                        <span className="text-[#2563EB] font-semibold">{selectedVariant.name}</span>
+                      )}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProduct.variants.map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => setSelectedVariant(v)}
+                          className={cn(
+                            "px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
+                            selectedVariant?.id === v.id
+                              ? "border-[#2563EB] bg-blue-50 text-[#2563EB] shadow-xs font-bold ring-1 ring-blue-500/20"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                          )}
+                        >
+                          {v.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
+
+                {/* Authoritative Database Specifications */}
+                {(() => {
+                  let parsedSpecs: Record<string, any> = {};
+                  if (typeof selectedProduct.specifications === "string") {
+                    try {
+                      parsedSpecs = JSON.parse(selectedProduct.specifications);
+                    } catch {
+                      parsedSpecs = {};
+                    }
+                  } else if (
+                    selectedProduct.specifications &&
+                    typeof selectedProduct.specifications === "object" &&
+                    !Array.isArray(selectedProduct.specifications)
+                  ) {
+                    parsedSpecs = selectedProduct.specifications;
+                  }
+
+                  const validEntries = Object.entries(parsedSpecs).filter(
+                    ([k, v]) =>
+                      !/^\d+$/.test(k) &&
+                      typeof v !== "object" &&
+                      v !== null &&
+                      v !== undefined &&
+                      String(v).trim() !== ""
+                  );
+
+                  return (
+                    <div className="space-y-2 pt-1">
+                      <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        Specifications & Details
+                      </span>
+                      {validEntries.length > 0 ? (
+                        <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden text-xs bg-white shadow-xs">
+                          {validEntries.map(([k, v]) => (
+                            <div key={k} className="p-3 px-3.5 flex items-center justify-between hover:bg-slate-50/50">
+                              <span className="text-slate-500 font-medium capitalize">
+                                {k.replace(/([A-Z])/g, " $1")}
+                              </span>
+                              <span className="text-slate-900 font-semibold text-right">{String(v)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-500 leading-relaxed">
+                          Standard manufacturer specifications verified for residential deployment by GharSure.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Assurance & Delivery Perks */}
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/80 flex items-start gap-2.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="text-[11px] leading-tight">
+                      <p className="font-bold text-slate-900">GharSure Verified</p>
+                      <p className="text-slate-500 text-[10px] mt-0.5">100% Genuine Quality</p>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/80 flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <div className="text-[11px] leading-tight">
+                      <p className="font-bold text-slate-900">Resident Dispatch</p>
+                      <p className="text-slate-500 text-[10px] mt-0.5">Quick Society Delivery</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="text-right">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase block">Availability</span>
-                <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>In Stock</span>
-                </span>
+              {/* Sticky Bottom Actions Bar */}
+              <div className="p-4 sm:p-5 border-t border-slate-200 bg-white/95 backdrop-blur-xs shrink-0 space-y-3">
+                {/* Pricing & Stock Status */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Price
+                    </span>
+                    {selectedProduct.product_type === "TRIAL" ? (
+                      <div className="text-base font-bold font-mono text-amber-900 flex items-center gap-1.5">
+                        <Coins className="w-4 h-4 text-amber-600" />
+                        <span>
+                          {selectedProduct.coin_price === 0
+                            ? "Free Trial (0 Coins)"
+                            : `${selectedProduct.coin_price} Coins`}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-lg font-bold font-mono text-slate-900">
+                        ₹{Number(selectedVariant?.price_inr ?? selectedProduct.price_inr ?? 0).toLocaleString("en-IN")}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Status
+                    </span>
+                    <span className="text-xs font-bold text-emerald-700 flex items-center gap-1.5 justify-end">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>In Stock</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Primary Actions: Add to Cart & Buy Now */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  {/* Option 2: Add to Cart */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAddToCart(selectedProduct, selectedVariant);
+                      setSelectedProduct(null);
+                    }}
+                    className="py-3 px-4 rounded-xl border border-[#2563EB] text-[#2563EB] hover:bg-blue-50 font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.98]"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>Add to Cart</span>
+                  </button>
+
+                  {/* Option 1: Buy Now / Proceed to Buy */}
+                  <button
+                    type="button"
+                    onClick={() => handleProceedToBuy(selectedProduct, selectedVariant)}
+                    className="py-3 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow-md active:scale-[0.98]"
+                  >
+                    <span>Buy Now</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-
-            {/* EXACTLY TWO PRIMARY ACTIONS (Requirement 5) */}
-            <div className="pt-3 border-t border-slate-100 grid grid-cols-2 gap-3">
-              {/* Option 2: Add to Cart */}
-              <button
-                type="button"
-                onClick={() => {
-                  handleAddToCart(selectedProduct, selectedVariant);
-                  setSelectedProduct(null);
-                }}
-                className="py-2.5 px-4 rounded-xl border border-[#2563EB] text-[#2563EB] hover:bg-blue-50 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <ShoppingBag className="w-3.5 h-3.5" />
-                <span>Add to Cart</span>
-              </button>
-
-              {/* Option 1: Proceed to Buy */}
-              <button
-                type="button"
-                onClick={() => handleProceedToBuy(selectedProduct, selectedVariant)}
-                className="py-2.5 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <span>Proceed to Buy</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
             </div>
           </div>
         </div>
