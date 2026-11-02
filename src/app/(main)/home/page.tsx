@@ -88,40 +88,11 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8 w-full max-w-7xl mx-auto pb-16">
-      {/* 1. RESIDENT GREETING & BALANCE SUMMARY */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
-        <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <span className="font-semibold text-slate-700">{city}</span>
-            <span>•</span>
-            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Verified Household</span>
-            </span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Welcome back, {displayName}
-          </h1>
-        </div>
-
-        {/* Clean Wallet Summary with Blue Button */}
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-              Reward Balance
-            </div>
-            <div className="text-base font-bold font-mono text-slate-900 flex items-center justify-end gap-1">
-              <Coins className="w-4 h-4 text-amber-500" />
-              <span>{balance.toLocaleString()} Coins</span>
-            </div>
-          </div>
-          <Link
-            href="/store"
-            className="px-4 py-2 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors shadow-xs"
-          >
-            Explore Store
-          </Link>
-        </div>
+      {/* 1. RESIDENT GREETING (Minimal: Just Welcome Back) */}
+      <div className="pb-4 border-b border-slate-200">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          Welcome back, {displayName}
+        </h1>
       </div>
 
       {/* 2. ADMIN-CONTROLLED HERO PROMOTIONAL BANNER */}
