@@ -40,9 +40,6 @@ export function getDirectSql() {
     prepare: false,
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForSql.sqlInstance = sql;
-  }
-
+  globalForSql.sqlInstance = sql;
   return sql;
 }

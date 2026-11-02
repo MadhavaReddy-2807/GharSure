@@ -31,6 +31,7 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
           {/* Brand Logo (Left) */}
           <Link
             href="/home"
+            prefetch={true}
             className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
           >
             <Logo size="sm" showText />
@@ -48,6 +49,7 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "text-xs sm:text-sm tracking-wide transition-colors select-none py-1 relative font-medium",
@@ -70,6 +72,7 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
             {/* GharSure Coins Badge */}
             <Link
               href="/rewards"
+              prefetch={true}
               className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100/80 border border-amber-200 text-amber-900 transition-colors text-xs select-none"
               title="GharSure Coins"
             >
@@ -100,6 +103,7 @@ export function AppHeader({ fullName, coins = 0 }: AppHeaderProps) {
             {/* Profile Avatar & Name */}
             <Link
               href="/profile"
+              prefetch={true}
               className={cn(
                 "flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border transition-all select-none text-xs",
                 pathname === "/profile"

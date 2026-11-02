@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { CartProvider } from "@/context/cart-context";
 import { CartDrawer } from "@/components/cart-drawer";
+import { cn } from "@/lib/utils";
 
 interface MainAppShellProps {
   customerName?: string | null;
@@ -23,15 +24,16 @@ export function MainAppShell({ customerName, customerCoins, children }: MainAppS
         {/* Top Application Header (Preserved across all destinations including surveys) */}
         <AppHeader fullName={customerName} coins={customerCoins} />
 
-        {/* Main Content Area: Responsive container */}
+        {/* Main Content Area: Responsive container with stable min-height & seamless transition */}
         <main
-          className={
-            isSurvey
-              ? "flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-8 flex flex-col"
-              : "flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-6 pb-20 md:pb-10 flex flex-col"
-          }
+          className={cn(
+            "flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-6 flex flex-col min-h-[calc(100vh-4rem)]",
+            isSurvey ? "py-5 md:py-8" : "pb-24 md:pb-10"
+          )}
         >
-          {children}
+          <div key={pathname} className="animate-fade-in flex-1 flex flex-col w-full">
+            {children}
+          </div>
         </main>
 
         {/* Persistent Bottom Navigation (mobile only, hidden during active survey) */}

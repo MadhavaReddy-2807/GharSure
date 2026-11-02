@@ -29,29 +29,29 @@ export default async function ProfilePage() {
   let orders: any[] = [];
 
   if (customer) {
-    if (isDirectDatabaseConfigured()) {
-      try {
-        const sql = getDirectSql();
-        const [surveyStat] = await sql`
-          SELECT count(*)::text as count FROM survey_responses 
-          WHERE customer_id = ${customer.id} AND status = 'COMPLETED';
-        `;
-        surveysCompleted = parseInt(surveyStat?.count || "0", 10);
-
-        const [refStat] = await sql`
-          SELECT count(*)::text as count FROM referral_attributions
-          WHERE referrer_id = ${customer.id} AND status = 'REWARDED';
-        `;
-        referralsRewarded = parseInt(refStat?.count || "0", 10);
-      } catch {
-        // Fallback
-      }
-    }
-
     try {
-      orders = await listCustomerOrders(customer.id);
+      const [surveyRes, refRes, orderList] = await Promise.all([
+        isDirectDatabaseConfigured()
+          ? getDirectSql()`
+              SELECT count(*)::text as count FROM survey_responses 
+              WHERE customer_id = ${customer.id} AND status = 'COMPLETED';
+            `.catch(() => [])
+          : Promise.resolve([]),
+        isDirectDatabaseConfigured()
+          ? getDirectSql()`
+              SELECT count(*)::text as count FROM referral_attributions
+              WHERE referrer_id = ${customer.id} AND status = 'REWARDED';
+            `.catch(() => [])
+          : Promise.resolve([]),
+        listCustomerOrders(customer.id).catch(() => []),
+      ]);
+      const [surveyStat] = surveyRes as any[];
+      const [refStat] = refRes as any[];
+      surveysCompleted = parseInt(surveyStat?.count || "0", 10);
+      referralsRewarded = parseInt(refStat?.count || "0", 10);
+      orders = orderList;
     } catch {
-      orders = [];
+      // Fallback
     }
   }
 

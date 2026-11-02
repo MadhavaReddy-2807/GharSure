@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies, headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { cache } from "react";
 
 export const SESSION_COOKIE_NAME = "gharsure_session";
 const SESSION_EXPIRY_SECONDS = 30 * 24 * 60 * 60; // 30 days
@@ -60,9 +61,9 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
 }
 
 /**
- * Get current session from Next.js headers (Bearer) or cookies (Web)
+ * Get current session from Next.js headers (Bearer) or cookies (Web) - cached per request
  */
-export async function getCurrentSession(): Promise<SessionPayload | null> {
+export const getCurrentSession = cache(async function getCurrentSession(): Promise<SessionPayload | null> {
   // 1. Check Authorization header for Bearer token (Mobile apps / API clients)
   try {
     const headerStore = await headers();
@@ -87,7 +88,7 @@ export async function getCurrentSession(): Promise<SessionPayload | null> {
   } catch {
     return null;
   }
-}
+});
 
 /**
  * Verify session from a NextRequest (Middleware or Route Handler)

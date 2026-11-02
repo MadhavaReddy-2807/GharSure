@@ -33,11 +33,12 @@ export default async function HomePage() {
   let banners: any[] = [];
   let sections: any[] = [];
   let quickPolls: any[] = [];
+  let customerSurveys: any[] = [];
 
   if (isDirectDatabaseConfigured()) {
     try {
       const sql = getDirectSql();
-      [trendingProducts, banners, sections, quickPolls] = await Promise.all([
+      const [pRows, bRows, sRows, polls, surveys] = await Promise.all([
         sql`
           SELECT id, title, price_inr, brand, category, score, product_type, coin_price, image_url, is_hot_pick, is_featured
           FROM products
@@ -53,8 +54,14 @@ export default async function HomePage() {
           ORDER BY display_order ASC;
         `,
         sql`SELECT * FROM home_sections ORDER BY display_order ASC;`,
-        listAvailableQuickPolls(customer?.id),
+        listAvailableQuickPolls(customer?.id).catch(() => []),
+        customer?.id ? listAvailableSurveysForCustomer(customer.id).catch(() => []) : Promise.resolve([]),
       ]);
+      trendingProducts = pRows;
+      banners = bRows;
+      sections = sRows;
+      quickPolls = polls;
+      customerSurveys = surveys;
     } catch (err) {
       console.warn("[Home] Error loading dynamic home content:", err);
     }
@@ -72,15 +79,9 @@ export default async function HomePage() {
   }
 
   // Active survey if user logged in
-  let featuredSurvey: any = null;
-  if (customer?.id) {
-    try {
-      const surveys = await listAvailableSurveysForCustomer(customer.id);
-      featuredSurvey = surveys.find((s) => s.userStatus === "IN_PROGRESS" || s.userStatus === "AVAILABLE");
-    } catch {
-      featuredSurvey = null;
-    }
-  }
+  const featuredSurvey = customerSurveys.find(
+    (s) => s.userStatus === "IN_PROGRESS" || s.userStatus === "AVAILABLE"
+  ) || null;
 
   const activePoll = quickPolls.find((p) => !p.hasVoted) || quickPolls[0];
   const primaryBanner = banners[0] || null;
@@ -126,10 +127,12 @@ export default async function HomePage() {
       {/* 2. ADMIN-CONTROLLED HERO PROMOTIONAL BANNER */}
       {primaryBanner && (
         <section aria-labelledby="hero-banner-heading" className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-xs bg-slate-900">
-          <div className="relative h-48 sm:h-64 w-full">
+          <div className="relative h-48 sm:h-64 w-full bg-slate-800">
             <img
               src={primaryBanner.desktop_image_url}
               alt={primaryBanner.title}
+              loading="eager"
+              fetchPriority="high"
               className="w-full h-full object-cover opacity-80"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent p-6 sm:p-8 flex flex-col justify-end">
@@ -267,6 +270,8 @@ export default async function HomePage() {
                     "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500&auto=format&fit=crop&q=80"
                   }
                   alt={p.title}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                 />
                 {p.is_hot_pick && (

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import crypto from "crypto";
 import { getSupabaseServerClient } from "./server";
 import { isDirectDatabaseConfigured, getDirectSql } from "./direct-db";
@@ -702,7 +703,7 @@ export async function getOrCreateCustomer(phoneE164: string): Promise<CustomerRe
   return inMemoryDb.upsertCustomer(phoneE164);
 }
 
-export async function getCustomerById(id: string): Promise<CustomerRecord | null> {
+export const getCustomerById = cache(async function getCustomerById(id: string): Promise<CustomerRecord | null> {
   if (!id) return null;
 
   // 1. Direct PostgreSQL connection via connection string
@@ -739,9 +740,9 @@ export async function getCustomerById(id: string): Promise<CustomerRecord | null
   }
 
   return inMemoryDb.getCustomerById(id);
-}
+});
 
-export async function getCustomerByPhone(phone: string): Promise<CustomerRecord | null> {
+export const getCustomerByPhone = cache(async function getCustomerByPhone(phone: string): Promise<CustomerRecord | null> {
   if (!phone) return null;
 
   if (isDirectDatabaseConfigured()) {
@@ -776,7 +777,7 @@ export async function getCustomerByPhone(phone: string): Promise<CustomerRecord 
   }
 
   return inMemoryDb.getCustomerById(phone);
-}
+});
 
 export async function updateCustomerProfile(
   id: string,

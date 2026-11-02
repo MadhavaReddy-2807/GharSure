@@ -137,6 +137,15 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // 5. Authenticated users visiting root "/" -> direct instant edge redirect to /home or /onboarding
+  if (pathname === "/" && isAuthenticated) {
+    if (isOnboardingCompleted) {
+      return NextResponse.redirect(new URL("/home", req.url));
+    } else {
+      return NextResponse.redirect(new URL("/onboarding", req.url));
+    }
+  }
+
   return NextResponse.next();
 }
 

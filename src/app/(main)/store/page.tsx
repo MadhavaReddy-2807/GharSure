@@ -39,21 +39,24 @@ export default async function StorePage() {
   if (isDirectDatabaseConfigured()) {
     try {
       const sql = getDirectSql();
-      products = await sql`
-        SELECT 
-          id, title, summary, price_inr, coin_price, brand, category, score,
-          specifications, scorecard_details, evidence_sources, product_type,
-          inventory_stock, is_featured, is_hot_pick, is_recommended, is_new_arrival,
-          is_best_seller, discount_percent, display_order, image_url, status
-        FROM products
-        WHERE status = 'PUBLISHED'
-        ORDER BY display_order ASC, is_featured DESC, is_hot_pick DESC, score DESC NULLS LAST, created_at DESC;
-      `;
-
-      variants = await sql`
-        SELECT id, product_id, title, price_inr, coin_price, inventory_stock
-        FROM product_variants;
-      `;
+      const [pRows, vRows] = await Promise.all([
+        sql`
+          SELECT 
+            id, title, summary, price_inr, coin_price, brand, category, score,
+            specifications, scorecard_details, evidence_sources, product_type,
+            inventory_stock, is_featured, is_hot_pick, is_recommended, is_new_arrival,
+            is_best_seller, discount_percent, display_order, image_url, status
+          FROM products
+          WHERE status = 'PUBLISHED'
+          ORDER BY display_order ASC, is_featured DESC, is_hot_pick DESC, score DESC NULLS LAST, created_at DESC;
+        `,
+        sql`
+          SELECT id, product_id, title, price_inr, coin_price, inventory_stock
+          FROM product_variants;
+        `,
+      ]);
+      products = pRows;
+      variants = vRows;
     } catch (err) {
       console.warn("[Store] Could not load products from DB, using fallback:", err);
       products = [];
