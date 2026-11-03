@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cart-context";
+import { useOverlayControl } from "@/lib/use-overlay";
 import {
   X,
   Plus,
@@ -29,6 +30,8 @@ export function CartDrawer() {
     totalCoins,
   } = useCart();
 
+  useOverlayControl(isCartOpen, closeCart);
+
   if (!isCartOpen) return null;
 
   const handleProceedToBuy = () => {
@@ -40,14 +43,15 @@ export function CartDrawer() {
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fade-in cursor-pointer"
         onClick={closeCart}
+        aria-label="Close cart overlay"
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between animate-slide-left border-l border-slate-200">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-4 sm:pl-10 pointer-events-none">
+        <div className="w-screen max-w-md sm:max-w-lg bg-white shadow-2xl flex flex-col justify-between animate-slide-left border-l border-slate-200 pointer-events-auto h-full overflow-hidden">
           {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-white">
+          <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-slate-800" />
               <h2 className="text-base font-bold text-slate-900">Your Cart</h2>
@@ -56,13 +60,19 @@ export function CartDrawer() {
               </span>
             </div>
 
-            <button
-              onClick={closeCart}
-              className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-              aria-label="Close cart"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <span className="hidden sm:inline text-[10px] font-mono text-slate-400 uppercase font-semibold px-1.5 py-0.5 rounded border border-slate-200">
+                ESC
+              </span>
+              <button
+                type="button"
+                onClick={closeCart}
+                className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Close cart"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Cart Content */}

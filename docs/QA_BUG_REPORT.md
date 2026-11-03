@@ -1,0 +1,10 @@
+# GharSure QA Bug & Remediation Report
+
+| Defect ID | Severity | Component | Defect Description | Root Cause | Remediation Applied | Verification Status |
+|---|---|---|---|---|---|---|
+| **BUG-001** | P1 | `StoreClientView` | Product detail modal was a cramped center popup on desktop. | Initial modal used centered flex box without multi-column responsive layout. | Redesigned into a wide 2-column desktop drawer with image gallery, specs, variant chips, and quantity stepper. | **FIXED & VERIFIED** |
+| **BUG-002** | P1 | `store-client.tsx` | Search placeholder overlapped with the magnifying glass icon. | Tailwind class `pl-8.5` was invalid, causing browser to drop left padding. | Replaced with `pl-10`, centered icon vertically with `top-1/2 -translate-y-1/2`, added `pointer-events-none`. | **FIXED & VERIFIED** |
+| **BUG-003** | P1 | `rewards-client.tsx` | Upload file popup exceeded viewport height, pushing submit actions offscreen. | Modal lacked `max-h` constraint and flex-column layout with independent scrolling. | Restructured into bounded modal (`max-h-[85vh]`) with sticky header, scrollable body, live thumbnail preview, and sticky footer. | **FIXED & VERIFIED** |
+| **BUG-004** | P2 | App Overlays | Modals and drawers did not close when pressing `Escape` and allowed background body scrolling. | Missing keyboard event listeners and document body overflow lock. | Created `useOverlayControl` hook and applied across all user and admin dialogs. | **FIXED & VERIFIED** |
+| **BUG-005** | P2 | `HomePage` | Home header had cluttered coin counts and badges when user requested minimal greeting. | Header contained duplicate wallet summary and verified resident pills. | Replaced with clean minimal `Welcome back, {displayName}` greeting. | **FIXED & VERIFIED** |
+| **BUG-006** | P2 | `RewardsClientView` | Available balance was redundantly displayed in the rewards activity header. | Redundant wallet counter in rewards view. | Removed available balance counter from the rewards header. | **FIXED & VERIFIED** |

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useOverlayControl } from "@/lib/use-overlay";
 import {
   ShoppingBag,
   Plus,
@@ -110,6 +111,10 @@ export default function AdminStorePage() {
   const [strikeOffProduct, setStrikeOffProduct] = useState<AdminProduct | null>(null);
   const [strikeOffReason, setStrikeOffReason] = useState("");
   const [isStrikingOff, setIsStrikingOff] = useState(false);
+
+  // Overlay control for Escape key and body scroll lock
+  useOverlayControl(isModalOpen, () => setIsModalOpen(false));
+  useOverlayControl(Boolean(strikeOffProduct), () => setStrikeOffProduct(null));
 
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);

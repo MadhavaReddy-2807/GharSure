@@ -20,6 +20,7 @@ import {
   Eye,
   Plus,
 } from "lucide-react";
+import { useOverlayControl } from "@/lib/use-overlay";
 
 interface Transaction {
   id: string;
@@ -125,6 +126,12 @@ export default function AdminRewardsPage() {
   const [reasonCode, setReasonCode] = useState("SUPPORT_GOODWILL");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Overlay control for Escape key and body scroll lock
+  useOverlayControl(Boolean(rejectModalItem), () => setRejectModalItem(null));
+  useOverlayControl(isActivityModalOpen, () => setIsActivityModalOpen(false));
+  useOverlayControl(isPollModalOpen, () => setIsPollModalOpen(false));
+  useOverlayControl(isAdjustmentOpen, () => setIsAdjustmentOpen(false));
 
   const fetchLedger = useCallback(async () => {
     try {

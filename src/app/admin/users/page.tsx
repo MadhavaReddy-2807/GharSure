@@ -20,6 +20,7 @@ import {
   MapPin,
   Calendar,
 } from "lucide-react";
+import { useOverlayControl } from "@/lib/use-overlay";
 
 interface Customer {
   id: string;
@@ -72,6 +73,10 @@ export default function AdminUsersPage() {
     customer: Customer;
   } | null>(null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
+
+  // Overlay control for Escape key and body scroll lock
+  useOverlayControl(Boolean(selectedCustomerId), () => setSelectedCustomerId(null));
+  useOverlayControl(Boolean(confirmAction), () => setConfirmAction(null));
 
   const fetchCustomers = useCallback(async () => {
     setIsLoading(true);

@@ -42,6 +42,7 @@ import {
   User,
   Star,
 } from "lucide-react";
+import { useOverlayControl } from "@/lib/use-overlay";
 import {
   validateSurveyDefinition,
   computeApplicableQuestions,
@@ -210,6 +211,12 @@ export default function AdminSurveysPage() {
   // Delete Survey Modal State
   const [surveyToDelete, setSurveyToDelete] = useState<Survey | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Keyboard Escape and body scroll lock for drawers & modals
+  useOverlayControl(isCreateOpen, () => setIsCreateOpen(false));
+  useOverlayControl(Boolean(surveyToDelete), () => setSurveyToDelete(null));
+  useOverlayControl(Boolean(builderSurvey), () => setBuilderSurvey(null));
+  useOverlayControl(Boolean(analyticsSurvey), () => setAnalyticsSurvey(null));
 
   // Load Surveys
   const fetchSurveys = useCallback(async () => {

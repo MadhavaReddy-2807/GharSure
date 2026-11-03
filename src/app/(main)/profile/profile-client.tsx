@@ -22,6 +22,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useOverlayControl } from "@/lib/use-overlay";
 
 interface ProfileClientViewProps {
   fullName: string;
@@ -79,6 +80,11 @@ export function ProfileClientView({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Keyboard Escape and body scroll lock for modals
+  useOverlayControl(isEditing, () => setIsEditing(false));
+  useOverlayControl(isSignOutModalOpen, () => setIsSignOutModalOpen(false));
+  useOverlayControl(isDeleteModalOpen, () => setIsDeleteModalOpen(false));
 
   // Handle Edit Profile Save
   const handleSaveProfile = async (e: React.FormEvent) => {
