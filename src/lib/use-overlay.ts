@@ -2,8 +2,12 @@
 
 import { useEffect, useCallback } from "react";
 
+// Global active modal counter to handle multiple or nested overlays safely
+let activeOverlayCount = 0;
+
 /**
  * Hook to lock body scroll and handle Escape key for modals, drawers, and popups.
+ * Guaranteed to clean up and restore scroll when all overlays close.
  */
 export function useOverlayControl(
   isOpen: boolean,
@@ -28,9 +32,8 @@ export function useOverlayControl(
       window.addEventListener("keydown", handleKeyDown);
     }
 
-    let originalOverflow = "";
     if (lockScroll) {
-      originalOverflow = document.body.style.overflow;
+      activeOverlayCount++;
       document.body.style.overflow = "hidden";
     }
 
@@ -39,7 +42,10 @@ export function useOverlayControl(
         window.removeEventListener("keydown", handleKeyDown);
       }
       if (lockScroll) {
-        document.body.style.overflow = originalOverflow;
+        activeOverlayCount = Math.max(0, activeOverlayCount - 1);
+        if (activeOverlayCount === 0) {
+          document.body.style.removeProperty("overflow");
+        }
       }
     };
   }, [isOpen, handleKeyDown, lockScroll, closeOnEscape]);

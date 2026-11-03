@@ -729,7 +729,7 @@ export function RewardsClientView({
             </div>
 
             {/* Scrollable Content Body */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 text-xs">
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4 text-xs overscroll-contain">
               <div>
                 <span className="text-sm font-bold text-slate-900 block">{uploadActivity.title}</span>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">{uploadActivity.description}</p>

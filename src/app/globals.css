@@ -59,20 +59,18 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Smooth fade-in animation */
+/* Smooth fade-in animation (pure opacity to avoid creating stacking/containing blocks for fixed modals) */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Slide in animations for drawers */

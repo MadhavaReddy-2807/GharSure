@@ -18,6 +18,11 @@ export function MainAppShell({ customerName, customerCoins, children }: MainAppS
   const pathname = usePathname();
   const isSurvey = pathname?.startsWith("/surveys");
 
+  // Always restore document body scroll when navigating across routes
+  React.useEffect(() => {
+    document.body.style.removeProperty("overflow");
+  }, [pathname]);
+
   return (
     <CartProvider>
       <div className="min-h-screen bg-slate-50/50 flex flex-col antialiased">

@@ -499,7 +499,7 @@ export function ProfileClientView({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5 text-xs">
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3.5 text-xs overscroll-contain">
               {editError && (
                 <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
