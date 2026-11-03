@@ -30,6 +30,25 @@ interface RewardsClientProps {
   isLoggedIn: boolean;
 }
 
+function formatAcceptedFormats(formats?: string[]): string {
+  if (!formats || formats.length === 0) return "PDF, PNG, JPG";
+  const mapped = formats.map((f) => {
+    const lower = f.toLowerCase();
+    if (lower.includes("pdf")) return "PDF";
+    if (lower.includes("png")) return "PNG";
+    if (lower.includes("jpeg") || lower.includes("jpg")) return "JPG";
+    if (lower.includes("webp")) return "WEBP";
+    return f.replace(/^[a-z]+\//, "").toUpperCase();
+  });
+  return Array.from(new Set(mapped)).join(", ");
+}
+
+function formatMaxFileSize(bytes?: number): string {
+  if (!bytes) return "10MB";
+  const mb = Math.round(bytes / (1024 * 1024));
+  return `${mb}MB`;
+}
+
 export function RewardsClientView({
   initialSurveys,
   initialFileActivities,
@@ -383,82 +402,155 @@ export function RewardsClientView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {fileActivities.map((act) => {
-              const sub = act.userSubmission;
+          {fileActivities.length === 0 ? (
+            <div className="p-6 rounded-lg border border-slate-200 bg-white text-center">
+              <FileText className="w-6 h-6 text-slate-300 mx-auto mb-1.5" />
+              <p className="text-xs font-medium text-slate-500">
+                All requested document activities are currently completed.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {fileActivities.map((act) => {
+                const sub = act.userSubmission;
+                const isCurrentUploading = isSubmittingFile && uploadActivity?.id === act.id;
 
-              return (
-                <div
-                  key={act.id}
-                  className="p-4 rounded-lg border border-slate-200 bg-white flex flex-col justify-between hover:border-slate-300 transition-colors"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                        Document Upload
+                return (
+                  <div
+                    key={act.id}
+                    className="p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-colors flex flex-col"
+                  >
+                    {/* 1. Activity category and coin reward on the same row */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        {act.document_type ? act.document_type.replace(/_/g, " ") : "Document Upload"}
                       </span>
-                      <span className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      <span className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 shrink-0">
                         +{act.coin_reward} Coins
                       </span>
                     </div>
 
-                    <h3 className="text-sm font-semibold text-slate-900 leading-snug">{act.title}</h3>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{act.description}</p>
+                    {/* 2. Activity title */}
+                    <h3 className="text-sm font-semibold text-slate-900 leading-snug mt-2">
+                      {act.title}
+                    </h3>
+
+                    {/* 3. Short description */}
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      {act.description}
+                    </p>
+
+                    {/* 4. Instructions in a compact, optional information area */}
                     {act.instructions && (
-                      <p className="text-[11px] text-slate-400 mt-1.5 italic bg-slate-50 p-2 rounded border border-slate-100">
-                        Instructions: {act.instructions}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <div>
-                      {sub ? (
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
-                              sub.status === "APPROVED" || sub.status === "REWARD_CREDITED"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : sub.status === "REJECTED"
-                                ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                : "bg-blue-50 text-blue-700 border border-blue-200"
-                            }`}
-                          >
-                            {sub.status === "REWARD_CREDITED" ? "Reward Credited" : sub.status.replace("_", " ")}
-                          </span>
-                          <span className="text-[11px] text-slate-400 truncate max-w-[140px]">
-                            {sub.file_name}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">PDF, PNG, JPG (up to 10MB)</span>
-                      )}
-                    </div>
-
-                    {!sub || sub.status === "REJECTED" ? (
-                      <button
-                        onClick={() => {
-                          setUploadActivity(act);
-                          setSelectedFile(null);
-                          setFileError("");
-                          setFileSuccess("");
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors shadow-sm cursor-pointer"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>{sub?.status === "REJECTED" ? "Re-upload" : "Upload File"}</span>
-                      </button>
-                    ) : (
-                      <div className="text-xs text-emerald-600 font-medium flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Submitted</span>
+                      <div className="mt-2.5 text-[11px] text-slate-600 bg-slate-50/80 border border-slate-100 rounded-md px-2.5 py-1.5 leading-relaxed">
+                        <span className="font-semibold text-slate-700">Instructions:</span>{" "}
+                        <span>{act.instructions}</span>
                       </div>
                     )}
+
+                    {/* Rejection notice if previously rejected */}
+                    {sub?.status === "REJECTED" && sub.rejection_reason && (
+                      <div className="mt-2 text-[11px] text-rose-700 bg-rose-50 border border-rose-200/80 rounded-md px-2.5 py-1.5 leading-relaxed">
+                        <span className="font-semibold text-rose-800">Reason for Rejection:</span>{" "}
+                        <span>{sub.rejection_reason}</span>
+                      </div>
+                    )}
+
+                    {/* 5. Properly aligned bottom action row */}
+                    <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                      {/* Left: Accepted file formats / maximum size or submission status */}
+                      <div className="min-w-0 flex-1">
+                        {isCurrentUploading ? (
+                          <span className="text-xs text-blue-600 font-medium truncate block">
+                            Uploading document...
+                          </span>
+                        ) : !sub ? (
+                          <span className="text-xs text-slate-400 truncate block">
+                            {formatAcceptedFormats(act.accepted_formats)} (up to {formatMaxFileSize(act.max_file_size_bytes)})
+                          </span>
+                        ) : sub.status === "APPROVED" || sub.status === "REWARD_CREDITED" ? (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                              Approved
+                            </span>
+                            <span className="text-xs text-slate-400 truncate max-w-[130px] sm:max-w-[180px]" title={sub.file_name}>
+                              {sub.file_name}
+                            </span>
+                          </div>
+                        ) : sub.status === "REJECTED" ? (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
+                              Rejected
+                            </span>
+                            <span className="text-xs text-slate-400 truncate">
+                              {formatAcceptedFormats(act.accepted_formats)} (up to {formatMaxFileSize(act.max_file_size_bytes)})
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                              Pending Review
+                            </span>
+                            <span className="text-xs text-slate-400 truncate max-w-[130px] sm:max-w-[180px]" title={sub.file_name}>
+                              {sub.file_name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: Upload File button or status badge */}
+                      <div className="shrink-0">
+                        {isCurrentUploading ? (
+                          <div className="inline-flex items-center gap-1.5 text-xs text-blue-600 font-medium">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Uploading</span>
+                          </div>
+                        ) : !sub ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUploadActivity(act);
+                              setSelectedFile(null);
+                              setFileError("");
+                              setFileSuccess("");
+                            }}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Upload File</span>
+                          </button>
+                        ) : sub.status === "REJECTED" ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUploadActivity(act);
+                              setSelectedFile(null);
+                              setFileError("");
+                              setFileSuccess("");
+                            }}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>Retry Upload</span>
+                          </button>
+                        ) : sub.status === "APPROVED" || sub.status === "REWARD_CREDITED" ? (
+                          <div className="flex items-center gap-1 text-xs text-emerald-600 font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>+{sub.reward_coins_awarded || act.coin_reward} Coins</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Submitted</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 
