@@ -3,10 +3,16 @@ import { getCurrentSession, verifyRequestSession } from "@/lib/session";
 import { submitQuickPollVote } from "@/lib/rewards-activities-db";
 import { z } from "zod";
 
-const voteSchema = z.object({
-  pollId: z.string().min(1, "Poll ID is required"),
-  selectedOptionIds: z.array(z.string().min(1)).min(1, "Select at least one option"),
-});
+const voteSchema = z
+  .object({
+    pollId: z.string().min(1, "Poll ID is required"),
+    selectedOptionIds: z.array(z.string().min(1)).optional(),
+    optionId: z.string().min(1).optional(),
+  })
+  .refine(
+    (data) => (data.selectedOptionIds && data.selectedOptionIds.length > 0) || Boolean(data.optionId),
+    { message: "Select at least one option" }
+  );
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,10 +33,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const optionIds =
+      parsed.data.selectedOptionIds && parsed.data.selectedOptionIds.length > 0
+        ? parsed.data.selectedOptionIds
+        : [parsed.data.optionId!];
+
     const result = await submitQuickPollVote({
       pollId: parsed.data.pollId,
       customerId: session.customerId,
-      selectedOptionIds: parsed.data.selectedOptionIds,
+      selectedOptionIds: optionIds,
     });
 
     if (!result.success) {
